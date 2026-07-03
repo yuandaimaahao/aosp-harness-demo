@@ -1,0 +1,9 @@
+# ① 代码智能层：让 clangd 按 symbol 导航
+#
+# DEMO：这里用相对路径指向 demo 产物；真实工程里必须写【绝对路径】，
+#       指向 out/soong/development/ide/compdb-feature/（防多树共存时被 CLI flag 劫持）。
+CompileFlags:
+  # AOSP 的 compdb 已带全套 bionic -isystem，切勿加 --query-driver（会把宿主 glibc 头混入 bionic）
+  CompilationDatabase: ./demo-out/compdb-feature/
+Index:
+  Background: Build

@@ -1,0 +1,35 @@
+{
+  "//": "DEMO —— 2 hooks registration + 4 permissions hard-gate. Real tree: <AOSP_ROOT>/.claude/settings.json",
+
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/load-feature.sh" } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-branch-drift.sh" } ] }
+    ]
+  },
+
+  "permissions": {
+    "ask": [
+      "Bash(adb push:*)",
+      "Bash(adb sync:*)",
+      "Bash(adb reboot:*)",
+      "Bash(adb remount:*)",
+      "Bash(adb install:*)",
+      "Bash(adb uninstall:*)",
+      "Bash(adb shell rm:*)",
+      "Bash(adb shell stop:*)",
+      "Bash(repo sync:*)",
+      "Bash(cvd start:*)",
+      "Bash(cvd stop:*)",
+      "Bash(cvd reset:*)",
+      "Bash(launch_cvd:*)",
+      "Bash(stop_cvd:*)",
+      "Bash(m clean:*)",
+      "Bash(m installclean:*)",
+      "Bash(make clean:*)",
+      "Bash(make installclean:*)"
+    ]
+  }
+}
