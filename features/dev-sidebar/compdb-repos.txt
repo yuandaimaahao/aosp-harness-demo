@@ -1,0 +1,8 @@
+# gen-compdb-clangd.sh 的单一事实源：本 feature 需要进 clangd compdb 的仓。
+# = features/dev-sidebar/_index.md 涉及仓清单里「有 C++」的子集。
+# build/make、system/sepolicy 无 C++，不列（列了也过滤不出任何条目）。
+# 无参跑 ./gen-compdb-clangd.sh 时按当前分支自动读这里；改这里即改默认仓集。
+# 每行一个仓前缀，# 起注释、空行忽略。
+frameworks/base
+frameworks/native
+packages/apps/SidebarApp

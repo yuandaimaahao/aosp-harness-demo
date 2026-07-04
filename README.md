@@ -30,6 +30,7 @@ aosp-harness-demo/                        # ← 真实环境里这是 <AOSP_ROOT
 └── features/                             # ② 真实环境是独立 git 仓（不在 manifest，gerrit/soong 全不可见）
     └── dev-sidebar/                      # 目录名 = repo 分支名 = feature 名
         ├── _index.md                     # ② 启动注入的索引（几百 token）
+        ├── compdb-repos.txt              # ① compdb 仓集单一事实源（gen-compdb 无参时按分支读）
         ├── frameworks-base.md            # ② 单仓约定（只写 feature 特有内容，按需 Read）
         ├── check-branch.sh               # ② 涉及仓分支一致性检查
         └── verify-sidebar.sh             # ④ 确定性验证脚本（带 --demo）
@@ -69,7 +70,7 @@ echo '{"cwd":"'$PWD'"}' | .claude/hooks/load-feature.sh   # ② 注入
 ## 从 Demo 到真实工程要改什么
 
 - `.clangd` 的 `CompilationDatabase` 改成**绝对路径**（指向 `out/soong/development/ide/compdb-feature/`）。
-- `gen-compdb-clangd.sh` 去掉 `--demo` 分支，走真实 `SOONG_GEN_COMPDB=1 m nothing`（需 bash、source 后不接 pipe）。
+- `gen-compdb-clangd.sh` 去掉 `--demo` 分支，走真实 `SOONG_GEN_COMPDB=1 m nothing`（需 bash、source 后不接 pipe）；无参时它已按当前 git 分支自动读 `features/<分支>/compdb-repos.txt`（`detect_feature` 内置 git 优先、`CURRENT_FEATURE` 回退），真实树无需额外改动。
 - `load-feature.sh` / `check-branch-drift.sh` 把"读 `CURRENT_FEATURE` 文件"换成"读锚定仓（frameworks/base → frameworks/native → …）的当前 git 分支"。
 - `features/` 初始化成独立 git 仓（`git init`），可推私有 remote 跨机同步；它不进 manifest，故 gerrit/soong 全不可见。
 - `verify-sidebar.sh` 去掉 `--demo`，走真实 `adb` 断言（此时 `adb push/reboot` 会命中 `permissions.ask` 弹窗）。
