@@ -32,6 +32,6 @@ snap=""
 
 if [ -n "$snap" ] && [ -n "$cur" ] && [ "$cur" != "$snap" ]; then
   echo "⚠️ [分支漂移] 会话注入时在 '$snap'，现在切到了 '$cur'。"
-  echo "   先 Read features/$cur/_index.md 拿到新 feature 的上下文，别拿旧分支的约定改新分支。"
+  echo "   根 CLAUDE.md 软链仍指向旧 feature；重启会话让 SessionStart hook 重指到 features/$cur/CLAUDE.md，别拿旧分支的约定改新分支。"
 fi
 # 未漂移 → 零输出

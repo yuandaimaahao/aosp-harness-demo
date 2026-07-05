@@ -1,7 +1,8 @@
 # run-demo.sh / gen-compdb-clangd.sh --demo 的生成产物
 demo-out/
 
-# load-feature.sh 物化到各仓根的 CLAUDE.md（真实环境用各仓 .git/info/exclude 隔离；
-# demo 各仓非独立 git 仓，改用顶层 .gitignore 模拟"对 git 隐身、不提交"）。根 CLAUDE.md 保留。
-**/CLAUDE.md
-!/CLAUDE.md
+# SessionStart hook 遇到「真实文件根」时留的备份（v2 软链模型下正常不产生；根本就是软链）
+CLAUDE.md.bak.*
+
+# 说明：v2 里树根 CLAUDE.md 是指向 features/<分支>/CLAUDE.md 的软链，已提交进仓（展示结构）；
+# 不再有 load-feature 物化到各仓根的 CLAUDE.md（v1 做法，已废）。
