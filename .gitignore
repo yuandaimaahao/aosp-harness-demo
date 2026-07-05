@@ -1,2 +1,7 @@
 # run-demo.sh / gen-compdb-clangd.sh --demo 的生成产物
 demo-out/
+
+# load-feature.sh 物化到各仓根的 CLAUDE.md（真实环境用各仓 .git/info/exclude 隔离；
+# demo 各仓非独立 git 仓，改用顶层 .gitignore 模拟"对 git 隐身、不提交"）。根 CLAUDE.md 保留。
+**/CLAUDE.md
+!/CLAUDE.md

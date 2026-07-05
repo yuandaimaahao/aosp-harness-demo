@@ -13,8 +13,13 @@ sep() { echo; echo "############################################################
 sep "① 代码智能：两段式 compdb 精简（全树库 → feature 精简库）"
 ./gen-compdb-clangd.sh --demo
 
-sep "② 上下文（SessionStart 注入）：模拟 Claude Code 启动，触发 load-feature.sh"
+sep "② 上下文（SessionStart 注入 + 物化各仓 CLAUDE.md）：模拟 Claude Code 启动，触发 load-feature.sh"
 echo "{\"cwd\":\"$PWD\",\"hook_event_name\":\"SessionStart\"}" | .claude/hooks/load-feature.sh
+echo
+echo "  —— 物化产物：各仓根出现 CLAUDE.md（编辑该仓文件时 Claude Code 按需加载该仓约定）——"
+for r in frameworks/base frameworks/native; do
+  [ -f "$r/CLAUDE.md" ] && echo "    $r/CLAUDE.md  ← $(head -n1 "$r/CLAUDE.md")"
+done
 
 sep "② 上下文（漂移检测）：模拟会话中途 repo checkout 切了分支"
 orig="$(cat CURRENT_FEATURE)"

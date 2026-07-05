@@ -8,13 +8,11 @@
 
 ## 涉及仓（本 feature 只动这些，清单外默认不动）
 
-| 仓 | 干什么 | 单仓约定 / skill |
-|---|---|---|
-| `frameworks/base` | SidebarService + SystemServer 注册 | 按需 Read `features/dev-sidebar/frameworks-base.md`；编译走 `build-services-jar` skill |
-| `frameworks/native` | SidebarFlinger（native 合成侧） | 编译走 `build-services-jar` / native 对应 skill |
-| `packages/apps/SidebarApp` | 常驻边栏 app | 边栏 app 编译/push skill |
-| `build/make` | 产品配置接入新模块 | 无 C++，不进 compdb |
-| `system/sepolicy` | 新服务的 SELinux 策略 | Read 时激活 `build-sepolicy` skill |
+仓清单 + 各仓约定文件 + compdb 标记的**单一事实源**是本目录 `repos.tsv`
+（`load-feature.sh` 据它物化各仓 CLAUDE.md；`gen-compdb-clangd.sh` 据它取 compdb 仓集）。
+当前涉及：`frameworks/base`、`frameworks/native`、`packages/apps/SidebarApp`、`build/make`、`system/sepolicy`
+（前三者标 `compdb`＝有 C++、进 clangd；base/native 有单仓约定文件、会物化成 `<仓>/CLAUDE.md`，
+编辑该仓文件时按需加载）。增删仓改 `repos.tsv` 即可，无需动脚本。
 
 ## 一致性检查
 

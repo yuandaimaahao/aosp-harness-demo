@@ -15,6 +15,7 @@ cat >/dev/null 2>&1 || true
 # ---- 当前 feature：与 load-feature.sh 同逻辑（锚定仓链 → CURRENT_FEATURE 回退） ----
 cur=""
 for repo in frameworks/base frameworks/native system/core; do
+  if [ ! -e "$ROOT/$repo/.git" ]; then continue; fi   # 只认有独立 .git 的仓（demo 占位目录无 .git → 跳过，回退 CURRENT_FEATURE）
   if git -C "$ROOT/$repo" rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
     cur="$(git -C "$ROOT/$repo" rev-parse --abbrev-ref HEAD)"
     break

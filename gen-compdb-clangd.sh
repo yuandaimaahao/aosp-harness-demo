@@ -7,7 +7,7 @@
 # 用法：
 #   ./gen-compdb-clangd.sh [仓前缀 ...]      # 真实模式（需 AOSP 树）
 #   ./gen-compdb-clangd.sh --demo            # DEMO 模式：无需 AOSP 树，造样本数据演示两段式过滤
-#   不带仓前缀 = 按当前分支自动读 features/<分支>/compdb-repos.txt（单一事实源，切 feature 自动跟随；
+#   不带仓前缀 = 按当前分支自动读 features/<分支>/repos.tsv 中标签含 compdb 的仓（单一事实源，切 feature 自动跟随；
 #              demo 无 repo 树，分支取自 CURRENT_FEATURE）；传前缀则临时覆盖，清单缺失回退兜底并告警。
 #
 # 何时重跑：repo sync 后 / 改了 Android.bp、Android.mk / 新增 .c|.cpp 加进模块后。
@@ -15,14 +15,15 @@
 set -e
 cd "$(dirname "$0")"
 
-# feature 涉及仓的来源：命令行参数 > 当前 feature 的 compdb-repos.txt（单一事实源）> 脚本内兜底。
-# 清单缺失时的兜底（应与 features/dev-sidebar/compdb-repos.txt 一致；仅在读不到清单时启用）
+# feature 涉及仓的来源：命令行参数 > 当前 feature 的 repos.tsv（单一事实源，取标签含 compdb 的仓）> 脚本内兜底。
+# 清单缺失时的兜底（应与 features/dev-sidebar/repos.tsv 中标 compdb 的仓一致；仅在读不到清单时启用）
 FALLBACK_REPOS=("frameworks/base" "frameworks/native" "packages/apps/SidebarApp")
 
 # 当前 feature = 锚定仓链的 git 分支；demo 无 repo 树，回退读 CURRENT_FEATURE（与 load-feature.sh 对齐）
 detect_feature() {
   local repo b
   for repo in frameworks/base frameworks/native system/core; do
+    [ -e "$repo/.git" ] || continue                 # 只认有独立 .git 的仓（demo 占位目录无 .git → 跳过，回退 CURRENT_FEATURE）
     if b=$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null); then
       printf '%s' "$b"; return 0
     fi
@@ -30,14 +31,14 @@ detect_feature() {
   [ -f CURRENT_FEATURE ] && tr -d '[:space:]' < CURRENT_FEATURE
 }
 
-# 从 features/<feature>/compdb-repos.txt 读仓清单（# 注释、空行忽略）
+# 从 features/<feature>/repos.tsv 读仓清单，取「标签含 compdb」的仓（列：路径 约定 标签 说明；# 注释、空行忽略）
 load_repos() {
-  local list="features/$1/compdb-repos.txt" first _
+  local list="features/$1/repos.tsv" path conv tags _
   [ -f "$list" ] || return 1
   REPOS=()
-  while read -r first _ || [ -n "$first" ]; do
-    case "$first" in ''|'#'*) continue;; esac
-    REPOS+=("$first")
+  while read -r path conv tags _ || [ -n "$path" ]; do
+    case "$path" in ''|'#'*) continue;; esac
+    case ",$tags," in *,compdb,*) REPOS+=("$path");; esac
   done < "$list"
   [ ${#REPOS[@]} -gt 0 ]
 }
@@ -49,10 +50,10 @@ resolve_repos() {
   fi
   local feature; feature=$(detect_feature || true)
   if [ -n "$feature" ] && load_repos "$feature"; then
-    echo "仓集来源：features/$feature/compdb-repos.txt → ${REPOS[*]}"
+    echo "仓集来源：features/$feature/repos.tsv（标 compdb）→ ${REPOS[*]}"
   else
     REPOS=("${FALLBACK_REPOS[@]}")
-    echo "WARN: 未读到 features/${feature:-?}/compdb-repos.txt，回退兜底仓集：${REPOS[*]}" >&2
+    echo "WARN: 未读到 features/${feature:-?}/repos.tsv，回退兜底仓集：${REPOS[*]}" >&2
   fi
 }
 
