@@ -80,4 +80,3 @@ echo '{"cwd":"'$PWD'"}' | .claude/hooks/load-feature.sh   # ② 软链重指
 - `verify-sidebar.sh` 去掉 `--demo`，走真实 `adb` 断言（此时 `adb push/reboot` 会命中 `permissions.ask` 弹窗）。
 ```
 
----
