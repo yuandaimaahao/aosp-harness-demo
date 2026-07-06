@@ -1,5 +1,5 @@
 {
-  "//": "DEMO —— 2 hooks registration + 4 permissions hard-gate. Real tree: <AOSP_ROOT>/.claude/settings.json",
+  "//": "DEMO —— 3 hooks registration (SessionStart 软链 / UserPromptSubmit 漂移 / PostToolUse compdb 时效补漏) + permissions hard-gate. Real tree: <AOSP_ROOT>/.claude/settings.json",
 
   "hooks": {
     "SessionStart": [
@@ -7,6 +7,10 @@
     ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-branch-drift.sh" } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Bash",  "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compdb-stale-nudge.sh", "if": "Bash(repo sync:*)" } ] },
+      { "matcher": "Write", "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compdb-stale-nudge.sh" } ] }
     ]
   },
 
