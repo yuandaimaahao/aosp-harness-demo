@@ -1,6 +1,6 @@
 # AOSP 整机源码 Harness —— 可运行 Demo
 
-这是[《AOSP 整机源码 Harness 工程探索》](http://ahaoframework.tech/agentic-coding/AOSP%E6%95%B4%E6%9C%BA%E6%BA%90%E7%A0%81Harness%E5%B7%A5%E7%A8%8B%E6%8E%A2%E7%B4%A2.html)一文四层方案的**可运行最小复刻**。它用文中的示例 feature `dev-sidebar`（在 AOSP 17 上新增一个系统服务 + 一个常驻边栏应用）把「代码智能 / 上下文 / 流程 / 护栏与验证」四层的落地物都摆了出来，并给关键脚本加了 `--demo` 模式，让你**不需要一棵真实 AOSP 树也能跑起来看效果**。
+这是[《AOSP 整机源码 Harness 工程探索》](https://transsioner.feishu.cn/docx/SkmjdUAKuonHDax9kUIctYOWnPp)一文四层方案的**可运行最小复刻**。它用文中的示例 feature `dev-sidebar`（在 AOSP 17 上新增一个系统服务 + 一个常驻边栏应用）把「代码智能 / 上下文 / 流程 / 护栏与验证」四层的落地物都摆了出来，并给关键脚本加了 `--demo` 模式，让你**不需要一棵真实 AOSP 树也能跑起来看效果**。
 
 > ⚠️ 这是**教学 Demo**，不是真实约束。真实工程里 `CLAUDE.md`、`.claude/`、`features/` 都是放在 AOSP 树根（一个非 git 仓的 repo 工程根）的游离文件。
 >
