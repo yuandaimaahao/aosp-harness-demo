@@ -1,16 +1,24 @@
 #!/bin/bash
-# ④ 护栏与验证层：dev-sidebar 的确定性验证脚本 —— 就是这个 feature 的"测试"
+# ③ 验证闭环层：dev-sidebar 的确定性验证脚本 —— 就是这个 feature 的"测试"
 #
 #   输出只有确定性的 PASS / FAIL / SKIP（中间态会诱导 agent 把模糊输出读成成功）。
 #   四步断言：设备起来了 → system_server 存活 → 无新增 crash → 新服务/新 app 存在。
 #
 # 用法：
-#   ./verify-sidebar.sh          # 真实模式：走 adb 断言（adb 命中 permissions.ask 弹窗）
-#   ./verify-sidebar.sh --demo   # DEMO 模式：无设备，用样本输出演示 PASS/SKIP
+#   ./verify-sidebar.sh          # 真实模式：走 adb 断言（需连着目标设备）
+#   ./verify-sidebar.sh --demo                # DEMO 模式
+#   ./verify-sidebar.sh --demo --allow-skip   # 探索期显式允许 SKIP
 set -uo pipefail
 
 DEMO=0
-[ "${1:-}" == "--demo" ] && DEMO=1
+ALLOW_SKIP=0
+for arg in "$@"; do
+  case "$arg" in
+    --demo) DEMO=1 ;;
+    --allow-skip) ALLOW_SKIP=1 ;;
+    *) echo "usage: $0 [--demo] [--allow-skip]" >&2; exit 2 ;;
+  esac
+done
 
 pass=0; fail=0; skip=0
 ok()   { echo "PASS  $1"; pass=$((pass+1)); }
@@ -25,7 +33,9 @@ adb_shell() {
       "pidof system_server")             echo "1423" ;;
       "logcat -b crash -d")              echo "" ;;   # 无新增崩溃
       "service list")                    echo "52  sidebar: [android.sidebar.ISidebar]" ;;
-      "pm list packages")               echo "package:com.android.sidebar" ;;
+      "pm list packages")
+        [ "${DEMO_APP_INSTALLED:-1}" == "1" ] && echo "package:com.android.sidebar"
+        ;;
       *)                                  echo "" ;;
     esac
   else
@@ -71,4 +81,16 @@ fi
 
 echo "-------------------------------------------"
 echo "PASS=$pass  FAIL=$fail  SKIP=$skip"
-[ $fail -eq 0 ]   # FAIL>0 → 非零退出，斩断"编过=改对"
+if [ "$fail" -gt 0 ]; then
+  echo "RESULT FAIL"
+  exit 1
+fi
+if [ "$skip" -gt 0 ] && [ "$ALLOW_SKIP" -eq 0 ]; then
+  echo "RESULT INCOMPLETE"
+  exit 1
+fi
+if [ "$skip" -gt 0 ]; then
+  echo "RESULT PASS (SKIP allowed)"
+else
+  echo "RESULT PASS"
+fi

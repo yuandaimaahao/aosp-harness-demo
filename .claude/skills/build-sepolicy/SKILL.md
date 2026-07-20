@@ -5,9 +5,9 @@ paths:
   - "system/sepolicy/**"
 ---
 
-<!-- DEMO —— ③ 流程层示例 skill。paths glob 命中 system/sepolicy/** 时自动激活。 -->
+<!-- DEMO —— ② 流程层示例 skill。paths glob 命中 system/sepolicy/** 时自动激活。 -->
 
-# build-sepolicy（③ 流程：改 sepolicy 时激活）
+# build-sepolicy（② 流程：改 sepolicy 时激活）
 
 新增系统服务后**必须**同步 SELinux 策略，否则服务注册/被访问时 `avc: denied`，服务起不来。这是 CLAUDE.md 六条硬约束之一。
 

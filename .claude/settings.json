@@ -1,5 +1,5 @@
 {
-  "//": "DEMO —— 3 hooks registration (SessionStart 软链 / UserPromptSubmit 漂移 / PostToolUse compdb 时效补漏) + permissions hard-gate. Real tree: <AOSP_ROOT>/.claude/settings.json",
+  "//": "DEMO —— 2 hooks registration (SessionStart 软链 / UserPromptSubmit 漂移). Real tree: <AOSP_ROOT>/.claude/settings.json",
 
   "hooks": {
     "SessionStart": [
@@ -7,33 +7,6 @@
     ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-branch-drift.sh" } ] }
-    ],
-    "PostToolUse": [
-      { "matcher": "Bash",  "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compdb-stale-nudge.sh", "if": "Bash(repo sync:*)" } ] },
-      { "matcher": "Write", "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compdb-stale-nudge.sh" } ] }
-    ]
-  },
-
-  "permissions": {
-    "ask": [
-      "Bash(adb push:*)",
-      "Bash(adb sync:*)",
-      "Bash(adb reboot:*)",
-      "Bash(adb remount:*)",
-      "Bash(adb install:*)",
-      "Bash(adb uninstall:*)",
-      "Bash(adb shell rm:*)",
-      "Bash(adb shell stop:*)",
-      "Bash(repo sync:*)",
-      "Bash(cvd start:*)",
-      "Bash(cvd stop:*)",
-      "Bash(cvd reset:*)",
-      "Bash(launch_cvd:*)",
-      "Bash(stop_cvd:*)",
-      "Bash(m clean:*)",
-      "Bash(m installclean:*)",
-      "Bash(make clean:*)",
-      "Bash(make installclean:*)"
     ]
   }
 }

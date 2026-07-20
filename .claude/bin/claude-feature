@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ROOT="${HARNESS_ROOT:-$DEFAULT_ROOT}"
+source "$DEFAULT_ROOT/.claude/hooks/feature-common.sh"
+
+dry_run=0
+if [[ "${1:-}" == "--dry-run" ]]; then
+  dry_run=1
+  shift
+fi
+
+feature="$(detect_feature "$ROOT" || true)"
+target="$(feature_context_path "$ROOT" "$feature" || true)"
+if [[ -z "$target" ]]; then
+  echo "error: 当前 feature '${feature:-?}' 没有对应的 features/<feature>/CLAUDE.md，Claude 未启动。" >&2
+  exit 1
+fi
+
+if [[ -d "$ROOT/.repo" ]]; then
+  check_branch="$ROOT/features/$feature/check-branch.sh"
+  if [[ ! -x "$check_branch" ]]; then
+    echo "error: 缺少可执行的 $check_branch，无法校验涉及仓分支；Claude 未启动。" >&2
+    exit 1
+  fi
+  HARNESS_ROOT="$ROOT" FEATURE_NAME="$feature" "$check_branch"
+fi
+
+sync_feature_link "$ROOT" "$target"
+echo "[claude-feature] CLAUDE.md -> $target"
+
+if [[ "$dry_run" -eq 1 ]]; then
+  exit 0
+fi
+
+cd "$ROOT"
+exec claude "$@"

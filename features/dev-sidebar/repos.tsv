@@ -1,9 +1,8 @@
-# 涉及仓清单 —— compdb 仓集的机器可读单一事实源（仅 gen-compdb-clangd.sh 消费；
-# 上下文层 v2 起走单文件 CLAUDE.md，load-feature.sh 已不再读这里）。
-# 列：仓路径  独立约定文件(已内联进 CLAUDE.md 或走 skill 的填 -)  标签(逗号分隔,- 为空)  说明
-# 标签 compdb = 该仓有 C++、要进 clangd compile_commands（build/make、system/sepolicy 无 C++ 不打）
-frameworks/base           -  compdb  SidebarService + SystemServer 注册
-frameworks/native         -  compdb  SidebarFlinger（native 合成侧）
-packages/apps/SidebarApp  -  compdb  常驻边栏 app（编译/push 走 skill）
-build/make                -  -       产品配置接入新模块
-system/sepolicy           -  -       新服务 SELinux 策略（走 build-sepolicy skill）
+# 涉及仓清单 —— 机器可读单一事实源：check-branch.sh 检查全部仓是否在 feature 分支；
+# 上下文正文仍在单文件 CLAUDE.md。
+# 列：仓路径  约定文件(已内联进CLAUDE.md或走skill填-)  标签(逗号分隔,-为空)  说明
+frameworks/base           -  -  SidebarService + SystemServer 注册
+frameworks/native         -  -  SidebarFlinger（native 合成侧）
+packages/apps/SidebarApp  -  -  常驻边栏 app（编译/push 走 skill）
+build/make                -  -  产品配置接入新模块
+system/sepolicy           -  -  新服务 SELinux 策略

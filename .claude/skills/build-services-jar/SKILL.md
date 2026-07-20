@@ -5,10 +5,10 @@ paths:
   - "frameworks/base/services/**"
 ---
 
-<!-- DEMO —— ③ 流程层示例 skill。paths glob 命中时（agent Read 到 frameworks/base/services/** 下的文件）自动激活；
+<!-- DEMO —— ② 流程层示例 skill。paths glob 命中时（agent Read 到 frameworks/base/services/** 下的文件）自动激活；
      平时零上下文占用。真实工程里放 AOSP 树根 .claude/skills/，不嵌进 gerrit project（否则被跟踪 → 污染上游）。 -->
 
-# build-services-jar（③ 流程：改 services 代码时激活）
+# build-services-jar（② 流程：改 services 代码时激活）
 
 承载**不随 feature 变**的通用流程；feature 特有内容写在 `features/<分支>/frameworks-base.md`，那里一句话指回本 skill（单一事实源，避免两处漂移）。
 
@@ -27,10 +27,10 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 ## push 清单（快环）
 
 ```bash
-adb root && adb remount            # ← 命中 permissions.ask 弹窗（④ 护栏）
+adb root && adb remount            # ← 会改动真机状态，执行前先确认目标设备
 adb push out/target/product/vsoc_x86_64/system/framework/services.jar \
          /system/framework/services.jar
-adb reboot                         # ← 同样命中弹窗
+adb reboot                         # ← 同样会改动真机状态
 ```
 
 ## 已知坑
