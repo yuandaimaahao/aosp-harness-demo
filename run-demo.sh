@@ -3,6 +3,7 @@
 #
 #   ① 上下文    .claude/bin/claude-feature --dry-run  在 Claude 启动前选定 feature 上下文
 #   ① 上下文    check-branch-drift.sh        会话中途切分支告警
+#   ② 流程      check-process-layer          离线验证流程 skill 工件与关键命令
 #   ③ 验证闭环  verify-sidebar.sh --demo     四步确定性断言
 #
 # 导航不单独成层：本方案不配 LSP，一律 rg + 源码阅读（理由见 README）。
@@ -43,6 +44,10 @@ if ./features/dev-sidebar/check-branch.sh --demo; then
 else
   echo "[demo] 已按预期识别样本分支漂移。"
 fi
+
+sep "② 流程：离线自检编译 / 部署 skill 工件"
+./.claude/bin/check-process-layer
+echo "[demo] 离线模式验证 skill 的结构和关键流程；实际调用发生在 Claude 会话中。"
 
 sep "③ 验证闭环：verify-sidebar.sh --demo 四步确定性断言"
 ./features/dev-sidebar/verify-sidebar.sh --demo

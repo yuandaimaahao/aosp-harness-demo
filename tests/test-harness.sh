@@ -26,6 +26,23 @@ HARNESS_ROOT="$FIXTURE" "$ROOT/.claude/bin/claude-feature" --dry-run >/dev/null
 test -L "$FIXTURE/CLAUDE.md"
 test "$(readlink "$FIXTURE/CLAUDE.md")" = "features/dev-test/CLAUDE.md"
 
+# 当前方案是“树根单文件软链”，demo 不得继续描述已废弃的仓内 CLAUDE.md 物化方案。
+if rg -n 'frameworks-(base|native)\.md|物化.*CLAUDE\.md|同目录下的 CLAUDE\.md' \
+    "$ROOT/frameworks/base/PLACEHOLDER.java" \
+    "$ROOT/frameworks/native/PLACEHOLDER.cpp" \
+    "$ROOT/.claude/skills/build-services-jar/SKILL.md"; then
+  echo "FAIL  demo 仍含已废弃的仓内 CLAUDE.md 物化说明" >&2
+  exit 1
+fi
+
+# run-demo 必须覆盖第②层；离线 demo 通过独立检查入口验证流程 skill 工件。
+test -x "$ROOT/.claude/bin/check-process-layer"
+grep -Fq './.claude/bin/check-process-layer' "$ROOT/run-demo.sh"
+process_output="$("$ROOT/.claude/bin/check-process-layer")"
+grep -Fq 'PASS  build-services-jar skill 工件完整' <<<"$process_output"
+grep -Fq 'PASS  build-sepolicy skill 工件完整' <<<"$process_output"
+grep -Fq 'RESULT PASS' <<<"$process_output"
+
 rm -f "$FIXTURE/CLAUDE.md"
 mkdir "$FIXTURE/.repo"
 printf '%s\n' 'missing/repo - - expected missing repo' > "$FIXTURE/features/dev-test/repos.tsv"
@@ -72,4 +89,4 @@ git -C "$BRANCH_FIXTURE/repos/two" -c user.name=test -c user.email=test@example.
 HARNESS_ROOT="$BRANCH_FIXTURE" FEATURE_NAME=dev-test \
   "$ROOT/features/dev-sidebar/check-branch.sh" >/dev/null
 
-echo "PASS  demo harness startup and strict verification"
+echo "PASS  demo harness startup, process layer, and strict verification"

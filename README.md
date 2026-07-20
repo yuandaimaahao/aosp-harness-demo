@@ -21,7 +21,8 @@ aosp-harness-demo/                        # ← 真实环境里这是 <AOSP_ROOT
 │                                         #   各仓根不物化 harness 文件
 ├── .claude/
 │   ├── bin/
-│   │   └── claude-feature                # ① 推荐启动入口：先同步上下文再启动 Claude
+│   │   ├── claude-feature                # ① 推荐启动入口：先同步上下文再启动 Claude
+│   │   └── check-process-layer           # ② 离线自检流程 skill 工件与关键命令
 │   ├── settings.json                     # ① hooks 注册
 │   ├── hooks/
 │   │   ├── feature-common.sh             # ① 分支探测与软链同步公共函数
@@ -50,14 +51,16 @@ cd aosp-harness-demo
 
 1. **① 上下文**：`.claude/bin/claude-feature --dry-run` 在 Claude 启动前同步软链，随后 SessionStart 只确认状态。
 2. **① 漂移检测**：会话中切 feature 后持续告警，直到通过 wrapper 建立新会话。
-3. **③ 验证**：默认任何 SKIP 都返回 `RESULT INCOMPLETE`；探索期必须显式 `--allow-skip`。
-4. **回归测试**：验证 wrapper、严格 SKIP 和 `repos.tsv` 分支检查。
+3. **② 流程**：`.claude/bin/check-process-layer` 离线检查两个示例 skill 的结构、编译目标、产物和验证入口。它不启动 Claude，也不冒充自动触发测试。
+4. **③ 验证**：默认任何 SKIP 都返回 `RESULT INCOMPLETE`；探索期必须显式 `--allow-skip`。
+5. **回归测试**：验证 wrapper、流程层工件、严格 SKIP 和 `repos.tsv` 分支检查。
 
 单独跑各层：
 
 ```bash
 rg 'SidebarService|SidebarFlinger' .                # 导航基线：rg + 源码阅读，无索引
 ./.claude/bin/claude-feature --dry-run                      # ① 启动前同步
+./.claude/bin/check-process-layer                    # ② 流程 skill 离线自检
 ./features/dev-sidebar/verify-sidebar.sh --demo     # ③ 严格验证
 ./features/dev-sidebar/verify-sidebar.sh --demo --allow-skip  # 探索模式
 ```

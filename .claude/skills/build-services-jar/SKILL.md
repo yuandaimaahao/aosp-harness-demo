@@ -10,7 +10,7 @@ paths:
 
 # build-services-jar（② 流程：改 services 代码时激活）
 
-承载**不随 feature 变**的通用流程；feature 特有内容写在 `features/<分支>/frameworks-base.md`，那里一句话指回本 skill（单一事实源，避免两处漂移）。
+承载**不随 feature 变**的通用流程；feature 特有内容写在 `features/<分支>/CLAUDE.md` 的对应仓小节，那里一句话指回本 skill（单一事实源，避免两处漂移）。
 
 ## 单编目标与产物
 

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# ② 流程层离线自检：不启动 Claude，只验证示例 skill 工件和关键流程内容完整。
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+require_text() {
+  local file="$1"
+  local text="$2"
+  local label="$3"
+
+  if ! grep -Fq "$text" "$file"; then
+    echo "FAIL  $label：$file 缺少 '$text'" >&2
+    exit 1
+  fi
+}
+
+services="$ROOT/.claude/skills/build-services-jar/SKILL.md"
+sepolicy="$ROOT/.claude/skills/build-sepolicy/SKILL.md"
+
+require_text "$services" 'm services' 'build-services-jar 编译命令'
+require_text "$services" 'services.jar' 'build-services-jar 产物'
+require_text "$services" 'verify-*.sh' 'build-services-jar 验证入口'
+echo "PASS  build-services-jar skill 工件完整"
+
+require_text "$sepolicy" 'm selinux_policy' 'build-sepolicy 编译命令'
+require_text "$sepolicy" 'service_contexts' 'build-sepolicy 策略清单'
+require_text "$sepolicy" 'verify-*.sh' 'build-sepolicy 验证入口'
+echo "PASS  build-sepolicy skill 工件完整"
+
+echo "RESULT PASS"
