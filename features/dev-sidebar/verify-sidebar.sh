@@ -6,18 +6,29 @@
 #
 # 用法：
 #   ./verify-sidebar.sh          # 真实模式：走 adb 断言（需连着目标设备）
+#   ./verify-sidebar.sh --since 1753000000.000  # 只检查该 epoch 时间之后的 crash
 #   ./verify-sidebar.sh --demo                # DEMO 模式
 #   ./verify-sidebar.sh --demo --allow-skip   # 探索期显式允许 SKIP
 set -uo pipefail
 
 DEMO=0
 ALLOW_SKIP=0
-for arg in "$@"; do
-  case "$arg" in
+CRASH_SINCE=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
     --demo) DEMO=1 ;;
     --allow-skip) ALLOW_SKIP=1 ;;
-    *) echo "usage: $0 [--demo] [--allow-skip]" >&2; exit 2 ;;
+    --since)
+      shift
+      [ "$#" -gt 0 ] || {
+        echo "usage: $0 [--demo] [--allow-skip] [--since <epoch-seconds>]" >&2
+        exit 2
+      }
+      CRASH_SINCE="$1"
+      ;;
+    *) echo "usage: $0 [--demo] [--allow-skip] [--since <epoch-seconds>]" >&2; exit 2 ;;
   esac
+  shift
 done
 
 pass=0; fail=0; skip=0
@@ -31,7 +42,6 @@ adb_shell() {
     case "$*" in
       "getprop sys.boot_completed")      echo "1" ;;
       "pidof system_server")             echo "1423" ;;
-      "logcat -b crash -d")              echo "" ;;   # 无新增崩溃
       "service list")                    echo "52  sidebar: [android.sidebar.ISidebar]" ;;
       "pm list packages")
         [ "${DEMO_APP_INSTALLED:-1}" == "1" ] && echo "package:com.android.sidebar"
@@ -43,7 +53,37 @@ adb_shell() {
   fi
 }
 
-echo "===== verify dev-sidebar (demo=$DEMO) ====="
+is_epoch() {
+  [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]]
+}
+
+detect_boot_epoch() {
+  if [ "$DEMO" -eq 1 ]; then
+    echo "${DEMO_BOOT_TIME:-0}"
+  else
+    adb_shell cat /proc/stat | awk '$1 == "btime" { print $2; exit }'
+  fi
+}
+
+read_crash_since() {
+  local since="$1"
+  if [ "$DEMO" -eq 1 ]; then
+    [ "${DEMO_CRASH_QUERY_FAIL:-0}" != "1" ] || return 1
+    printf '%s\n' "${DEMO_CRASH_LOG:-}" | awk -v since="$since" '
+      $1 ~ /^[0-9]+([.][0-9]+)?$/ && ($1 + 0) >= (since + 0) { print }
+    '
+  else
+    local logcat_since="$since"
+    [[ "$logcat_since" == *.* ]] || logcat_since="${logcat_since}.000"
+    adb logcat -b crash -d -v epoch -T "$logcat_since" 2>/dev/null
+  fi
+}
+
+if [ -z "$CRASH_SINCE" ]; then
+  CRASH_SINCE="$(detect_boot_epoch 2>/dev/null || true)"
+fi
+
+echo "===== verify dev-sidebar (demo=$DEMO crash_since=${CRASH_SINCE:-unknown}) ====="
 
 # 1) 设备真的起来了
 if [ "$(adb_shell getprop sys.boot_completed | tr -d '[:space:]')" == "1" ]; then
@@ -59,11 +99,18 @@ else
   no "system_server 不在"
 fi
 
-# 3) crash buffer 无新增崩溃
-if [ -z "$(adb_shell logcat -b crash -d | grep -i 'FATAL\|beginning of crash' || true)" ]; then
-  ok "crash buffer 无新增崩溃"
+# 3) crash buffer 在明确时间窗口内无崩溃；查询失败不能冒充空结果。
+if ! is_epoch "$CRASH_SINCE"; then
+  no "crash buffer 检查起点无效（since=${CRASH_SINCE:-empty}）"
 else
-  no "crash buffer 有崩溃记录"
+  crash_output=""
+  if ! crash_output="$(read_crash_since "$CRASH_SINCE")"; then
+    no "crash buffer 查询失败"
+  elif [ -n "$(printf '%s\n' "$crash_output" | sed '/^[[:space:]]*$/d')" ]; then
+    no "crash buffer 自 $CRASH_SINCE 起发现崩溃"
+  else
+    ok "crash buffer 自 $CRASH_SINCE 起无崩溃"
+  fi
 fi
 
 # 4) 新增系统服务 + 边栏 app 存在

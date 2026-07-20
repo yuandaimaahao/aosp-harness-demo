@@ -52,8 +52,8 @@ cd aosp-harness-demo
 1. **① 上下文**：`.claude/bin/claude-feature --dry-run` 在 Claude 启动前同步软链，随后 SessionStart 只确认状态。
 2. **① 漂移检测**：会话中切 feature 后持续告警，直到通过 wrapper 建立新会话。
 3. **② 流程**：`.claude/bin/check-process-layer` 离线检查两个示例 skill 的结构、编译目标、产物和验证入口。它不启动 Claude，也不冒充自动触发测试。
-4. **③ 验证**：默认任何 SKIP 都返回 `RESULT INCOMPLETE`；探索期必须显式 `--allow-skip`。
-5. **回归测试**：验证 wrapper、流程层工件、严格 SKIP 和 `repos.tsv` 分支检查。
+4. **③ 验证**：默认任何 SKIP 都返回 `RESULT INCOMPLETE`；探索期必须显式 `--allow-skip`。crash 检查默认从设备启动时间（`/proc/stat` 的 `btime`）开始，也可用 `--since <epoch-seconds>` 指定部署基线；ADB 查询失败直接记为 FAIL。
+5. **回归测试**：验证 wrapper、流程层工件、严格 SKIP、crash 时间基线/查询失败和 `repos.tsv` 分支检查。
 
 单独跑各层：
 
@@ -63,6 +63,7 @@ rg 'SidebarService|SidebarFlinger' .                # 导航基线：rg + 源码
 ./.claude/bin/check-process-layer                    # ② 流程 skill 离线自检
 ./features/dev-sidebar/verify-sidebar.sh --demo     # ③ 严格验证
 ./features/dev-sidebar/verify-sidebar.sh --demo --allow-skip  # 探索模式
+./features/dev-sidebar/verify-sidebar.sh --since 1753000000    # 真实设备：显式部署基线
 ```
 
 ## 三层与文中章节对应
@@ -80,7 +81,7 @@ rg 'SidebarService|SidebarFlinger' .                # 导航基线：rg + 源码
 - 导航直接用 `rg` 开工，不需要任何索引准备。整机树上同名符号成海，习惯是**先用路径收窄范围，再用高信息量锚点**（JNI 注册名如 `android_view_*`、C++ 的 `Class::method` 全限定名）代替泛词，避免几百条命中灌爆上下文。
 - 日常用 `.claude/bin/claude-feature` 启动。它会先同步根软链并在真实 repo 树运行 `check-branch.sh`，分支缺失或漂移时 fail closed。SessionStart hook 只是兜底。
 - `features/` 初始化成独立 git 仓（`git init`），可推私有 remote 跨机同步；它不进 manifest，故 gerrit/soong 全不可见。编辑经树根软链**直达** `features/<分支>/CLAUDE.md`，改动就在 `features/` 仓里，提交手动。
-- `verify-sidebar.sh` 去掉 `--demo` 后走真实 `adb` 断言。默认 SKIP 不算成功；只有探索阶段才使用 `--allow-skip`。
+- `verify-sidebar.sh` 去掉 `--demo` 后走真实 `adb` 断言。crash 窗口默认始于设备本次启动的 `btime`；若要只覆盖本次部署，用 `--since <epoch-seconds>` 传入部署前记录的设备 epoch。crash buffer 查询失败必须判 FAIL，不能当成“无崩溃”。默认 SKIP 不算成功；只有探索阶段才使用 `--allow-skip`。
 
 ## 子代理原则
 

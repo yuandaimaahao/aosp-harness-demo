@@ -58,7 +58,7 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 **涉及仓**（本 feature 只动这些，清单外默认不动）：`frameworks/base`、`frameworks/native`、`packages/apps/SidebarApp`、`build/make`、`system/sepolicy`。机器可读单一事实源是本目录 `repos.tsv`（分支一致性检查读取它）。各仓 feature 约定见下方 `## 涉及仓约定`。
 
 **一致性检查**：`./features/dev-sidebar/check-branch.sh`（涉及仓是否都在 dev-sidebar 分支）。
-**验证入口**：`./features/dev-sidebar/verify-sidebar.sh`。默认只要有 SKIP 就返回 `RESULT INCOMPLETE`；探索期必须显式加 `--allow-skip`。`--demo` 为无设备演示。
+**验证入口**：`./features/dev-sidebar/verify-sidebar.sh`。crash 检查默认从设备启动时间（`/proc/stat` 的 `btime`）开始；部署前已有历史 crash 时，用 `--since <epoch-seconds>` 显式指定本次部署基线。crash buffer 查询失败直接判 FAIL，不能当成空结果。默认只要有 SKIP 就返回 `RESULT INCOMPLETE`；探索期必须显式加 `--allow-skip`。`--demo` 为无设备演示。
 
 ## 涉及仓约定
 

@@ -64,6 +64,46 @@ grep -Fq 'RESULT INCOMPLETE' <<<"$strict_output"
 allow_output="$(DEMO_APP_INSTALLED=0 "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --allow-skip)"
 grep -Fq 'RESULT PASS (SKIP allowed)' <<<"$allow_output"
 
+# crash 检查必须有时间基线：基线前的历史记录忽略，基线后的记录判 FAIL。
+old_crash_output="$(DEMO_CRASH_LOG='100.000 1 1 F AndroidRuntime: FATAL old crash' \
+  "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200)"
+grep -Fq 'PASS  crash buffer 自 200 起无崩溃' <<<"$old_crash_output"
+
+set +e
+new_crash_output="$(DEMO_CRASH_LOG='300.000 1 1 F AndroidRuntime: FATAL new crash' \
+  "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+new_crash_rc=$?
+set -e
+test "$new_crash_rc" -ne 0
+grep -Fq 'FAIL  crash buffer 自 200 起发现崩溃' <<<"$new_crash_output"
+grep -Fq 'RESULT FAIL' <<<"$new_crash_output"
+
+# adb/logcat 查询失败不能再被空输出误判成“无崩溃”。
+set +e
+crash_error_output="$(DEMO_CRASH_QUERY_FAIL=1 \
+  "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+crash_error_rc=$?
+set -e
+test "$crash_error_rc" -ne 0
+grep -Fq 'FAIL  crash buffer 查询失败' <<<"$crash_error_output"
+grep -Fq 'RESULT FAIL' <<<"$crash_error_output"
+
+# logcat 的纯整数 -T 参数会与“最近 N 行”语义冲突；epoch 秒必须规范化为带小数点。
+adb() {
+  case "$*" in
+    "shell getprop sys.boot_completed") echo 1 ;;
+    "shell pidof system_server") echo 1423 ;;
+    "logcat -b crash -d -v epoch -T 200.000") return 0 ;;
+    "shell service list") echo "52 sidebar: [android.sidebar.ISidebar]" ;;
+    "shell pm list packages") echo "package:com.android.sidebar" ;;
+    *) return 1 ;;
+  esac
+}
+export -f adb
+normalized_since_output="$("$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200)"
+unset -f adb
+grep -Fq 'PASS  crash buffer 自 200 起无崩溃' <<<"$normalized_since_output"
+
 BRANCH_FIXTURE="$(mktemp -d)"
 mkdir -p "$BRANCH_FIXTURE/features/dev-test" "$BRANCH_FIXTURE/repos/one"
 printf '%s\n' \
