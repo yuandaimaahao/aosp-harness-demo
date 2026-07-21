@@ -107,8 +107,9 @@ PY
 
 emit_stop() {
   local stop_reason="$1"
+  local system_message="$2"
 
-  python3 - "$stop_reason" "$SYSTEM_MESSAGE" <<'PY'
+  python3 - "$stop_reason" "$system_message" <<'PY'
 import json
 import sys
 
@@ -123,33 +124,45 @@ PY
 }
 
 if ! session_id="$(parse_session_id 2>/dev/null)"; then
-  echo 'error: invalid hook input' >&2
-  exit 1
+  emit_stop \
+    'AOSP feature guard: invalid hook input; session consistency cannot be verified.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 
 if ! feature="$(detect_feature "$ROOT")"; then
-  echo 'error: unable to detect active feature' >&2
-  exit 1
+  emit_stop \
+    'AOSP feature guard: current feature context is unavailable.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 if ! feature_context_path "$ROOT" "$feature" >/dev/null; then
-  echo 'error: active feature context is unavailable' >&2
-  exit 1
+  emit_stop \
+    'AOSP feature guard: current feature context is unavailable.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 
 umask 077
 if ! STATE_DIR="$(prepare_state_dir "$STATE_DIR" 2>/dev/null)"; then
-  echo 'error: unsafe harness state directory' >&2
-  exit 1
+  emit_stop \
+    'AOSP feature guard: session state is unavailable or unsafe.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 
 snapshot="$STATE_DIR/$session_id.feature"
 if [[ ! -e "$snapshot" && ! -L "$snapshot" ]]; then
-  emit_stop "AOSP feature snapshot is missing for session '$session_id'. Restart the Codex session before continuing."
+  emit_stop \
+    "AOSP feature snapshot is missing for session '$session_id'. Restart the Codex session before continuing." \
+    "$SYSTEM_MESSAGE"
   exit 0
 fi
-if [[ -L "$snapshot" || ! -f "$snapshot" || ! -O "$snapshot" ]]; then
-  echo 'error: unsafe feature snapshot' >&2
-  exit 1
+if [[ -L "$snapshot" || ! -f "$snapshot" || ! -O "$snapshot" || ! -r "$snapshot" ]]; then
+  emit_stop \
+    'AOSP feature guard: session feature snapshot is unsafe, unreadable, or invalid.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 
 if ! snapshot_feature="$(python3 - "$snapshot" 2>/dev/null <<'PY'
@@ -166,12 +179,16 @@ if match is None:
 sys.stdout.buffer.write(match.group(1))
 PY
 )"; then
-  echo 'error: invalid feature snapshot' >&2
-  exit 1
+  emit_stop \
+    'AOSP feature guard: session feature snapshot is unsafe, unreadable, or invalid.' \
+    "$SYSTEM_MESSAGE"
+  exit 0
 fi
 
 if [[ "$snapshot_feature" == "$feature" ]]; then
   exit 0
 fi
 
-emit_stop "AOSP feature drift: session started on '$snapshot_feature', current feature is '$feature'."
+emit_stop \
+  "AOSP feature drift: session started on '$snapshot_feature', current feature is '$feature'." \
+  "$SYSTEM_MESSAGE"

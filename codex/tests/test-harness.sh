@@ -554,13 +554,46 @@ PY
   [[ "$(cat "$state_dir/session-b.feature")" == 'dev-next' ]]
 }
 
+assert_hook_stop() {
+  local rc="$1"
+  local output="$2"
+  local expected_reason="$3"
+
+  [[ "$rc" -eq 0 ]] || return 1
+  python3 - "$output" "$expected_reason" <<'PY'
+import json
+import sys
+
+output, expected_reason = sys.argv[1:]
+data = json.loads(output)
+assert data["continue"] is False
+assert isinstance(data["stopReason"], str) and data["stopReason"]
+assert expected_reason.lower() in data["stopReason"].lower()
+assert data["systemMessage"] == (
+    "Feature changed during this Codex session. Restart with "
+    "./.codex/bin/codex-feature before continuing."
+)
+PY
+}
+
+test_nonzero_only_hook_failure_is_not_a_stop() {
+  local output rc
+
+  set +e
+  output="$(bash -c 'exit 17')"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 17 ]] || return 1
+  if assert_hook_stop "$rc" "$output" ''; then
+    return 1
+  fi
+}
+
 test_invalid_hook_inputs_are_rejected() {
   local state_dir="$FIXTURE/state"
-  local before_files after_files hook payload output rc
-  local hooks=(
-    "$ROOT/.codex/hooks/session-start.sh"
-    "$ROOT/.codex/hooks/check-branch-drift.sh"
-  )
+  local session_start="$ROOT/.codex/hooks/session-start.sh"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
+  local before_files after_files payload output rc
   local invalid_inputs=(
     'not-json'
     '{}'
@@ -573,17 +606,23 @@ test_invalid_hook_inputs_are_rejected() {
   )
 
   before_files="$(find "$state_dir" -maxdepth 1 -type f -printf '%f\n' | sort)"
-  for hook in "${hooks[@]}"; do
-    for payload in "${invalid_inputs[@]}"; do
-      set +e
-      output="$(printf '%s\n' "$payload" | \
-        HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
-        "$hook" 2>&1)"
-      rc=$?
-      set -e
-      [[ "$rc" -ne 0 ]] || return 1
-      [[ "$output" == 'error: invalid hook input' ]] || return 1
-    done
+  for payload in "${invalid_inputs[@]}"; do
+    set +e
+    output="$(printf '%s\n' "$payload" | \
+      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
+      "$session_start" 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    [[ "$output" == 'error: invalid hook input' ]] || return 1
+
+    set +e
+    output="$(printf '%s\n' "$payload" | \
+      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
+      "$drift_check" 2>/dev/null)"
+    rc=$?
+    set -e
+    assert_hook_stop "$rc" "$output" 'invalid hook input' || return 1
   done
   after_files="$(find "$state_dir" -maxdepth 1 -type f -printf '%f\n' | sort)"
 
@@ -596,8 +635,7 @@ test_session_id_length_boundaries() {
   local state_dir="$FIXTURE/state"
   local session_start="$ROOT/.codex/hooks/session-start.sh"
   local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
-  local accepted_id rejected_id accepted_input rejected_input hook output rc
-  local hooks=("$session_start" "$drift_check")
+  local accepted_id rejected_id accepted_input rejected_input output rc
 
   accepted_id="$(python3 -c 'print("a" * 128, end="")')"
   rejected_id="$(python3 -c 'print("b" * 129, end="")')"
@@ -614,16 +652,22 @@ test_session_id_length_boundaries() {
     "$drift_check")" || return 1
   [[ -z "$output" ]] || return 1
 
-  for hook in "${hooks[@]}"; do
-    set +e
-    output="$(printf '%s\n' "$rejected_input" | \
-      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
-      "$hook" 2>&1)"
-    rc=$?
-    set -e
-    [[ "$rc" -ne 0 ]] || return 1
-    [[ "$output" == 'error: invalid hook input' ]] || return 1
-  done
+  set +e
+  output="$(printf '%s\n' "$rejected_input" | \
+    HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
+    "$session_start" 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  [[ "$output" == 'error: invalid hook input' ]] || return 1
+
+  set +e
+  output="$(printf '%s\n' "$rejected_input" | \
+    HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
+    "$drift_check" 2>/dev/null)"
+  rc=$?
+  set -e
+  assert_hook_stop "$rc" "$output" 'invalid hook input' || return 1
   [[ ! -e "$state_dir/$rejected_id.feature" ]]
 }
 
@@ -670,34 +714,39 @@ test_state_directory_creation_and_default_path() {
 test_feature_detection_errors_are_concise() {
   local missing_root="$FIXTURE/hook-missing-feature"
   local context_root="$FIXTURE/hook-missing-context"
-  local input hook case_root expected state_dir output rc
-  local hooks=(
-    "$ROOT/.codex/hooks/session-start.sh"
-    "$ROOT/.codex/hooks/check-branch-drift.sh"
-  )
+  local session_start="$ROOT/.codex/hooks/session-start.sh"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
+  local input case_root expected state_dir output rc
 
   mkdir -p "$missing_root/features" "$context_root/features/dev-test"
   printf '%s\n' 'dev-test' > "$context_root/CURRENT_FEATURE"
   input='{"session_id":"feature-error"}'
 
-  for hook in "${hooks[@]}"; do
-    for case_root in "$missing_root" "$context_root"; do
-      if [[ "$case_root" == "$missing_root" ]]; then
-        expected='error: unable to detect active feature'
-      else
-        expected='error: active feature context is unavailable'
-      fi
-      state_dir="$case_root/state"
-      set +e
-      output="$(printf '%s\n' "$input" | \
-        HARNESS_ROOT="$case_root" CODEX_HARNESS_STATE_DIR="$state_dir" \
-        "$hook" 2>&1)"
-      rc=$?
-      set -e
-      [[ "$rc" -ne 0 ]] || return 1
-      [[ "$output" == "$expected" ]] || return 1
-      [[ ! -e "$state_dir" ]] || return 1
-    done
+  for case_root in "$missing_root" "$context_root"; do
+    if [[ "$case_root" == "$missing_root" ]]; then
+      expected='error: unable to detect active feature'
+    else
+      expected='error: active feature context is unavailable'
+    fi
+    state_dir="$case_root/state"
+    set +e
+    output="$(printf '%s\n' "$input" | \
+      HARNESS_ROOT="$case_root" CODEX_HARNESS_STATE_DIR="$state_dir" \
+      "$session_start" 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    [[ "$output" == "$expected" ]] || return 1
+    [[ ! -e "$state_dir" ]] || return 1
+
+    set +e
+    output="$(printf '%s\n' "$input" | \
+      HARNESS_ROOT="$case_root" CODEX_HARNESS_STATE_DIR="$state_dir" \
+      "$drift_check" 2>/dev/null)"
+    rc=$?
+    set -e
+    assert_hook_stop "$rc" "$output" 'feature context' || return 1
+    [[ ! -e "$state_dir" ]] || return 1
   done
 }
 
@@ -762,11 +811,10 @@ test_unsafe_state_paths_are_rejected() {
   local parent_link="$FIXTURE/unsafe-parent-link"
   local newline_target="$FIXTURE/unsafe-newline-target"
   local newline_link="$FIXTURE/unsafe-newline-state"
-  local newline_path input hook state_path output rc
-  local hooks=(
-    "$ROOT/.codex/hooks/session-start.sh"
-    "$ROOT/.codex/hooks/check-branch-drift.sh"
-  )
+  local session_start="$ROOT/.codex/hooks/session-start.sh"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
+  local newline_path input state_path output rc
+  local -a unsafe_paths
 
   input="$(printf \
     '{"session_id":"state-safety","cwd":"%s","hook_event_name":"SessionStart"}' \
@@ -777,27 +825,36 @@ test_unsafe_state_paths_are_rejected() {
   ln -s "$parent_target" "$parent_link"
   ln -s "$newline_target" "$newline_link"
   newline_path="$newline_link"$'\n'
+  unsafe_paths=(
+    "$state_file"
+    "$state_link"
+    "$state_link/"
+    "$state_link/."
+    "$state_link/./"
+    "$state_target/./dot-component"
+    "$state_target/../dotdot-component"
+    "$newline_path"
+    "$parent_link/nested-state"
+  )
 
-  for hook in "${hooks[@]}"; do
-    for state_path in \
-      "$state_file" \
-      "$state_link" \
-      "$state_link/" \
-      "$state_link/." \
-      "$state_link/./" \
-      "$state_target/./dot-component" \
-      "$state_target/../dotdot-component" \
-      "$newline_path" \
-      "$parent_link/nested-state"; do
-      set +e
-      output="$(printf '%s\n' "$input" | \
-        HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_path" \
-        "$hook" 2>&1)"
-      rc=$?
-      set -e
-      [[ "$rc" -ne 0 ]] || return 1
-      [[ "$output" == 'error: unsafe harness state directory' ]] || return 1
-    done
+  for state_path in "${unsafe_paths[@]}"; do
+    set +e
+    output="$(printf '%s\n' "$input" | \
+      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_path" \
+      "$session_start" 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    [[ "$output" == 'error: unsafe harness state directory' ]] || return 1
+
+    set +e
+    output="$(printf '%s\n' "$input" | \
+      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_path" \
+      "$drift_check" 2>/dev/null)"
+    rc=$?
+    set -e
+    assert_hook_stop "$rc" "$output" 'session state' || return 1
+    [[ "$output" != *"$state_path"* ]] || return 1
   done
 
   [[ ! -e "$state_target/state-safety.feature" ]] || return 1
@@ -806,6 +863,38 @@ test_unsafe_state_paths_are_rejected() {
   [[ ! -e "$newline_target/state-safety.feature" ]] || return 1
   [[ ! -e "$newline_path" ]] || return 1
   [[ ! -e "$parent_target/nested-state" ]]
+}
+
+test_snapshot_integrity_errors_stop_the_turn() {
+  local state_dir="$FIXTURE/state"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
+  local session_id input output rc
+  local session_ids=(
+    'unsafe-snapshot'
+    'nonregular-snapshot'
+    'invalid-snapshot'
+    'unreadable-snapshot'
+  )
+
+  ln -s 'session-a.feature' "$state_dir/unsafe-snapshot.feature"
+  mkdir "$state_dir/nonregular-snapshot.feature"
+  printf '%s\n' 'not a valid feature snapshot' \
+    > "$state_dir/invalid-snapshot.feature"
+  printf '%s\n' 'dev-next' > "$state_dir/unreadable-snapshot.feature"
+  chmod 000 "$state_dir/unreadable-snapshot.feature"
+  [[ ! -r "$state_dir/unreadable-snapshot.feature" ]] || return 1
+
+  for session_id in "${session_ids[@]}"; do
+    input="$(printf '{"session_id":"%s"}' "$session_id")"
+    set +e
+    output="$(printf '%s\n' "$input" | \
+      HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_dir" \
+      "$drift_check" 2>/dev/null)"
+    rc=$?
+    set -e
+    assert_hook_stop "$rc" "$output" 'snapshot' || return 1
+  done
+  chmod 600 "$state_dir/unreadable-snapshot.feature"
 }
 
 test_missing_session_snapshot_fails_closed() {
@@ -1669,7 +1758,8 @@ test_integrated_demo_restores_state_after_failure() {
   set -e
 
   [[ "$rc" -ne 0 ]] || return 1
-  grep -Fq 'error: invalid hook input' <<<"$output" || return 1
+  grep -Fq 'error: 漂移 hook 未返回预期的结构化阻断块' <<<"$output" || return 1
+  ! grep -Fq 'error: invalid hook input' <<<"$output" || return 1
   [[ "$(cat "$python_count")" -eq 3 ]] || return 1
   [[ "$(sha256sum "$case_root/CURRENT_FEATURE" | awk '{print $1}')" == \
     "$original_feature_hash" ]] || return 1
@@ -2359,12 +2449,14 @@ run_regression '.repo regular file does not trigger validation' test_repo_marker
 run_regression 'normal launch preserves cwd and arguments' test_launch_cwd_and_arguments
 run_regression 'hook registrations match the Codex contract' test_hook_configuration
 run_regression 'sessions retain independent feature snapshots and detect drift' test_session_snapshots_and_branch_drift
+run_regression 'nonzero-only hook failures do not satisfy the stop contract' test_nonzero_only_hook_failure_is_not_a_stop
 run_regression 'hook input rejects malformed and unsafe session identifiers' test_invalid_hook_inputs_are_rejected
 run_regression 'session identifiers have a filesystem-safe length bound' test_session_id_length_boundaries
 run_regression 'state directories are created privately at override and default paths' test_state_directory_creation_and_default_path
 run_regression 'feature detection errors are concise and create no state' test_feature_detection_errors_are_concise
 run_regression 'Python encoding cannot redirect validated hook state' test_python_encoding_cannot_redirect_hook_state
 run_regression 'hooks reject unsafe state directory paths' test_unsafe_state_paths_are_rejected
+run_regression 'snapshot integrity errors stop the turn with structured JSON' test_snapshot_integrity_errors_stop_the_turn
 run_regression 'missing session snapshots fail closed with restart guidance' test_missing_session_snapshot_fails_closed
 run_regression 'repository process skills contain the required AOSP guidance' test_process_skill_artifacts
 run_regression 'process layer checker is cwd-independent and reports exact success' test_process_layer_checker
