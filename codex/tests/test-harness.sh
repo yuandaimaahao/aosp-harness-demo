@@ -1083,6 +1083,54 @@ PY
   grep -Fq "FAIL  $expected_label:" <<<"$output"
 }
 
+test_process_layer_checker_rejects_full_build_line() {
+  local case_name="$1" skill_name="$2" original_line="$3" replacement_line="$4"
+  local expected_label="$5" checker="$ROOT/.codex/bin/check-process-layer"
+  local case_root="$FIXTURE/process-layer-full-section-$case_name"
+  local source_services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
+  local source_sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
+  local fixture_services="$case_root/.agents/skills/build-services-jar/SKILL.md"
+  local fixture_sepolicy="$case_root/.agents/skills/build-sepolicy/SKILL.md"
+  local target_file start_marker output rc
+
+  mkdir -p "$(dirname "$fixture_services")" "$(dirname "$fixture_sepolicy")"
+  cp "$source_services" "$fixture_services"
+  cp "$source_sepolicy" "$fixture_sepolicy"
+  case "$skill_name" in
+    build-services-jar)
+      target_file="$fixture_services"
+      start_marker='build-full-services.XXXXXX.log'
+      ;;
+    build-sepolicy)
+      target_file="$fixture_sepolicy"
+      start_marker='build-full-sepolicy.XXXXXX.log'
+      ;;
+    *) return 1 ;;
+  esac
+
+  python3 - "$target_file" "$start_marker" "$original_line" "$replacement_line" <<'PY' || return 1
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+start_marker, original, replacement = sys.argv[2:]
+lines = path.read_text(encoding="utf-8").splitlines()
+start = next(i for i, line in enumerate(lines) if start_marker in line)
+end = next(i for i in range(start, len(lines)) if '[[ -f "$image_artifact" ]]' in lines[i])
+matches = [i for i in range(start, end + 1) if lines[i] == original]
+assert len(matches) == 1, f"{path}: expected one full-build line {original!r}"
+lines[matches[0]] = replacement
+path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY
+
+  set +e
+  output="$(HARNESS_ROOT="$case_root" "$checker" 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fq "FAIL  $expected_label:" <<<"$output"
+}
+
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
 run_regression 'invalid active feature values are rejected' test_invalid_active_features
 run_regression 'NUL bytes in CURRENT_FEATURE are rejected' test_nul_current_feature
@@ -1223,6 +1271,29 @@ run_regression 'process checker rejects the obsolete raw SystemServer allow' \
   'The system_server_service attribute is consumed by add_service(system_server, system_server_service).' \
   'allow system_server sidebar_service:service_manager { add find };' \
   'build-sepolicy raw system_server allow'
+for skill_name in build-services-jar build-sepolicy; do
+  if [[ "$skill_name" == build-services-jar ]]; then
+    skill_case=services
+  else
+    skill_case=sepolicy
+  fi
+  run_regression "process checker binds $skill_case full-build envsetup" \
+    test_process_layer_checker_rejects_full_build_line \
+    "$skill_case-envsetup" "$skill_name" \
+    '  source build/envsetup.sh >/dev/null 2>&1 &&' \
+    '  source build/full-setup.sh >/dev/null 2>&1 &&' \
+    "$skill_name full-image envsetup"
+  run_regression "process checker binds $skill_case full-build lunch" \
+    test_process_layer_checker_rejects_full_build_line \
+    "$skill_case-lunch" "$skill_name" \
+    '  lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 &&' \
+    '  lunch wrong-target >/dev/null 2>&1 &&' \
+    "$skill_name full-image lunch target"
+  run_regression "process checker binds $skill_case full-build m" \
+    test_process_layer_checker_rejects_full_build_line \
+    "$skill_case-m" "$skill_name" '  m' '  true' \
+    "$skill_name full-image compile target"
+done
 
 if [[ "$REGRESSION_FAILURES" -ne 0 ]]; then
   echo "FAIL  $REGRESSION_FAILURES Codex harness regression case(s)" >&2

@@ -67,6 +67,27 @@ reject_text() {
   fi
 }
 
+check_full_build_section() {
+  local file="$1"
+  local start_marker="$2"
+  local label="$3"
+  local section
+
+  section="$(awk -v marker="$start_marker" '
+    index($0, marker) { capture = 1 }
+    capture { print }
+    capture && index($0, "[[ -f \"$image_artifact\" ]]") { complete = 1; exit }
+    END { if (!capture || !complete) exit 1 }
+  ' "$file")" || fail "$label full-image section" "unable to extract full-build region"
+
+  grep -Fq 'source build/envsetup.sh' <<<"$section" || \
+    fail "$label full-image envsetup" "full-build region lacks envsetup"
+  grep -Fq 'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' <<<"$section" || \
+    fail "$label full-image lunch target" "full-build region lacks lunch target"
+  grep -Eq '^[[:space:]]*m[[:space:]]*$' <<<"$section" || \
+    fail "$label full-image compile target" "full-build region lacks standalone m"
+}
+
 services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
 sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
 services_description='Build and deploy AOSP services.jar after changes under frameworks/base/services, including SystemServer services; use for compile targets, artifacts, push steps, ART cache risks, and feature verification.'
@@ -113,6 +134,7 @@ require_text "$services" '[[ "$full_build_rc" -ne 0 ]]' 'build-services-jar full
 require_text "$services" 'grep -Fq "#### build completed successfully ####" "$full_build_log"' 'build-services-jar full-image success marker'
 require_text "$services" 'image_artifact="out/target/product/vsoc_x86_64/system.img"' 'build-services-jar full-image artifact'
 require_text "$services" '[[ -f "$image_artifact" ]]' 'build-services-jar full-image artifact check'
+check_full_build_section "$services" 'build-full-services.XXXXXX.log' 'build-services-jar'
 require_text "$services" 'cvd fleet' 'build-services-jar fleet inspection'
 require_text "$services" 'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' 'build-services-jar CVD group pin'
 reject_regex "$services" '^[[:space:]]*cvd[[:space:]]+(stop|start)' 'build-services-jar CVD group selector'
@@ -162,6 +184,7 @@ require_text "$sepolicy" '[[ "$full_build_rc" -ne 0 ]]' 'build-sepolicy full-ima
 require_text "$sepolicy" 'grep -Fq "#### build completed successfully ####" "$full_build_log"' 'build-sepolicy full-image success marker'
 require_text "$sepolicy" 'image_artifact="out/target/product/vsoc_x86_64/system.img"' 'build-sepolicy full-image artifact'
 require_text "$sepolicy" '[[ -f "$image_artifact" ]]' 'build-sepolicy full-image artifact check'
+check_full_build_section "$sepolicy" 'build-full-sepolicy.XXXXXX.log' 'build-sepolicy'
 require_text "$sepolicy" 'cvd fleet' 'build-sepolicy fleet inspection'
 require_text "$sepolicy" 'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' 'build-sepolicy CVD group pin'
 reject_regex "$sepolicy" '^[[:space:]]*cvd[[:space:]]+(stop|start)' 'build-sepolicy CVD group selector'
