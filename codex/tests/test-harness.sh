@@ -913,6 +913,9 @@ test_process_skill_artifacts() {
     'AGENTS.md' \
     'description' \
     'File paths alone do not select skills.' \
+    'bash -c' \
+    'source build/envsetup.sh' \
+    'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' \
     'm services' \
     '#### build completed successfully ####' \
     '> /tmp/build-services.log 2>&1 &' \
@@ -926,6 +929,7 @@ test_process_skill_artifacts() {
     'ART' \
     'dexpreopt' \
     '/data/dalvik-cache/' \
+    'run `m`, then `cvd stop`, then `cvd start`' \
     'm update-api' \
     'SELinux' \
     'verify-*.sh' \
@@ -936,13 +940,16 @@ test_process_skill_artifacts() {
     'AGENTS.md' \
     'description' \
     'File paths alone do not select skills.' \
+    'bash -c' \
+    'source build/envsetup.sh' \
+    'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' \
     'm selinux_policy' \
     '#### build completed successfully ####' \
     '> /tmp/build-sepolicy.log 2>&1 &' \
     'service_contexts' \
     'service_manager_type' \
-    'allow system_server' \
-    'allow sidebar_app' \
+    'allow system_server sidebar_service:service_manager { add find };' \
+    'allow sidebar_app sidebar_service:service_manager find;' \
     'avc: denied' \
     'service list' \
     'full image' \
@@ -968,29 +975,53 @@ test_process_layer_checker() {
   [[ "$output" == "$expected" ]]
 }
 
-test_process_layer_checker_rejects_missing_fact() {
+test_process_layer_checker_rejects_fact() {
+  local case_name="$1"
+  local skill_name="$2"
+  local original_text="$3"
+  local replacement_text="$4"
+  local expected_label="$5"
   local checker="$ROOT/.codex/bin/check-process-layer"
-  local case_root="$FIXTURE/process-layer-negative"
+  local case_root="$FIXTURE/process-layer-negative-$case_name"
   local source_services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
   local source_sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
   local fixture_services="$case_root/.agents/skills/build-services-jar/SKILL.md"
   local fixture_sepolicy="$case_root/.agents/skills/build-sepolicy/SKILL.md"
+  local target_file
   local output rc
 
   [[ -x "$checker" ]] || return 1
   [[ -f "$source_services" ]] || return 1
   [[ -f "$source_sepolicy" ]] || return 1
   mkdir -p "$(dirname "$fixture_services")" "$(dirname "$fixture_sepolicy")"
-  awk 'index($0, "m update-api") == 0 { print }' \
-    "$source_services" > "$fixture_services"
+  cp "$source_services" "$fixture_services"
   cp "$source_sepolicy" "$fixture_sepolicy"
+
+  case "$skill_name" in
+    build-services-jar) target_file="$fixture_services" ;;
+    build-sepolicy) target_file="$fixture_sepolicy" ;;
+    *) return 1 ;;
+  esac
+  python3 - "$target_file" "$original_text" "$replacement_text" <<'PY' || return 1
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+original = sys.argv[2]
+replacement = sys.argv[3]
+content = path.read_text(encoding="utf-8")
+assert content.count(original) == 1, (
+    f"{path}: expected exactly one fixture occurrence of {original!r}"
+)
+path.write_text(content.replace(original, replacement), encoding="utf-8")
+PY
 
   set +e
   output="$(HARNESS_ROOT="$case_root" "$checker" 2>&1)"
   rc=$?
   set -e
   [[ "$rc" -ne 0 ]] || return 1
-  grep -Fq 'FAIL  build-services-jar update-api guidance' <<<"$output"
+  grep -Fq "FAIL  $expected_label:" <<<"$output"
 }
 
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
@@ -1019,7 +1050,54 @@ run_regression 'hooks reject unsafe state directory paths' test_unsafe_state_pat
 run_regression 'missing session snapshots fail closed with restart guidance' test_missing_session_snapshot_fails_closed
 run_regression 'repository process skills contain the required AOSP guidance' test_process_skill_artifacts
 run_regression 'process layer checker is cwd-independent and reports exact success' test_process_layer_checker
-run_regression 'process layer checker rejects missing required guidance' test_process_layer_checker_rejects_missing_fact
+run_regression 'process checker rejects missing update-api guidance' \
+  test_process_layer_checker_rejects_fact \
+  update-api build-services-jar 'm update-api' 'm refresh-api' \
+  'build-services-jar update-api guidance'
+run_regression 'process checker rejects a non-Bash services build' \
+  test_process_layer_checker_rejects_fact \
+  services-bash build-services-jar 'bash -c' 'sh -c' \
+  'build-services-jar Bash invocation'
+run_regression 'process checker rejects missing services envsetup' \
+  test_process_layer_checker_rejects_fact \
+  services-envsetup build-services-jar 'source build/envsetup.sh' 'source build/setup.sh' \
+  'build-services-jar envsetup command'
+run_regression 'process checker rejects the wrong services lunch target' \
+  test_process_layer_checker_rejects_fact \
+  services-lunch build-services-jar \
+  'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' 'lunch wrong-target' \
+  'build-services-jar lunch target'
+run_regression 'process checker rejects an incomplete services stable-image loop' \
+  test_process_layer_checker_rejects_fact \
+  services-stable-loop build-services-jar \
+  'run `m`, then `cvd stop`, then `cvd start`' \
+  'run `m`, then `cvd halt`, then `cvd start`' \
+  'build-services-jar stable full-image loop'
+run_regression 'process checker rejects a non-Bash sepolicy build' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-bash build-sepolicy 'bash -c' 'sh -c' \
+  'build-sepolicy Bash invocation'
+run_regression 'process checker rejects missing sepolicy envsetup' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-envsetup build-sepolicy 'source build/envsetup.sh' 'source build/setup.sh' \
+  'build-sepolicy envsetup command'
+run_regression 'process checker rejects the wrong sepolicy lunch target' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-lunch build-sepolicy \
+  'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' 'lunch wrong-target' \
+  'build-sepolicy lunch target'
+run_regression 'process checker rejects incomplete system_server permissions' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-server-permissions build-sepolicy \
+  'allow system_server sidebar_service:service_manager { add find };' \
+  'allow system_server sidebar_service:service_manager find;' \
+  'build-sepolicy system_server service-manager permissions'
+run_regression 'process checker rejects a client without find permission' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-client-permission build-sepolicy \
+  'allow sidebar_app sidebar_service:service_manager find;' \
+  'allow sidebar_app sidebar_service:service_manager read;' \
+  'build-sepolicy client service-manager find permission'
 
 if [[ "$REGRESSION_FAILURES" -ne 0 ]]; then
   echo "FAIL  $REGRESSION_FAILURES Codex harness regression case(s)" >&2
