@@ -1896,6 +1896,342 @@ test_operational_readme_contract_and_quick_start() {
   [[ ! -e "$forbidden_calls" ]]
 }
 
+test_long_form_article_contract_and_links() {
+  local article="$ROOT/AOSP整机源码Codex-Harness工程探索.md"
+  local readme="$ROOT/README.md"
+
+  python3 - "$article" "$readme" <<'PY'
+from pathlib import Path
+import re
+import sys
+from urllib.parse import unquote
+
+article = Path(sys.argv[1])
+readme = Path(sys.argv[2])
+assert article.is_file(), f"missing long-form article: {article}"
+
+text = article.read_text(encoding="utf-8")
+lines = text.splitlines()
+markdown_lines = []
+inside_fence = False
+for line in lines:
+    if line.startswith("```"):
+        inside_fence = not inside_fence
+        continue
+    if not inside_fence:
+        markdown_lines.append(line)
+
+h1 = [line for line in markdown_lines if line.startswith("# ")]
+assert h1 == ["# AOSP 整机源码 Codex Harness 工程探索"], h1
+
+expected_h2 = [
+    "## 一、问题：为什么 Codex 在整机源码树上仍需要 Harness",
+    "## 二、官方能力边界：Codex 提供了哪些承载面",
+    "## 三、方案总览：Codex 原生三层 Harness",
+    "## 四、第①层 上下文：启动前选对 AGENTS.md",
+    "## 五、第②层 流程：用 repository skills 渐进披露",
+    "## 六、第③层 验证闭环：只有 RESULT PASS 才算完成",
+    "## 七、串起来：一个 Codex 会话的完整生命周期",
+    "## 八、从 Claude Code 版迁移时不能直接照搬什么",
+    "## 九、工程化加固与测试",
+    "## 十、边界与下一步",
+    "## 结语",
+    "## 参考资料",
+]
+actual_h2 = [line for line in markdown_lines if line.startswith("## ")]
+assert actual_h2 == expected_h2, actual_h2
+
+official_links = [
+    "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+    "https://learn.chatgpt.com/docs/build-skills",
+    "https://learn.chatgpt.com/docs/hooks",
+    "https://learn.chatgpt.com/docs/config-file/config-advanced",
+    "https://learn.chatgpt.com/docs/agent-configuration/subagents",
+    "https://learn.chatgpt.com/docs/developer-commands",
+]
+for link in official_links:
+    assert link in text, f"missing official link: {link}"
+
+required_texts = [
+    "once per run",
+    "global",
+    "project root",
+    "current working directory",
+    "Git 根",
+    "找不到 project root 时只检查当前目录",
+    "project_doc_max_bytes",
+    "32 KiB",
+    "AGENTS.override.md",
+    ".codex/config.toml",
+    "受信任项目",
+    "project_root_markers",
+    "wrapper 固定树根 cwd",
+    ".agents/skills",
+    "渐进式披露",
+    "name、description 和文件路径",
+    "$build-services-jar",
+    "$build-sepolicy",
+    "隐式选择",
+    "description",
+    "没有已文档化的 `paths:` 路径触发契约",
+    ".codex/hooks.json",
+    "inline `[hooks]`",
+    "/hooks",
+    "session_id",
+    "cwd",
+    "hook_event_name",
+    "SessionStart 不会追溯性地替换本次运行的 AGENTS.md",
+    "UserPromptSubmit",
+    '"continue": false',
+    "子代理任务卡",
+    "不会自动继承当前 feature 的全部上下文",
+    "sandbox",
+    "approval",
+    "指导不是授权",
+    ".codex/bin/codex-feature",
+    "features/dev-sidebar/verify-sidebar.sh",
+    "CURRENT_FEATURE",
+    "repos.tsv",
+    "manifest 之外的独立 Git 仓",
+    "Gerrit",
+    "单行 ASCII 单组件",
+    "MISSING",
+    "DRIFT",
+    "DETACHED",
+    "INVALID",
+    "ANDROID_SERIAL",
+    "cvd fleet",
+    "cvd --group_name",
+    "epoch,nsec",
+    "system_server_service",
+    "RESULT PASS",
+    "RESULT FAIL",
+    "RESULT INCOMPLETE",
+    "官方保证",
+    "Demo 选择",
+    "真实 AOSP 建议",
+    "本仓库 Claude Code demo",
+    "CLAUDE.md",
+    ".claude/skills",
+    ".claude/settings.json",
+    "AGENTS.md",
+    "路径假设",
+    "任务卡是稳定接口",
+    "不要求预建索引",
+    "`rg` + live source",
+    "build completed successfully",
+    "mktemp",
+    "同一个 exec session",
+    "m services",
+    "m selinux_policy",
+    "m update-api",
+    "五项断言",
+    "sys.boot_completed",
+    "pidof system_server",
+    "service list",
+    "pm list packages",
+    "crash buffer",
+    "查询失败",
+    "--allow-skip",
+    "btime",
+    "纳秒",
+    "--demo",
+    "路径穿越",
+    "NUL",
+    "O_NOFOLLOW",
+    "证据先于完成声明",
+    "same-UID",
+    "完整语义索引",
+    "plugin",
+]
+for required in required_texts:
+    assert required in text, f"article missing required contract text: {required}"
+
+required_table_rows = [
+    "| 能力面 | 官方保证 | Demo 选择 | 真实 AOSP 建议 |",
+    "| 维度 | 本仓库 Claude Code demo | Codex demo | 迁移动作 |",
+]
+for row in required_table_rows:
+    assert row in text, f"article missing required table: {row}"
+
+def forbidden_claims(content):
+    findings = []
+    prose_parts = []
+    inside_fence = False
+    for line in content.splitlines():
+        if line.startswith("```"):
+            inside_fence = not inside_fence
+            continue
+        if not inside_fence:
+            prose_parts.append(line)
+
+    prose = "\n".join(prose_parts)
+    statements = re.split(r"(?<=[。！？])\s*|\n", prose)
+    for statement in statements:
+        statement = statement.strip()
+        lowered = statement.lower()
+        if not statement:
+            continue
+
+        if (
+            "paths" in lowered
+            and re.search(r"自动|必然|automatic(?:ally)?|always", lowered)
+            and re.search(r"激活|触发|选择|activat|trigger|select", lowered)
+            and not re.search(
+                r"没有已文档化|不能假定|不可假定|不要假定|并非|不是|"
+                r"not documented|does not|do not assume|cannot assume",
+                lowered,
+            )
+        ):
+            findings.append(("paths auto-trigger", statement))
+
+        if (
+            "sessionstart" in lowered
+            and "agents.md" in lowered
+            and re.search(r"同一|本次|当前.{0,12}(?:运行|run)|same|current run", lowered)
+            and re.search(
+                r"选择|切换|替换|重载|重新加载|加载|"
+                r"select|swap|reload|load",
+                lowered,
+            )
+            and not re.search(
+                r"不会|不能|不可|并非|不是|不等于|does not|cannot|will not",
+                lowered,
+            )
+        ):
+            findings.append(("SessionStart AGENTS reload", statement))
+
+        if (
+            "hook" in lowered
+            and re.search(
+                r"无需|无须|不需要|未信任|未经信任|不经信任|"
+                r"without (?:project )?trust|untrusted",
+                lowered,
+            )
+            and re.search(r"运行|生效|执行|work|run|execute", lowered)
+            and not re.search(
+                r"不会.{0,8}(?:运行|生效|执行)|不能.{0,8}(?:运行|生效|执行)|"
+                r"不可.{0,8}(?:运行|生效|执行)|被跳过|"
+                r"will not (?:run|execute)|does not (?:run|execute)|"
+                r"cannot (?:run|execute)|skipped",
+                lowered,
+            )
+        ):
+            findings.append(("hook without trust", statement))
+
+        if (
+            re.search(r"子代理|subagents?", lowered)
+            and re.search(r"自动|总是|全部|所有|automatically|always|all", lowered)
+            and re.search(r"完整|全部|complete|full", lowered)
+            and re.search(r"继承|拿到|inherit|receive", lowered)
+            and not re.search(
+                r"不会|不能|不可|不假设|没有建立|并非|不是|"
+                r"does not|cannot|do not assume|not established",
+                lowered,
+            )
+        ):
+            findings.append(("subagent full-context inheritance", statement))
+
+        if (
+            "codex" in lowered
+            and re.search(r"从不|不会|never|does not|doesn't", lowered)
+            and re.search(r"索引|index", lowered)
+            and not re.search(
+                r"不是|并非|不要宣称|不宣称|不能宣称|"
+                r"not claim|not a claim|do not claim|does not claim",
+                lowered,
+            )
+        ):
+            findings.append(("Codex never indexes", statement))
+
+        claude_artifact = r"[.]claude/|claude[.]md|[.]claude/settings[.]json"
+        setup_verb = (
+            r"创建|配置|使用|放入|采用|添加|新增|加入|"
+            r"create|configure|use|put|add"
+        )
+        claude_setup_instruction = re.search(
+            rf"(?:为|给)\s*codex.{{0,40}}"
+            rf"(?:{setup_verb}).*(?:{claude_artifact})|"
+            rf"codex(?:\s*(?:项目|用户|配置|工程|tree))?.{{0,30}}"
+            rf"(?:应|应该|请|必须|需要|要|should|must|need to|{setup_verb})"
+            rf".*(?:{claude_artifact})|"
+            rf"(?:{setup_verb}).*(?:{claude_artifact}).{{0,60}}"
+            rf"(?:给|用于|供|到|至|作为|for|to|as)\s*(?:the\s+)?codex",
+            lowered,
+        )
+        if (
+            claude_setup_instruction
+            and not re.search(
+                r"不要|不得|不能|不可|do not|don't|must not|never",
+                lowered,
+            )
+        ):
+            findings.append(("Codex instructed to use Claude artifacts", statement))
+
+    return findings
+
+
+findings = forbidden_claims(text)
+assert not findings, f"forbidden Codex claims: {findings}"
+
+mutation_cases = {
+    "paths alternative": "Codex 会按 `paths` 自动触发对应 skill。",
+    "SessionStart alternative": (
+        "SessionStart 可以在本次运行里重新加载新的 AGENTS.md。"
+    ),
+    "SessionStart current-run alternative": (
+        "SessionStart 能在当前 run 中加载另一个 AGENTS.md。"
+    ),
+    "hook trust alternative": "项目 hooks 即使未信任也能正常运行。",
+    "hook execution alternative": "项目 hook 不经信任也会执行。",
+    "subagent alternative": "所有子代理都会自动继承完整的 feature 上下文。",
+    "index alternative": "Codex never uses an index when navigating code.",
+    "index negative-grammar alternative": "Codex does not build or use indexes.",
+    "Claude setup alternative": (
+        "请为 Codex 创建 `.claude/settings.json` 并使用 `CLAUDE.md`。"
+    ),
+    "Claude add alternative": "为 Codex 添加 CLAUDE.md。",
+    "Claude English add alternative": (
+        "Add .claude/settings.json to the Codex tree."
+    ),
+}
+for mutation_name, mutation in mutation_cases.items():
+    assert forbidden_claims(mutation), (
+        f"forbidden-claim detector missed mutation {mutation_name}: {mutation}"
+    )
+
+safe_negation_cases = {
+    "paths boundary": "当前文档没有已建立的 `paths:` 路径触发契约。",
+    "SessionStart boundary": "SessionStart 不会在同一运行中重新加载 AGENTS.md。",
+    "hook trust boundary": "项目 hook 未经信任不会运行。",
+    "subagent boundary": "子代理不会自动继承完整的 feature 上下文。",
+    "index boundary": "本文不宣称 Codex 从不使用索引。",
+    "Claude setup boundary": "不要为 Codex 添加 CLAUDE.md。",
+}
+for safe_name, safe_statement in safe_negation_cases.items():
+    assert not forbidden_claims(safe_statement), (
+        f"forbidden-claim detector rejected safe negation {safe_name}: "
+        f"{safe_statement}"
+    )
+
+assert "不要为 Codex 创建 `.claude/`" in text
+assert "不要为 Codex 创建 `CLAUDE.md`" in text
+
+markdown_link = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+for source in (readme, article):
+    source_text = source.read_text(encoding="utf-8")
+    for raw_target in markdown_link.findall(source_text):
+        target = raw_target.strip()
+        if target.startswith("<") and target.endswith(">"):
+            target = target[1:-1]
+        target = target.split("#", 1)[0]
+        if not target or re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", target):
+            continue
+        resolved = (source.parent / unquote(target)).resolve()
+        assert resolved.exists(), f"broken local link in {source}: {raw_target}"
+PY
+}
+
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
 run_regression 'invalid active feature values are rejected' test_invalid_active_features
 run_regression 'NUL bytes in CURRENT_FEATURE are rejected' test_nul_current_feature
@@ -1952,6 +2288,8 @@ run_regression 'CURRENT_FEATURE symlink replacement cannot redirect writes to a 
   test_current_feature_symlink_replacement_cannot_write_victim
 run_regression 'operational README covers contracts and its primary quick start runs' \
   test_operational_readme_contract_and_quick_start
+run_regression 'long-form article covers Codex contracts and local links resolve' \
+  test_long_form_article_contract_and_links
 run_regression 'process checker rejects missing update-api guidance' \
   test_process_layer_checker_rejects_fact \
   update-api build-services-jar 'm update-api' 'm refresh-api' \
