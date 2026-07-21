@@ -19,6 +19,19 @@ cd codex
 
 `run-demo.sh` 依次演示上下文选择、会话分支漂移、涉及仓分支一致性、流程 skills、严格验证和回归测试。它只调用 wrapper 的 `--dry-run` 模式和确定性 demo 入口。
 
+## Codex 与 Claude Code 版的关键差异
+
+以下 Claude Code 一栏只描述本仓库的 `claude-code/` demo，不把该 demo 的实现细节外推为 Claude Code 的通用产品契约。
+
+| 维度 | Codex 版 | 本仓库 Claude Code demo |
+|---|---|---|
+| 根 / feature 指引 | 使用根与 feature 的 `AGENTS.md`；Codex 在启动时每次运行建立一次指令链 | 使用根与 feature 的 `CLAUDE.md`，由该 demo 的 wrapper 在启动前同步根软链 |
+| 仓库 skills | Codex 仓库 skills 位于 `.agents/skills`；可显式 `$skill-name` 选择，也可在任务匹配 `description` 时隐式选择；没有已文档化的 `paths` 路径触发契约 | 本仓库 Claude demo 的 `.claude/skills` 示例使用 `paths` metadata；这只是对当前入库示例的描述 |
+| Hooks | Codex demo 用 `.codex/hooks.json`；Codex 也支持 `.codex/config.toml` 中的 inline `[hooks]` tables，两者使用同一 Codex hook schema：事件 → matcher group → command hook；项目 hook 信任必须通过 `/hooks` 审查 | 本仓库 Claude demo 用 `.claude/settings.json`，命令通过 `${CLAUDE_PROJECT_DIR}` 定位；它不与 Codex 的配置 schema 或信任流程等同 |
+| 启动边界 | Wrapper 必须先选定 `AGENTS.md` 再启动新运行；会话中漂移由 hook 阻断并提示重启 | 该 demo 也在启动前同步 `CLAUDE.md`，并把 SessionStart hook 定位为 fallback；这是本仓库的工程选择 |
+
+因此，Codex 版不是把 `CLAUDE.md` 改名为 `AGENTS.md`：指引发现、skill 选择、hook 配置与信任、启动时正确性边界都按 Codex 契约重新落地。
+
 ## 目录与三层
 
 ```text
