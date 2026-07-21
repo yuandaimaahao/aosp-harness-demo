@@ -12,7 +12,17 @@ if [[ "${1:-}" == '--dry-run' ]]; then
   shift
 fi
 
-if ! feature="$(detect_feature "$ROOT")" || [[ -z "$feature" ]]; then
+feature=''
+if feature="$(detect_feature "$ROOT")"; then
+  detect_rc=0
+else
+  detect_rc=$?
+fi
+if [[ "$detect_rc" -eq 2 ]] || { [[ "$detect_rc" -eq 0 ]] && ! valid_feature_name "$feature"; }; then
+  echo "error: INVALID feature；名称必须是单行 ASCII 单组件 [A-Za-z0-9][A-Za-z0-9._-]*。Codex 未启动。" >&2
+  exit 1
+fi
+if [[ "$detect_rc" -ne 0 || -z "$feature" ]]; then
   echo "error: 无法从锚点仓分支或 $ROOT/CURRENT_FEATURE 检测 feature；Codex 未启动。" >&2
   exit 1
 fi
@@ -23,7 +33,7 @@ if ! target="$(feature_context_path "$ROOT" "$feature")"; then
   exit 1
 fi
 
-if [[ -e "$ROOT/.repo" ]]; then
+if [[ -d "$ROOT/.repo" ]]; then
   check_branch="$ROOT/features/$feature/check-branch.sh"
   if [[ ! -x "$check_branch" ]]; then
     echo "error: 缺少可执行的 $check_branch，无法校验涉及仓分支；Codex 未启动。" >&2
