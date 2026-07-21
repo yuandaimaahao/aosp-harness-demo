@@ -629,9 +629,11 @@ test_session_id_length_boundaries() {
 
 test_state_directory_creation_and_default_path() {
   local session_start="$ROOT/.codex/hooks/session-start.sh"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
   local new_state="$FIXTURE/new-state"
   local private_tmp="$FIXTURE/private-tmp"
   local default_state="$private_tmp/aosp-codex-harness-$UID"
+  local relative_root="$FIXTURE/relative-state-root"
   local input output
 
   input='{"session_id":"state-creation"}'
@@ -649,7 +651,20 @@ test_state_directory_creation_and_default_path() {
     TMPDIR="$private_tmp" HARNESS_ROOT="$FIXTURE" "$session_start")" || return 1
   [[ -z "$output" ]] || return 1
   [[ "$(stat -c '%a' "$default_state")" == '700' ]] || return 1
-  [[ "$(cat "$default_state/default-state.feature")" == 'dev-next' ]]
+  [[ "$(cat "$default_state/default-state.feature")" == 'dev-next' ]] || return 1
+
+  mkdir -p "$relative_root"
+  input='{"session_id":"relative-state"}'
+  output="$(cd "$relative_root" && printf '%s\n' "$input" | \
+    HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR='state' \
+    "$session_start")" || return 1
+  [[ -z "$output" ]] || return 1
+  [[ "$(stat -c '%a' "$relative_root/state")" == '700' ]] || return 1
+  [[ "$(cat "$relative_root/state/relative-state.feature")" == 'dev-next' ]] || return 1
+  output="$(cd "$relative_root" && printf '%s\n' "$input" | \
+    HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR='state' \
+    "$drift_check")" || return 1
+  [[ -z "$output" ]]
 }
 
 test_feature_detection_errors_are_concise() {
@@ -686,11 +701,68 @@ test_feature_detection_errors_are_concise() {
   done
 }
 
+test_python_encoding_cannot_redirect_hook_state() {
+  local session_start="$ROOT/.codex/hooks/session-start.sh"
+  local drift_check="$ROOT/.codex/hooks/check-branch-drift.sh"
+  local encoding_root="$FIXTURE/encoding-state-root"
+  local redirect_target="$FIXTURE/encoding-redirect-target"
+  local bom_state="$encoding_root/"$'\357\273\277''validated-state'
+  local input output
+
+  mkdir -p \
+    "$encoding_root/validated-state" \
+    "$redirect_target" \
+    "$FIXTURE/features/dev-encoding"
+  ln -s "$redirect_target" "$bom_state"
+  printf '%s\n' '# feature: dev-encoding' \
+    > "$FIXTURE/features/dev-encoding/AGENTS.md"
+  input='{"session_id":"encoding-session"}'
+
+  output="$(cd "$encoding_root" && printf '%s\n' "$input" | \
+    PYTHONIOENCODING='utf-8-sig' HARNESS_ROOT="$FIXTURE" \
+    CODEX_HARNESS_STATE_DIR='validated-state' "$session_start")" || return 1
+  [[ -z "$output" ]] || return 1
+  [[ "$(cat "$encoding_root/validated-state/encoding-session.feature")" == 'dev-next' ]] || return 1
+  [[ ! -e "$redirect_target/encoding-session.feature" ]] || return 1
+
+  output="$(cd "$encoding_root" && printf '%s\n' "$input" | \
+    PYTHONIOENCODING='utf-8-sig' HARNESS_ROOT="$FIXTURE" \
+    CODEX_HARNESS_STATE_DIR='validated-state' "$drift_check")" || return 1
+  [[ -z "$output" ]] || return 1
+
+  printf '%s\n' 'dev-encoding' > "$FIXTURE/CURRENT_FEATURE"
+  output="$(cd "$encoding_root" && printf '%s\n' "$input" | \
+    PYTHONIOENCODING='utf-8-sig' HARNESS_ROOT="$FIXTURE" \
+    CODEX_HARNESS_STATE_DIR='validated-state' "$drift_check")" || return 1
+  python3 - "$output" <<'PY' || return 1
+import json
+import sys
+
+data = json.loads(sys.argv[1])
+assert data == {
+    "continue": False,
+    "stopReason": (
+        "AOSP feature drift: session started on 'dev-next', "
+        "current feature is 'dev-encoding'."
+    ),
+    "systemMessage": (
+        "Feature changed during this Codex session. Restart with "
+        "./.codex/bin/codex-feature before continuing."
+    ),
+}
+PY
+  printf '%s\n' 'dev-next' > "$FIXTURE/CURRENT_FEATURE"
+}
+
 test_unsafe_state_paths_are_rejected() {
   local state_file="$FIXTURE/unsafe-state-file"
   local state_target="$FIXTURE/unsafe-state-target"
   local state_link="$FIXTURE/unsafe-state-link"
-  local input hook state_path output rc
+  local parent_target="$FIXTURE/unsafe-parent-target"
+  local parent_link="$FIXTURE/unsafe-parent-link"
+  local newline_target="$FIXTURE/unsafe-newline-target"
+  local newline_link="$FIXTURE/unsafe-newline-state"
+  local newline_path input hook state_path output rc
   local hooks=(
     "$ROOT/.codex/hooks/session-start.sh"
     "$ROOT/.codex/hooks/check-branch-drift.sh"
@@ -700,11 +772,23 @@ test_unsafe_state_paths_are_rejected() {
     '{"session_id":"state-safety","cwd":"%s","hook_event_name":"SessionStart"}' \
     "$FIXTURE")"
   printf '%s\n' 'not a directory' > "$state_file"
-  mkdir -p "$state_target"
+  mkdir -p "$state_target" "$parent_target" "$newline_target"
   ln -s "$state_target" "$state_link"
+  ln -s "$parent_target" "$parent_link"
+  ln -s "$newline_target" "$newline_link"
+  newline_path="$newline_link"$'\n'
 
   for hook in "${hooks[@]}"; do
-    for state_path in "$state_file" "$state_link" "$state_link/"; do
+    for state_path in \
+      "$state_file" \
+      "$state_link" \
+      "$state_link/" \
+      "$state_link/." \
+      "$state_link/./" \
+      "$state_target/./dot-component" \
+      "$state_target/../dotdot-component" \
+      "$newline_path" \
+      "$parent_link/nested-state"; do
       set +e
       output="$(printf '%s\n' "$input" | \
         HARNESS_ROOT="$FIXTURE" CODEX_HARNESS_STATE_DIR="$state_path" \
@@ -716,7 +800,12 @@ test_unsafe_state_paths_are_rejected() {
     done
   done
 
-  [[ ! -e "$state_target/state-safety.feature" ]]
+  [[ ! -e "$state_target/state-safety.feature" ]] || return 1
+  [[ ! -e "$state_target/dot-component" ]] || return 1
+  [[ ! -e "$FIXTURE/dotdot-component" ]] || return 1
+  [[ ! -e "$newline_target/state-safety.feature" ]] || return 1
+  [[ ! -e "$newline_path" ]] || return 1
+  [[ ! -e "$parent_target/nested-state" ]]
 }
 
 test_missing_session_snapshot_fails_closed() {
@@ -769,6 +858,7 @@ run_regression 'hook input rejects malformed and unsafe session identifiers' tes
 run_regression 'session identifiers have a filesystem-safe length bound' test_session_id_length_boundaries
 run_regression 'state directories are created privately at override and default paths' test_state_directory_creation_and_default_path
 run_regression 'feature detection errors are concise and create no state' test_feature_detection_errors_are_concise
+run_regression 'Python encoding cannot redirect validated hook state' test_python_encoding_cannot_redirect_hook_state
 run_regression 'hooks reject unsafe state directory paths' test_unsafe_state_paths_are_rejected
 run_regression 'missing session snapshots fail closed with restart guidance' test_missing_session_snapshot_fails_closed
 
