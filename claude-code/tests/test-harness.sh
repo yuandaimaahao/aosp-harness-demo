@@ -26,6 +26,33 @@ HARNESS_ROOT="$FIXTURE" "$ROOT/.claude/bin/claude-feature" --dry-run >/dev/null
 test -L "$FIXTURE/CLAUDE.md"
 test "$(readlink "$FIXTURE/CLAUDE.md")" = "features/dev-test/CLAUDE.md"
 
+# README 的主目录树和 quick start 必须从已迁移的 Claude demo 根开始。
+readme_tree_root="$(
+  awk '
+    $0 == "## 一眼看懂：目录 = 三层" { in_section = 1; next }
+    in_section && $0 == "```" { in_fence = 1; next }
+    in_section && in_fence && NF { print $1; exit }
+  ' "$ROOT/README.md"
+)"
+if [ "$readme_tree_root" != "claude-code/" ]; then
+  echo "FAIL  README 目录树根必须是 claude-code/" >&2
+  exit 1
+fi
+
+readme_quick_start="$(
+  awk '
+    $0 == "## 怎么跑" { in_section = 1; next }
+    in_section && $0 == "```bash" { in_fence = 1; next }
+    in_section && in_fence && $0 == "```" { exit }
+    in_section && in_fence { print }
+  ' "$ROOT/README.md"
+)"
+expected_quick_start="$(printf '%s\n' 'cd aosp-harness-demo/claude-code' './run-demo.sh')"
+if [ "$readme_quick_start" != "$expected_quick_start" ]; then
+  echo "FAIL  README quick start 必须进入 claude-code/ 后运行 demo" >&2
+  exit 1
+fi
+
 # 当前方案是“树根单文件软链”，demo 不得继续描述已废弃的仓内 CLAUDE.md 物化方案。
 if rg -n 'frameworks-(base|native)\.md|物化.*CLAUDE\.md|同目录下的 CLAUDE\.md' \
     "$ROOT/frameworks/base/PLACEHOLDER.java" \

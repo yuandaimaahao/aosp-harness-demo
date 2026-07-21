@@ -9,7 +9,7 @@
 ## 一眼看懂：目录 = 三层
 
 ```
-aosp-harness-demo/                        # ← 真实环境里这是 <AOSP_ROOT>（repo 工程根，非 git 仓）
+claude-code/                              # ← 真实环境里这是 <AOSP_ROOT>（repo 工程根，非 git 仓）
 ├── README.md                             # 你在读的这份
 ├── run-demo.sh                           # ★ 一键演示三层如何协同（先跑这个）
 ├── CURRENT_FEATURE                       # 模拟"锚定仓当前分支名"（真实环境读 repo 分支）
@@ -43,7 +43,7 @@ aosp-harness-demo/                        # ← 真实环境里这是 <AOSP_ROOT
 ## 怎么跑
 
 ```bash
-cd aosp-harness-demo
+cd aosp-harness-demo/claude-code
 ./run-demo.sh
 ```
 
