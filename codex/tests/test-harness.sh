@@ -1131,6 +1131,263 @@ PY
   grep -Fq "FAIL  $expected_label:" <<<"$output"
 }
 
+run_sidebar_verifier() {
+  local output_name="$1"
+  local rc_name="$2"
+  shift 2
+  local captured_output captured_rc
+
+  set +e
+  captured_output="$("$ROOT/features/dev-sidebar/verify-sidebar.sh" "$@" 2>&1)"
+  captured_rc=$?
+  set -e
+  printf -v "$output_name" '%s' "$captured_output"
+  printf -v "$rc_name" '%s' "$captured_rc"
+}
+
+test_sidebar_verifier_demo_results() {
+  local output rc
+
+  run_sidebar_verifier output rc --demo
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ "$(grep -c '^PASS  ' <<<"$output")" -eq 5 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS' ]] || return 1
+  grep -Fxq 'SUMMARY PASS=5 FAIL=0 SKIP=0' <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_APP_INSTALLED=0 \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'SKIP  com.android.sidebar 未安装' <<<"$output" || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT INCOMPLETE' ]] || return 1
+
+  set +e
+  output="$(DEMO_APP_INSTALLED=0 \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --allow-skip --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS (SKIP allowed)' ]] || return 1
+
+  set +e
+  output="$(DEMO_BOOT_COMPLETED=0 DEMO_APP_INSTALLED=0 \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --allow-skip 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'SUMMARY PASS=3 FAIL=1 SKIP=1' <<<"$output" || return 1
+  [[ "$(grep -c '^PASS  ' <<<"$output")" -eq 3 ]] || return 1
+  [[ "$(grep -c '^FAIL  ' <<<"$output")" -eq 1 ]] || return 1
+  [[ "$(grep -c '^SKIP  ' <<<"$output")" -eq 1 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]]
+}
+
+test_sidebar_verifier_crash_baselines() {
+  local output rc
+
+  set +e
+  output="$(DEMO_CRASH_LOG='100.000 1 1 E AndroidRuntime: FATAL EXCEPTION: old' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 200 起无崩溃' <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='300.000 1 1 E AndroidRuntime: FATAL EXCEPTION: new' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200 --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 自 200 起发现崩溃' <<<"$output" || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]] || return 1
+
+  set +e
+  output="$(DEMO_CRASH_QUERY_FAIL=1 \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 查询失败' <<<"$output" || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]] || return 1
+
+  set +e
+  output="$(DEMO_BOOT_TIME=250 \
+    DEMO_CRASH_LOG='249.999 1 1 E AndroidRuntime: FATAL EXCEPTION: before boot' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 250 起无崩溃' <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_BOOT_TIME=999 \
+    DEMO_CRASH_LOG='200.499 1 1 E AndroidRuntime: FATAL EXCEPTION: old' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200.500 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 200.500 起无崩溃' <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='200.500 1 1 E AndroidRuntime: FATAL EXCEPTION: boundary' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200.500 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 自 200.500 起发现崩溃' <<<"$output"
+}
+
+test_sidebar_verifier_usage_errors() {
+  local output rc args
+
+  for args in '--unknown' '--since' '--since -1' '--since nope' '--since 1.2.3'; do
+    set +e
+    # shellcheck disable=SC2086 # Each fixture deliberately expands into CLI words.
+    output="$("$ROOT/features/dev-sidebar/verify-sidebar.sh" $args 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -eq 2 ]] || return 1
+    grep -Fq 'Usage:' <<<"$output" || return 1
+  done
+
+  run_sidebar_verifier output rc --help
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fq 'Usage:' <<<"$output"
+}
+
+test_sidebar_verifier_real_mode_pins_adb() {
+  local adb_log="$FIXTURE/sidebar-adb.log"
+  local output rc
+
+  adb() {
+    printf '%q ' adb "$@" >> "$ADB_LOG"
+    printf '\n' >> "$ADB_LOG"
+    [[ "$1" == '-s' && "$2" == 'demo-serial' ]] || return 91
+    shift 2
+    case "$*" in
+      'shell getprop sys.boot_completed') printf '%s\n' '1' ;;
+      'shell pidof system_server') printf '%s\n' '1423' ;;
+      'shell cat /proc/stat') printf '%s\n' 'cpu 1 2 3' 'btime 200' ;;
+      'logcat -b crash -d -v epoch -T 200.000') ;;
+      'shell service list') printf '%s\n' '42 sidebar: [android.os.ISidebar]' ;;
+      'shell pm list packages') printf '%s\n' 'package:com.android.sidebar' ;;
+      *) return 92 ;;
+    esac
+  }
+  export -f adb
+  export ADB_LOG="$adb_log"
+
+  set +e
+  output="$(ANDROID_SERIAL=demo-serial \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200 2>&1)"
+  rc=$?
+  set -e
+  unset -f adb
+  unset ADB_LOG
+
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS' ]] || return 1
+  [[ "$(wc -l < "$adb_log")" -eq 5 ]] || return 1
+  [[ "$(grep -c '^adb -s demo-serial ' "$adb_log")" -eq 5 ]] || return 1
+  grep -Fxq 'adb -s demo-serial logcat -b crash -d -v epoch -T 200.000 ' \
+    "$adb_log"
+}
+
+test_sidebar_verifier_requires_serial_before_adb() {
+  local adb_log="$FIXTURE/sidebar-no-serial-adb.log"
+  local output rc unsafe_output unsafe_rc
+
+  adb() {
+    printf '%s\n' called >> "$ADB_LOG"
+    return 90
+  }
+  export -f adb
+  export ADB_LOG="$adb_log"
+
+  set +e
+  output="$(env -u ANDROID_SERIAL \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200 2>&1)"
+  rc=$?
+  unsafe_output="$(ANDROID_SERIAL=-s \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200 2>&1)"
+  unsafe_rc=$?
+  set -e
+  unset -f adb
+  unset ADB_LOG
+
+  [[ "$rc" -eq 2 ]] || return 1
+  grep -Fq 'ANDROID_SERIAL' <<<"$output" || return 1
+  [[ "$unsafe_rc" -eq 2 ]] || return 1
+  grep -Fq 'ANDROID_SERIAL' <<<"$unsafe_output" || return 1
+  [[ ! -e "$adb_log" ]]
+}
+
+test_sidebar_verifier_query_and_presence_failures() {
+  local output rc env_name env_value expected
+  local cases=(
+    'DEMO_BOOT_QUERY_FAIL|1|FAIL  sys.boot_completed 查询失败'
+    'DEMO_BOOT_COMPLETED|0|FAIL  sys.boot_completed != 1'
+    'DEMO_SYSTEM_SERVER_QUERY_FAIL|1|FAIL  system_server 查询失败'
+    'DEMO_SYSTEM_SERVER||FAIL  system_server pid 为空'
+    'DEMO_BOOT_TIME_QUERY_FAIL|1|FAIL  btime 查询失败'
+    'DEMO_BOOT_TIME|invalid|FAIL  btime 解析失败'
+    'DEMO_CRASH_QUERY_FAIL|1|FAIL  crash buffer 查询失败'
+    'DEMO_SERVICE_QUERY_FAIL|1|FAIL  service list 查询失败'
+    'DEMO_SERVICE_REGISTERED|0|FAIL  sidebar 服务未注册'
+    'DEMO_PACKAGE_QUERY_FAIL|1|FAIL  package list 查询失败'
+  )
+
+  for entry in "${cases[@]}"; do
+    IFS='|' read -r env_name env_value expected <<<"$entry"
+    set +e
+    output="$(env "$env_name=$env_value" \
+      "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    grep -Fxq "$expected" <<<"$output" || return 1
+    [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]] || return 1
+  done
+
+  set +e
+  output="$(DEMO_APP_INSTALLED=0 \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'SKIP  com.android.sidebar 未安装' <<<"$output" || return 1
+  ! grep -Fq 'package list 查询失败' <<<"$output"
+}
+
+test_sidebar_verifier_crash_filtering() {
+  local output rc crash_log
+
+  crash_log=$'300.000 1 1 I unrelated: FATAL words only\n301.000 1 1 E AndroidRuntime: ordinary error'
+  set +e
+  output="$(DEMO_CRASH_LOG="$crash_log" \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 200 起无崩溃' <<<"$output" || return 1
+
+  for crash_log in \
+    '300.000 1 1 E AndroidRuntime: FATAL EXCEPTION: main' \
+    '300.000 1 1 F AndroidRuntime: FATAL process abort' \
+    '300.000 1 1 F libc: Fatal signal 11 (SIGSEGV)'; do
+    set +e
+    output="$(DEMO_CRASH_LOG="$crash_log" \
+      "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    grep -Fxq 'FAIL  crash buffer 自 200 起发现崩溃' <<<"$output" || return 1
+  done
+}
+
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
 run_regression 'invalid active feature values are rejected' test_invalid_active_features
 run_regression 'NUL bytes in CURRENT_FEATURE are rejected' test_nul_current_feature
@@ -1157,6 +1414,20 @@ run_regression 'hooks reject unsafe state directory paths' test_unsafe_state_pat
 run_regression 'missing session snapshots fail closed with restart guidance' test_missing_session_snapshot_fails_closed
 run_regression 'repository process skills contain the required AOSP guidance' test_process_skill_artifacts
 run_regression 'process layer checker is cwd-independent and reports exact success' test_process_layer_checker
+run_regression 'sidebar verifier reports strict demo outcomes and exact counts' \
+  test_sidebar_verifier_demo_results
+run_regression 'sidebar verifier compares crash timestamps against selected baselines' \
+  test_sidebar_verifier_crash_baselines
+run_regression 'sidebar verifier rejects malformed CLI usage' \
+  test_sidebar_verifier_usage_errors
+run_regression 'sidebar verifier pins and normalizes every real ADB query' \
+  test_sidebar_verifier_real_mode_pins_adb
+run_regression 'sidebar verifier rejects real mode without a serial before ADB' \
+  test_sidebar_verifier_requires_serial_before_adb
+run_regression 'sidebar verifier distinguishes query, value, presence, and skip failures' \
+  test_sidebar_verifier_query_and_presence_failures
+run_regression 'sidebar verifier recognizes only supported crash signatures' \
+  test_sidebar_verifier_crash_filtering
 run_regression 'process checker rejects missing update-api guidance' \
   test_process_layer_checker_rejects_fact \
   update-api build-services-jar 'm update-api' 'm refresh-api' \
