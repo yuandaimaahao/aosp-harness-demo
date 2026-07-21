@@ -917,19 +917,31 @@ test_process_skill_artifacts() {
     'source build/envsetup.sh' \
     'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' \
     'm services' \
+    'same exec session' \
+    'build_log="$(mktemp "${TMPDIR:-/tmp}/build-services.XXXXXX.log")"' \
+    'while kill -0 "$build_pid" 2>/dev/null; do' \
+    'wait "$build_pid"' \
+    'build_rc=$?' \
+    '[[ "$build_rc" -ne 0 ]]' \
     '#### build completed successfully ####' \
-    '> /tmp/build-services.log 2>&1 &' \
     'out/target/product/vsoc_x86_64/system/framework/services.jar' \
-    'adb root' \
-    'adb remount' \
-    'adb push' \
-    'adb reboot' \
+    '[[ -f "$artifact" ]]' \
+    'device_serial="${ANDROID_SERIAL:?Set ANDROID_SERIAL to the explicitly confirmed target serial}"' \
+    'adb -s "$device_serial" get-state' \
+    'adb -s "$device_serial" root' \
+    'adb -s "$device_serial" remount' \
+    'adb -s "$device_serial" push' \
+    'adb -s "$device_serial" reboot' \
     'target device' \
     'change device state' \
     'ART' \
     'dexpreopt' \
     '/data/dalvik-cache/' \
-    'run `m`, then `cvd stop`, then `cvd start`' \
+    "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+    'cvd fleet' \
+    'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' \
+    'cvd --group_name="$cvd_group" stop' \
+    'cvd --group_name="$cvd_group" start' \
     'm update-api' \
     'SELinux' \
     'verify-*.sh' \
@@ -944,20 +956,47 @@ test_process_skill_artifacts() {
     'source build/envsetup.sh' \
     'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' \
     'm selinux_policy' \
+    'same exec session' \
+    'build_log="$(mktemp "${TMPDIR:-/tmp}/build-sepolicy.XXXXXX.log")"' \
+    'while kill -0 "$build_pid" 2>/dev/null; do' \
+    'wait "$build_pid"' \
+    'build_rc=$?' \
+    '[[ "$build_rc" -ne 0 ]]' \
     '#### build completed successfully ####' \
-    '> /tmp/build-sepolicy.log 2>&1 &' \
+    'out/target/product/vsoc_x86_64/system/etc/selinux/plat_sepolicy.cil' \
+    '[[ -f "$artifact" ]]' \
     'service_contexts' \
-    'service_manager_type' \
-    'allow system_server sidebar_service:service_manager { add find };' \
+    'type sidebar_service, system_server_service, service_manager_type;' \
+    'add_service(system_server, system_server_service)' \
     'allow sidebar_app sidebar_service:service_manager find;' \
     'avc: denied' \
     'service list' \
+    'device_serial="${ANDROID_SERIAL:?Set ANDROID_SERIAL to the explicitly confirmed target serial}"' \
+    'adb -s "$device_serial" get-state' \
+    'adb -s "$device_serial" shell dmesg' \
+    'adb -s "$device_serial" shell service list' \
     'full image' \
-    'cvd stop' \
-    'cvd start' \
+    "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+    'cvd fleet' \
+    'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' \
+    'cvd --group_name="$cvd_group" stop' \
+    'cvd --group_name="$cvd_group" start' \
     'not a services.jar push' \
     'verify-*.sh' \
-    'RESULT PASS'
+    'RESULT PASS' || return 1
+
+  if grep -Eq '^[[:space:]]*adb[[:space:]]+(root|remount|push|reboot)' "$services"; then
+    return 1
+  fi
+  if grep -Eq '^[[:space:]]*adb[[:space:]]+shell[[:space:]]+(dmesg|service)' "$sepolicy"; then
+    return 1
+  fi
+  if grep -Eq '^[[:space:]]*cvd[[:space:]]+(stop|start)' "$services" "$sepolicy"; then
+    return 1
+  fi
+  if grep -Fq 'allow system_server sidebar_service:service_manager { add find };' "$sepolicy"; then
+    return 1
+  fi
 }
 
 test_process_layer_checker() {
@@ -1010,10 +1049,14 @@ path = Path(sys.argv[1])
 original = sys.argv[2]
 replacement = sys.argv[3]
 content = path.read_text(encoding="utf-8")
-assert content.count(original) == 1, (
-    f"{path}: expected exactly one fixture occurrence of {original!r}"
-)
-path.write_text(content.replace(original, replacement), encoding="utf-8")
+occurrences = content.count(original)
+if occurrences >= 1:
+    content = content.replace(original, replacement)
+else:
+    assert replacement in content, (
+        f"{path}: fixture has neither {original!r} nor existing {replacement!r}"
+    )
+path.write_text(content, encoding="utf-8")
 PY
 
   set +e
@@ -1067,12 +1110,6 @@ run_regression 'process checker rejects the wrong services lunch target' \
   services-lunch build-services-jar \
   'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' 'lunch wrong-target' \
   'build-services-jar lunch target'
-run_regression 'process checker rejects an incomplete services stable-image loop' \
-  test_process_layer_checker_rejects_fact \
-  services-stable-loop build-services-jar \
-  'run `m`, then `cvd stop`, then `cvd start`' \
-  'run `m`, then `cvd halt`, then `cvd start`' \
-  'build-services-jar stable full-image loop'
 run_regression 'process checker rejects a non-Bash sepolicy build' \
   test_process_layer_checker_rejects_fact \
   sepolicy-bash build-sepolicy 'bash -c' 'sh -c' \
@@ -1086,18 +1123,90 @@ run_regression 'process checker rejects the wrong sepolicy lunch target' \
   sepolicy-lunch build-sepolicy \
   'lunch aosp_cf_x86_64_phone-trunk_staging-userdebug' 'lunch wrong-target' \
   'build-sepolicy lunch target'
-run_regression 'process checker rejects incomplete system_server permissions' \
-  test_process_layer_checker_rejects_fact \
-  sepolicy-server-permissions build-sepolicy \
-  'allow system_server sidebar_service:service_manager { add find };' \
-  'allow system_server sidebar_service:service_manager find;' \
-  'build-sepolicy system_server service-manager permissions'
 run_regression 'process checker rejects a client without find permission' \
   test_process_layer_checker_rejects_fact \
   sepolicy-client-permission build-sepolicy \
   'allow sidebar_app sidebar_service:service_manager find;' \
   'allow sidebar_app sidebar_service:service_manager read;' \
   'build-sepolicy client service-manager find permission'
+run_regression 'process checker rejects missing services device pinning' \
+  test_process_layer_checker_rejects_fact \
+  services-serial-pin build-services-jar \
+  'device_serial="${ANDROID_SERIAL:?Set ANDROID_SERIAL to the explicitly confirmed target serial}"' \
+  'adb devices' 'build-services-jar ANDROID_SERIAL pin'
+run_regression 'process checker rejects missing services target validation' \
+  test_process_layer_checker_rejects_fact \
+  services-get-state build-services-jar \
+  'adb -s "$device_serial" get-state' 'adb devices' \
+  'build-services-jar pinned get-state'
+run_regression 'process checker rejects bare state-changing ADB' \
+  test_process_layer_checker_rejects_fact \
+  services-bare-adb build-services-jar \
+  'adb -s "$device_serial" root' 'adb root' \
+  'build-services-jar bare ADB command'
+run_regression 'process checker rejects missing sepolicy device pinning' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-serial-pin build-sepolicy \
+  'device_serial="${ANDROID_SERIAL:?Set ANDROID_SERIAL to the explicitly confirmed target serial}"' \
+  'After boot, inspect denials and service registration:' \
+  'build-sepolicy ANDROID_SERIAL pin'
+run_regression 'process checker rejects missing sepolicy target validation' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-get-state build-sepolicy \
+  'adb -s "$device_serial" get-state' \
+  'After boot, inspect denials and service registration:' \
+  'build-sepolicy pinned get-state'
+run_regression 'process checker rejects bare sepolicy ADB queries' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-bare-adb build-sepolicy \
+  'adb -s "$device_serial" shell dmesg' 'adb shell dmesg' \
+  'build-sepolicy bare ADB command'
+run_regression 'process checker rejects unselected services CVD group' \
+  test_process_layer_checker_rejects_fact \
+  services-bare-cvd build-services-jar \
+  'cvd --group_name="$cvd_group" stop' 'cvd stop' \
+  'build-services-jar CVD group selector'
+run_regression 'process checker rejects unselected sepolicy CVD group' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-bare-cvd build-sepolicy \
+  'cvd --group_name="$cvd_group" stop' 'cvd stop' \
+  'build-sepolicy CVD group selector'
+run_regression 'process checker rejects fixed services build logs' \
+  test_process_layer_checker_rejects_fact \
+  services-fixed-log build-services-jar \
+  'build_log="$(mktemp "${TMPDIR:-/tmp}/build-services.XXXXXX.log")"' \
+  '/tmp/build-services.log' 'build-services-jar unique build log'
+run_regression 'process checker rejects fixed sepolicy build logs' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-fixed-log build-sepolicy \
+  'build_log="$(mktemp "${TMPDIR:-/tmp}/build-sepolicy.XXXXXX.log")"' \
+  '/tmp/build-sepolicy.log' 'build-sepolicy unique build log'
+run_regression 'process checker rejects detached services waits' \
+  test_process_layer_checker_rejects_fact \
+  services-wait build-services-jar 'wait "$build_pid"' 'wait for the build' \
+  'build-services-jar retained child wait'
+run_regression 'process checker rejects detached sepolicy waits' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-wait build-sepolicy 'wait "$build_pid"' 'wait for the background job' \
+  'build-sepolicy retained child wait'
+run_regression 'process checker rejects services recovery without its own build environment' \
+  test_process_layer_checker_rejects_fact \
+  services-full-build build-services-jar \
+  "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+  'run `m`, then `cvd stop`, then `cvd start`' \
+  'build-services-jar standalone full-image build'
+run_regression 'process checker rejects sepolicy deployment without its own build environment' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-full-build build-sepolicy \
+  "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+  'run `m`, then `cvd stop`, then `cvd start`' \
+  'build-sepolicy standalone full-image build'
+run_regression 'process checker rejects the obsolete raw SystemServer allow' \
+  test_process_layer_checker_rejects_fact \
+  sepolicy-raw-system-server build-sepolicy \
+  'The system_server_service attribute is consumed by add_service(system_server, system_server_service).' \
+  'allow system_server sidebar_service:service_manager { add find };' \
+  'build-sepolicy raw system_server allow'
 
 if [[ "$REGRESSION_FAILURES" -ne 0 ]]; then
   echo "FAIL  $REGRESSION_FAILURES Codex harness regression case(s)" >&2
