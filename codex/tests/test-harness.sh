@@ -1984,7 +1984,9 @@ required_texts = [
     "UserPromptSubmit",
     '"continue": false',
     "子代理任务卡",
-    "不会自动继承当前 feature 的全部上下文",
+    "不依赖子代理自动继承完整 feature 上下文",
+    "任务卡作为稳定输入",
+    "不是强制隔离机制",
     "sandbox",
     "approval",
     "指导不是授权",
@@ -2007,7 +2009,7 @@ required_texts = [
     "RESULT PASS",
     "RESULT FAIL",
     "RESULT INCOMPLETE",
-    "官方保证",
+    "官方文档化行为/能力",
     "Demo 选择",
     "真实 AOSP 建议",
     "本仓库 Claude Code demo",
@@ -2043,16 +2045,124 @@ required_texts = [
     "same-UID",
     "完整语义索引",
     "plugin",
+    "会替换任何已有软链",
+    "没有 ownership marker",
+    "拒绝覆盖普通文件",
+    "编辑器可能原子替换软链本身",
+    "直接编辑 `features/<feature>/AGENTS.md`",
+    "只比较 active feature token",
+    "第一个可用锚点仓",
+    "不会持续重跑 `repos.tsv`",
+    "不能发现非锚点仓的分支漂移",
+    "构建交接或完成前重新运行 `./features/dev-sidebar/check-branch.sh`",
 ]
 for required in required_texts:
     assert required in text, f"article missing required contract text: {required}"
 
 required_table_rows = [
-    "| 能力面 | 官方保证 | Demo 选择 | 真实 AOSP 建议 |",
+    "| 能力面 | 官方文档化行为/能力 | Demo 选择 | 真实 AOSP 建议 |",
     "| 维度 | 本仓库 Claude Code demo | Codex demo | 迁移动作 |",
 ]
 for row in required_table_rows:
     assert row in text, f"article missing required table: {row}"
+
+assert "官方保证" not in text, "article overstates documented behavior as a guarantee"
+assert re.search(
+    r"最多占模型上下文的\s*(?:[*]{2})?2%(?:[*]{2})?",
+    text,
+), "article missing the documented 2% initial skill-list budget"
+assert re.search(
+    r"上下文窗口未知时最多\s*(?:[*]{2})?8,000 个字符(?:[*]{2})?",
+    text,
+), "article missing the documented 8,000-character fallback budget"
+assert re.search(r"先缩短\s+description", text), (
+    "article missing skill-description shortening behavior"
+)
+assert re.search(r"省略部分\s+skills.*warning", text), (
+    "article missing skill omission warning behavior"
+)
+
+representative_match = re.search(
+    r"### 5[.]2 监督式定向构建.*?```bash\n(.*?)\n```",
+    text,
+    re.DOTALL,
+)
+assert representative_match, "missing representative services build block"
+representative_build = representative_match.group(1)
+
+
+def missing_build_guards(build_block):
+    required_guards = {
+        "explicit child failure branch": 'if [[ "$build_rc" -ne 0 ]]; then',
+        "child status exit": 'exit "$build_rc"',
+        "success marker guard": (
+            'grep -Fq "#### build completed successfully ####" '
+            '"$build_log" || exit 1'
+        ),
+        "artifact guard": '[[ -f "$artifact" ]] || exit 1',
+    }
+    return [
+        label for label, required in required_guards.items()
+        if required not in build_block
+    ]
+
+
+assert not missing_build_guards(representative_build), (
+    "representative build can mask failure: "
+    f"{missing_build_guards(representative_build)}"
+)
+guard_positions = [
+    representative_build.index('wait "$build_pid"'),
+    representative_build.index('build_rc=$?'),
+    representative_build.index('if [[ "$build_rc" -ne 0 ]]; then'),
+    representative_build.index('exit "$build_rc"'),
+    representative_build.index(
+        'grep -Fq "#### build completed successfully ####" '
+        '"$build_log" || exit 1'
+    ),
+    representative_build.index('[[ -f "$artifact" ]] || exit 1'),
+]
+assert guard_positions == sorted(guard_positions), (
+    "representative build guards are not ordered after wait"
+)
+
+build_guard_mutations = {
+    "removed child exit": representative_build.replace(
+        'exit "$build_rc"', ': # child failure accidentally ignored', 1
+    ),
+    "unguarded success marker": representative_build.replace(
+        '"$build_log" || exit 1', '"$build_log"', 1
+    ),
+    "unguarded artifact": representative_build.replace(
+        '[[ -f "$artifact" ]] || exit 1', '[[ -f "$artifact" ]]', 1
+    ),
+}
+for mutation_name, mutation in build_guard_mutations.items():
+    assert missing_build_guards(mutation), (
+        f"build-guard detector missed mutation: {mutation_name}"
+    )
+
+lifecycle_match = re.search(
+    r"```mermaid\nflowchart TD\n(.*?)\n```",
+    text,
+    re.DOTALL,
+)
+assert lifecycle_match, "missing lifecycle Mermaid graph"
+lifecycle = lifecycle_match.group(1)
+for edge in (
+    "F --> O",
+    "R --> O",
+    "P -- 是 --> G",
+    "G --> H",
+    "M -- 否 --> G",
+):
+    assert edge in lifecycle, f"lifecycle missing turn-gate edge: {edge}"
+assert "G --> O" not in lifecycle, (
+    "UserPromptSubmit must gate the turn before exploration/build"
+)
+assert "M -- 否 --> O" not in lifecycle, (
+    "verifier failure does not itself trigger UserPromptSubmit"
+)
 
 def forbidden_claims(content):
     findings = []
@@ -2125,7 +2235,7 @@ def forbidden_claims(content):
             and re.search(r"完整|全部|complete|full", lowered)
             and re.search(r"继承|拿到|inherit|receive", lowered)
             and not re.search(
-                r"不会|不能|不可|不假设|没有建立|并非|不是|"
+                r"不会|不能|不可|不假设|不依赖|没有建立|并非|不是|"
                 r"does not|cannot|do not assume|not established",
                 lowered,
             )
