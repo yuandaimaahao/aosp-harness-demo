@@ -1603,6 +1603,45 @@ test_sidebar_verifier_query_and_presence_failures() {
   ! grep -Fq 'package list 查询失败' <<<"$output"
 }
 
+test_sidebar_verifier_pid_evidence() {
+  local output rc pid_value
+  local invalid_values=(
+    'not-a-pid'
+    '123 bad'
+    '-123'
+    '+123'
+    '12.3'
+  )
+  local valid_values=(
+    '1423'
+    '1423 2048'
+    $'1423\t2048 \r\n'
+  )
+
+  for pid_value in "${invalid_values[@]}"; do
+    set +e
+    output="$(DEMO_SYSTEM_SERVER="$pid_value" \
+      "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    grep -Fxq 'FAIL  system_server pid 无效' <<<"$output" || return 1
+    [[ "$(grep -c '^FAIL  ' <<<"$output")" -eq 1 ]] || return 1
+    [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]] || return 1
+  done
+
+  for pid_value in "${valid_values[@]}"; do
+    set +e
+    output="$(DEMO_SYSTEM_SERVER="$pid_value" \
+      "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -eq 0 ]] || return 1
+    grep -Fq 'PASS  system_server pid = ' <<<"$output" || return 1
+    [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS' ]] || return 1
+  done
+}
+
 test_sidebar_verifier_crash_filtering() {
   local output rc crash_log
 
@@ -2476,6 +2515,8 @@ run_regression 'sidebar verifier rejects real mode without a serial before ADB' 
   test_sidebar_verifier_requires_serial_before_adb
 run_regression 'sidebar verifier distinguishes query, value, presence, and skip failures' \
   test_sidebar_verifier_query_and_presence_failures
+run_regression 'sidebar verifier requires decimal system_server PID evidence' \
+  test_sidebar_verifier_pid_evidence
 run_regression 'sidebar verifier treats timestamped crash-buffer records as crashes' \
   test_sidebar_verifier_crash_filtering
 run_regression 'integrated demo uses public dry-run entry points and restores state' \

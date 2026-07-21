@@ -177,10 +177,12 @@ fi
 
 if ((system_server_rc != 0)); then
   fail 'system_server 查询失败'
-elif [[ -n "${system_server//[[:space:]]/}" ]]; then
+elif [[ -z "${system_server//[[:space:]]/}" ]]; then
+  fail 'system_server pid 为空'
+elif [[ "$system_server" =~ ^[0-9]+([[:space:]]+[0-9]+)*$ ]]; then
   pass "system_server pid = $system_server"
 else
-  fail 'system_server pid 为空'
+  fail 'system_server pid 无效'
 fi
 
 baseline=''
