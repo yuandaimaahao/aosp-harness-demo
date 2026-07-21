@@ -1237,13 +1237,59 @@ test_sidebar_verifier_crash_baselines() {
   rc=$?
   set -e
   [[ "$rc" -ne 0 ]] || return 1
-  grep -Fxq 'FAIL  crash buffer 自 200.500 起发现崩溃' <<<"$output"
+  grep -Fxq 'FAIL  crash buffer 自 200.500 起发现崩溃' <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='200.500600000 1 1 F DEBUG: *** ***' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo \
+    --since 200.500500000 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 自 200.500500000 起发现崩溃' \
+    <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='200.500499999 1 1 F DEBUG: *** ***' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo \
+    --since 200.500500000 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 200.500500000 起无崩溃' \
+    <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='1753000000.500499999 1 1 E AndroidRuntime: FATAL' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo \
+    --since 1753000000.500500000 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'PASS  crash buffer 自 1753000000.500500000 起无崩溃' \
+    <<<"$output" || return 1
+
+  set +e
+  output="$(DEMO_CRASH_LOG='1753000000.500500001 1 1 I any crash record' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo \
+    --since 1753000000.500500000 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 自 1753000000.500500000 起发现崩溃' \
+    <<<"$output"
 }
 
 test_sidebar_verifier_usage_errors() {
   local output rc args
 
-  for args in '--unknown' '--since' '--since -1' '--since nope' '--since 1.2.3'; do
+  for args in \
+    '--unknown' \
+    '--since' \
+    '--since -1' \
+    '--since nope' \
+    '--since 1.2.3' \
+    '--since 1.1234567890'; do
     set +e
     # shellcheck disable=SC2086 # Each fixture deliberately expands into CLI words.
     output="$("$ROOT/features/dev-sidebar/verify-sidebar.sh" $args 2>&1)"
@@ -1255,7 +1301,10 @@ test_sidebar_verifier_usage_errors() {
 
   run_sidebar_verifier output rc --help
   [[ "$rc" -eq 0 ]] || return 1
-  grep -Fq 'Usage:' <<<"$output"
+  grep -Fq 'Usage:' <<<"$output" || return 1
+
+  run_sidebar_verifier output rc --demo --since 1.123456789
+  [[ "$rc" -eq 0 ]]
 }
 
 test_sidebar_verifier_real_mode_pins_adb() {
@@ -1271,7 +1320,7 @@ test_sidebar_verifier_real_mode_pins_adb() {
       'shell getprop sys.boot_completed') printf '%s\n' '1' ;;
       'shell pidof system_server') printf '%s\n' '1423' ;;
       'shell cat /proc/stat') printf '%s\n' 'cpu 1 2 3' 'btime 200' ;;
-      'logcat -b crash -d -v epoch -T 200.000') ;;
+      'logcat -b crash -d -v epoch,nsec -T 200.000000000') ;;
       'shell service list') printf '%s\n' '42 sidebar: [android.os.ISidebar]' ;;
       'shell pm list packages') printf '%s\n' 'package:com.android.sidebar' ;;
       *) return 92 ;;
@@ -1292,8 +1341,111 @@ test_sidebar_verifier_real_mode_pins_adb() {
   [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS' ]] || return 1
   [[ "$(wc -l < "$adb_log")" -eq 5 ]] || return 1
   [[ "$(grep -c '^adb -s demo-serial ' "$adb_log")" -eq 5 ]] || return 1
-  grep -Fxq 'adb -s demo-serial logcat -b crash -d -v epoch -T 200.000 ' \
+  grep -Fxq 'adb -s demo-serial logcat -b crash -d -v epoch\,nsec -T 200.000000000 ' \
     "$adb_log"
+}
+
+test_sidebar_verifier_real_default_baseline_and_crlf() {
+  local adb_log="$FIXTURE/sidebar-default-adb.log"
+  local output rc
+
+  adb() {
+    printf '%q ' adb "$@" >> "$ADB_LOG"
+    printf '\n' >> "$ADB_LOG"
+    [[ "$1" == '-s' && "$2" == 'demo-serial' ]] || return 91
+    shift 2
+    case "$*" in
+      'shell getprop sys.boot_completed') printf '1 \r\n' ;;
+      'shell pidof system_server') printf '1423\t\r\n' ;;
+      'shell cat /proc/stat') printf 'cpu 1 2 3\r\nbtime 200 \t\r\n' ;;
+      'logcat -b crash -d -v epoch,nsec -T 200.000000000')
+        printf '%s\r\n' '--------- beginning of crash'
+        ;;
+      'shell service list')
+        printf '42 sidebar: [android.os.ISidebar] \t\r\n'
+        ;;
+      'shell pm list packages')
+        printf 'package:com.android.sidebar \t\r\n'
+        ;;
+      *) return 92 ;;
+    esac
+  }
+  export -f adb
+  export ADB_LOG="$adb_log"
+
+  set +e
+  output="$(ANDROID_SERIAL=demo-serial \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" 2>&1)"
+  rc=$?
+  set -e
+  unset -f adb
+  unset ADB_LOG
+
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'RESULT PASS' ]] || return 1
+  [[ "$(wc -l < "$adb_log")" -eq 6 ]] || return 1
+  [[ "$(grep -c '^adb -s demo-serial ' "$adb_log")" -eq 6 ]] || return 1
+  grep -Fxq 'adb -s demo-serial shell cat /proc/stat ' "$adb_log" || return 1
+  grep -Fxq \
+    'adb -s demo-serial logcat -b crash -d -v epoch\,nsec -T 200.000000000 ' \
+    "$adb_log"
+}
+
+test_sidebar_verifier_real_query_failures() {
+  local output rc entry fail_key expected adb_log
+  local cases=(
+    'boot|FAIL  sys.boot_completed 查询失败'
+    'pid|FAIL  system_server 查询失败'
+    'btime|FAIL  btime 查询失败'
+    'logcat|FAIL  crash buffer 查询失败'
+    'service|FAIL  service list 查询失败'
+    'package|FAIL  package list 查询失败'
+  )
+
+  adb() {
+    local key
+    printf '%q ' adb "$@" >> "$ADB_LOG"
+    printf '\n' >> "$ADB_LOG"
+    [[ "$1" == '-s' && "$2" == 'demo-serial' ]] || return 91
+    shift 2
+    case "$*" in
+      'shell getprop sys.boot_completed') key=boot ;;
+      'shell pidof system_server') key=pid ;;
+      'shell cat /proc/stat') key=btime ;;
+      logcat\ -b\ crash\ -d\ -v\ *) key=logcat ;;
+      'shell service list') key=service ;;
+      'shell pm list packages') key=package ;;
+      *) return 92 ;;
+    esac
+    [[ "$key" != "$ADB_FAIL_KEY" ]] || return 73
+    case "$key" in
+      boot) printf '%s\n' 1 ;;
+      pid) printf '%s\n' 1423 ;;
+      btime) printf '%s\n' 'cpu 1 2 3' 'btime 200' ;;
+      logcat) ;;
+      service) printf '%s\n' '42 sidebar: [android.os.ISidebar]' ;;
+      package) printf '%s\n' 'package:com.android.sidebar' ;;
+    esac
+  }
+  export -f adb
+
+  for entry in "${cases[@]}"; do
+    IFS='|' read -r fail_key expected <<<"$entry"
+    adb_log="$FIXTURE/sidebar-$fail_key-adb.log"
+    set +e
+    output="$(ADB_LOG="$adb_log" ADB_FAIL_KEY="$fail_key" \
+      ANDROID_SERIAL=demo-serial \
+      "$ROOT/features/dev-sidebar/verify-sidebar.sh" 2>&1)"
+    rc=$?
+    set -e
+    [[ "$rc" -ne 0 ]] || return 1
+    grep -Fxq "$expected" <<<"$output" || return 1
+    [[ "$(grep -c '^FAIL  ' <<<"$output")" -eq 1 ]] || return 1
+    [[ "$(tail -n 1 <<<"$output")" == 'RESULT FAIL' ]] || return 1
+    [[ "$(grep -c '^adb -s demo-serial ' "$adb_log")" \
+      -eq "$(wc -l < "$adb_log")" ]] || return 1
+  done
+  unset -f adb
 }
 
 test_sidebar_verifier_requires_serial_before_adb() {
@@ -1365,7 +1517,7 @@ test_sidebar_verifier_query_and_presence_failures() {
 test_sidebar_verifier_crash_filtering() {
   local output rc crash_log
 
-  crash_log=$'300.000 1 1 I unrelated: FATAL words only\n301.000 1 1 E AndroidRuntime: ordinary error'
+  crash_log=$'--------- beginning of crash\nunrelated header text without an epoch'
   set +e
   output="$(DEMO_CRASH_LOG="$crash_log" \
     "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
@@ -1375,9 +1527,9 @@ test_sidebar_verifier_crash_filtering() {
   grep -Fxq 'PASS  crash buffer 自 200 起无崩溃' <<<"$output" || return 1
 
   for crash_log in \
-    '300.000 1 1 E AndroidRuntime: FATAL EXCEPTION: main' \
-    '300.000 1 1 F AndroidRuntime: FATAL process abort' \
-    '300.000 1 1 F libc: Fatal signal 11 (SIGSEGV)'; do
+    '300.000000000 1 1 F DEBUG: *** *** *** ***' \
+    "300.000000000 1 1 F libc: Abort message: 'terminating'" \
+    '300.000000000 1 1 I timestamped crash-buffer record'; do
     set +e
     output="$(DEMO_CRASH_LOG="$crash_log" \
       "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
@@ -1386,6 +1538,14 @@ test_sidebar_verifier_crash_filtering() {
     [[ "$rc" -ne 0 ]] || return 1
     grep -Fxq 'FAIL  crash buffer 自 200 起发现崩溃' <<<"$output" || return 1
   done
+
+  set +e
+  output="$(DEMO_CRASH_LOG='200.not-a-timestamp malformed record' \
+    "$ROOT/features/dev-sidebar/verify-sidebar.sh" --demo --since 200 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fxq 'FAIL  crash buffer 解析失败' <<<"$output"
 }
 
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
@@ -1422,11 +1582,15 @@ run_regression 'sidebar verifier rejects malformed CLI usage' \
   test_sidebar_verifier_usage_errors
 run_regression 'sidebar verifier pins and normalizes every real ADB query' \
   test_sidebar_verifier_real_mode_pins_adb
+run_regression 'sidebar verifier derives a real baseline and normalizes CRLF results' \
+  test_sidebar_verifier_real_default_baseline_and_crlf
+run_regression 'sidebar verifier fails closed for every real ADB query path' \
+  test_sidebar_verifier_real_query_failures
 run_regression 'sidebar verifier rejects real mode without a serial before ADB' \
   test_sidebar_verifier_requires_serial_before_adb
 run_regression 'sidebar verifier distinguishes query, value, presence, and skip failures' \
   test_sidebar_verifier_query_and_presence_failures
-run_regression 'sidebar verifier recognizes only supported crash signatures' \
+run_regression 'sidebar verifier treats timestamped crash-buffer records as crashes' \
   test_sidebar_verifier_crash_filtering
 run_regression 'process checker rejects missing update-api guidance' \
   test_process_layer_checker_rejects_fact \
