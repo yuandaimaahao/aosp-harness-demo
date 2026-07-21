@@ -937,7 +937,15 @@ test_process_skill_artifacts() {
     'ART' \
     'dexpreopt' \
     '/data/dalvik-cache/' \
-    "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+    'full_build_log="$(mktemp "${TMPDIR:-/tmp}/build-full-services.XXXXXX.log")"' \
+    'full_build_pid=$!' \
+    'while kill -0 "$full_build_pid" 2>/dev/null; do' \
+    'wait "$full_build_pid"' \
+    'full_build_rc=$?' \
+    '[[ "$full_build_rc" -ne 0 ]]' \
+    'grep -Fq "#### build completed successfully ####" "$full_build_log"' \
+    'image_artifact="out/target/product/vsoc_x86_64/system.img"' \
+    '[[ -f "$image_artifact" ]]' \
     'cvd fleet' \
     'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' \
     'cvd --group_name="$cvd_group" stop' \
@@ -976,7 +984,15 @@ test_process_skill_artifacts() {
     'adb -s "$device_serial" shell dmesg' \
     'adb -s "$device_serial" shell service list' \
     'full image' \
-    "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
+    'full_build_log="$(mktemp "${TMPDIR:-/tmp}/build-full-sepolicy.XXXXXX.log")"' \
+    'full_build_pid=$!' \
+    'while kill -0 "$full_build_pid" 2>/dev/null; do' \
+    'wait "$full_build_pid"' \
+    'full_build_rc=$?' \
+    '[[ "$full_build_rc" -ne 0 ]]' \
+    'grep -Fq "#### build completed successfully ####" "$full_build_log"' \
+    'image_artifact="out/target/product/vsoc_x86_64/system.img"' \
+    '[[ -f "$image_artifact" ]]' \
     'cvd fleet' \
     'cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"' \
     'cvd --group_name="$cvd_group" stop' \
@@ -1192,15 +1208,15 @@ run_regression 'process checker rejects detached sepolicy waits' \
 run_regression 'process checker rejects services recovery without its own build environment' \
   test_process_layer_checker_rejects_fact \
   services-full-build build-services-jar \
+  'full_build_log="$(mktemp "${TMPDIR:-/tmp}/build-full-services.XXXXXX.log")"' \
   "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
-  'run `m`, then `cvd stop`, then `cvd start`' \
-  'build-services-jar standalone full-image build'
+  'build-services-jar retained full-image build'
 run_regression 'process checker rejects sepolicy deployment without its own build environment' \
   test_process_layer_checker_rejects_fact \
   sepolicy-full-build build-sepolicy \
+  'full_build_log="$(mktemp "${TMPDIR:-/tmp}/build-full-sepolicy.XXXXXX.log")"' \
   "bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'" \
-  'run `m`, then `cvd stop`, then `cvd start`' \
-  'build-sepolicy standalone full-image build'
+  'build-sepolicy retained full-image build'
 run_regression 'process checker rejects the obsolete raw SystemServer allow' \
   test_process_layer_checker_rejects_fact \
   sepolicy-raw-system-server build-sepolicy \

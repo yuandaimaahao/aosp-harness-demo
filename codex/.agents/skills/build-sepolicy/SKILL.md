@@ -61,7 +61,30 @@ printf "artifact: %s\n" "$artifact"
 Policy requires a full image, not a services.jar push. Build it from its own initialized shell, inspect the fleet, and explicitly confirm the group before changing its state:
 
 ```bash
-bash -c 'source build/envsetup.sh >/dev/null 2>&1 && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 && m'
+bash -c '
+set -u
+full_build_log="$(mktemp "${TMPDIR:-/tmp}/build-full-sepolicy.XXXXXX.log")"
+image_artifact="out/target/product/vsoc_x86_64/system.img"
+printf "full build log: %s\n" "$full_build_log"
+(
+  source build/envsetup.sh >/dev/null 2>&1 &&
+  lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 &&
+  m
+) >"$full_build_log" 2>&1 &
+full_build_pid=$!
+while kill -0 "$full_build_pid" 2>/dev/null; do
+  tail -n 20 "$full_build_log"
+  sleep 10
+done
+wait "$full_build_pid"
+full_build_rc=$?
+if [[ "$full_build_rc" -ne 0 ]]; then
+  tail -n 200 "$full_build_log" >&2
+  exit "$full_build_rc"
+fi
+grep -Fq "#### build completed successfully ####" "$full_build_log" || exit 1
+[[ -f "$image_artifact" ]] || exit 1
+'
 cvd fleet
 cvd_group="${CVD_GROUP:?Set CVD_GROUP to the explicitly confirmed group from cvd fleet}"
 cvd --group_name="$cvd_group" stop
