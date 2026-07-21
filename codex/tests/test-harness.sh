@@ -1548,6 +1548,259 @@ test_sidebar_verifier_crash_filtering() {
   grep -Fxq 'FAIL  crash buffer 解析失败' <<<"$output"
 }
 
+write_forbidden_command_stubs() {
+  local bin_dir="$1"
+  local command_name
+
+  mkdir -p "$bin_dir"
+  for command_name in codex adb cvd m make ninja soong_ui.bash; do
+    printf '%s\n' \
+      '#!/usr/bin/env bash' \
+      'printf '\''%s\n'\'' "${0##*/}" >> "$DEMO_FORBIDDEN_CALLS"' \
+      'exit 97' \
+      > "$bin_dir/$command_name"
+    chmod +x "$bin_dir/$command_name"
+  done
+}
+
+test_integrated_demo_contract_and_success() {
+  local demo="$ROOT/run-demo.sh"
+  local command_bin="$FIXTURE/demo-command-bin"
+  local forbidden_calls="$FIXTURE/demo-forbidden-calls.log"
+  local demo_tmp_parent="$FIXTURE/demo-tmp-parent"
+  local original_feature_hash original_agents_target output rc heading
+  local headings=(
+    '上下文选择'
+    '会话分支漂移'
+    '涉及仓分支一致性'
+    '流程 Skills'
+    '严格验证'
+  )
+
+  [[ -x "$demo" ]] || return 1
+  grep -Fq './.codex/bin/codex-feature --dry-run' "$demo" || return 1
+  grep -Fq './.codex/bin/check-process-layer' "$demo" || return 1
+  grep -Fq './features/dev-sidebar/verify-sidebar.sh --demo' "$demo" || return 1
+  grep -Fq './tests/test-harness.sh' "$demo" || return 1
+  if grep -En '(^|[;&|()[:space:]])(codex|adb|cvd|m|make|ninja|soong_ui[.]bash)([[:space:]]|$)' \
+      "$demo"; then
+    return 1
+  fi
+  if grep -En '(^|[;&|()[:space:]])(source[[:space:]]+)?build/envsetup[.]sh([[:space:]]|$)|(^|[;&|()[:space:]])lunch([[:space:]]|$)' \
+      "$demo"; then
+    return 1
+  fi
+
+  original_feature_hash="$(sha256sum "$ROOT/CURRENT_FEATURE" | awk '{print $1}')"
+  [[ -L "$ROOT/AGENTS.md" ]] || return 1
+  original_agents_target="$(readlink "$ROOT/AGENTS.md")"
+  write_forbidden_command_stubs "$command_bin" || return 1
+  mkdir -p "$demo_tmp_parent"
+
+  set +e
+  output="$(cd "$ROOT" && \
+    PATH="$command_bin:$PATH" \
+    DEMO_FORBIDDEN_CALLS="$forbidden_calls" \
+    TMPDIR="$demo_tmp_parent" \
+    SKIP_SELF_TESTS=1 ./run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+
+  [[ "$rc" -eq 0 ]] || return 1
+  for heading in "${headings[@]}"; do
+    grep -Fq "$heading" <<<"$output" || return 1
+  done
+  grep -Fq '"continue": false' <<<"$output" || return 1
+  grep -Fq "AOSP feature drift: session started on 'dev-sidebar', current feature is 'dev-next'." \
+    <<<"$output" || return 1
+  grep -Fq '[demo] 已按预期识别样本分支漂移。' <<<"$output" || return 1
+  [[ "$(grep -c '^RESULT PASS$' <<<"$output")" -eq 2 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'Codex 三层 Harness 演示完毕' ]] || return 1
+  [[ ! -e "$forbidden_calls" ]] || return 1
+  [[ -z "$(find "$demo_tmp_parent" -mindepth 1 -maxdepth 1 -print -quit)" ]] || return 1
+  [[ "$(sha256sum "$ROOT/CURRENT_FEATURE" | awk '{print $1}')" == \
+    "$original_feature_hash" ]] || return 1
+  [[ -L "$ROOT/AGENTS.md" ]] || return 1
+  [[ "$(readlink "$ROOT/AGENTS.md")" == "$original_agents_target" ]]
+}
+
+test_integrated_demo_restores_state_after_failure() {
+  local case_root="$FIXTURE/demo-failure-root"
+  local demo
+  local fake_bin="$FIXTURE/demo-failure-bin"
+  local python_count="$FIXTURE/demo-python-count"
+  local demo_tmp_parent="$FIXTURE/demo-failure-tmp"
+  local real_python original_feature_hash original_agents_target output rc
+
+  cp -a "$ROOT" "$case_root" || return 1
+  demo="$case_root/run-demo.sh"
+  [[ -x "$demo" ]] || return 1
+  real_python="$(command -v python3)" || return 1
+  original_feature_hash="$(sha256sum "$case_root/CURRENT_FEATURE" | awk '{print $1}')"
+  [[ -L "$case_root/AGENTS.md" ]] || return 1
+  rm -f "$case_root/AGENTS.md"
+  original_agents_target='features/original-failure-context/AGENTS.md'
+  ln -s "$original_agents_target" "$case_root/AGENTS.md"
+  mkdir -p "$fake_bin" "$demo_tmp_parent"
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'if [[ "${1:-}" == -c && "${2:-}" == *'\''data["session_id"]'\''* ]]; then' \
+    '  count=0' \
+    '  [[ ! -f "$DEMO_PYTHON_COUNT" ]] || count="$(cat "$DEMO_PYTHON_COUNT")"' \
+    '  count=$((count + 1))' \
+    '  printf '\''%s\n'\'' "$count" > "$DEMO_PYTHON_COUNT"' \
+    '  if [[ "$count" -eq 3 ]]; then' \
+    '    exit 97' \
+    '  fi' \
+    'fi' \
+    'exec "$DEMO_REAL_PYTHON" "$@"' \
+    > "$fake_bin/python3"
+  chmod +x "$fake_bin/python3"
+
+  set +e
+  output="$(cd "$case_root" && \
+    PATH="$fake_bin:$PATH" \
+    DEMO_PYTHON_COUNT="$python_count" \
+    DEMO_REAL_PYTHON="$real_python" \
+    TMPDIR="$demo_tmp_parent" \
+    SKIP_SELF_TESTS=1 ./run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fq 'error: invalid hook input' <<<"$output" || return 1
+  [[ "$(cat "$python_count")" -eq 3 ]] || return 1
+  [[ "$(sha256sum "$case_root/CURRENT_FEATURE" | awk '{print $1}')" == \
+    "$original_feature_hash" ]] || return 1
+  [[ -L "$case_root/AGENTS.md" ]] || return 1
+  [[ "$(readlink "$case_root/AGENTS.md")" == "$original_agents_target" ]] || return 1
+  [[ -z "$(find "$demo_tmp_parent" -mindepth 1 -maxdepth 1 -print -quit)" ]]
+}
+
+test_integrated_demo_restores_alternate_link_and_protects_regular_file() {
+  local case_root="$FIXTURE/demo-alternate-root"
+  local command_bin="$FIXTURE/demo-alternate-bin"
+  local forbidden_calls="$FIXTURE/demo-alternate-forbidden.log"
+  local demo_tmp_parent="$FIXTURE/demo-alternate-tmp"
+  local alternate_target='features/original-success-context/AGENTS.md'
+  local protected_hash output rc
+
+  cp -a "$ROOT" "$case_root" || return 1
+  rm -f "$case_root/AGENTS.md"
+  ln -s "$alternate_target" "$case_root/AGENTS.md"
+  write_forbidden_command_stubs "$command_bin" || return 1
+  mkdir -p "$demo_tmp_parent"
+
+  set +e
+  output="$(cd "$case_root" && \
+    PATH="$command_bin:$PATH" \
+    DEMO_FORBIDDEN_CALLS="$forbidden_calls" \
+    TMPDIR="$demo_tmp_parent" \
+    SKIP_SELF_TESTS=1 ./run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'Codex 三层 Harness 演示完毕' ]] || return 1
+  [[ -L "$case_root/AGENTS.md" ]] || return 1
+  [[ "$(readlink "$case_root/AGENTS.md")" == "$alternate_target" ]] || return 1
+  [[ ! -e "$forbidden_calls" ]] || return 1
+  [[ -z "$(find "$demo_tmp_parent" -mindepth 1 -maxdepth 1 -print -quit)" ]] || return 1
+
+  rm -f "$case_root/AGENTS.md"
+  printf '%s\n' 'protected regular AGENTS file' > "$case_root/AGENTS.md"
+  protected_hash="$(sha256sum "$case_root/AGENTS.md" | awk '{print $1}')"
+  set +e
+  output="$(cd "$case_root" && SKIP_SELF_TESTS=1 ./run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fq 'AGENTS.md 是普通文件' <<<"$output" || return 1
+  [[ ! -L "$case_root/AGENTS.md" ]] || return 1
+  [[ "$(sha256sum "$case_root/AGENTS.md" | awk '{print $1}')" == "$protected_hash" ]]
+}
+
+test_operational_readme_contract_and_quick_start() {
+  local readme="$ROOT/README.md"
+  local repo_root
+  local command_bin="$FIXTURE/readme-command-bin"
+  local forbidden_calls="$FIXTURE/readme-forbidden-calls.log"
+  local required_text output rc
+  local required_texts=(
+    'Codex 原生重写，不是名称替换'
+    'codex/'
+    '① 上下文层'
+    '② 流程层'
+    '③ 验证闭环层'
+    './codex/run-demo.sh'
+    'cd codex'
+    './run-demo.sh'
+    './.codex/bin/codex-feature --dry-run'
+    './.codex/bin/codex-feature'
+    './.codex/hooks/session-start.sh'
+    './.codex/hooks/check-branch-drift.sh'
+    '"hook_event_name":"UserPromptSubmit"'
+    '/hooks'
+    './.codex/bin/check-process-layer'
+    './features/dev-sidebar/verify-sidebar.sh --demo'
+    'AGENTS.md 每次运行只加载一次'
+    '非 Git 的 AOSP 树根'
+    '.agents/skills'
+    '渐进式披露'
+    '$build-services-jar'
+    'description'
+    '没有已文档化的 `paths` 路径触发契约'
+    '受信任项目'
+    '审查并信任精确的 hook 定义'
+    '相对命令依赖 wrapper 固定的工作目录'
+    'manifest 之外的独立 Git 仓'
+    '树根 `AGENTS.md` 软链'
+    '`.codex/` 与 `.agents/`'
+    'repos.tsv'
+    'ANDROID_SERIAL'
+    'CVD_GROUP'
+    'RESULT PASS'
+    'RESULT FAIL'
+    'RESULT INCOMPLETE'
+    '--allow-skip'
+    '仅用于探索'
+    '`rg` + 源码阅读'
+    '不需要预先建立索引'
+    'AOSP整机源码Codex-Harness工程探索.md'
+    'https://learn.chatgpt.com/docs/agent-configuration/agents-md'
+    'https://learn.chatgpt.com/docs/build-skills'
+    'https://learn.chatgpt.com/docs/hooks'
+    'https://learn.chatgpt.com/docs/config-file/config-advanced'
+    'https://learn.chatgpt.com/docs/agent-configuration/subagents'
+    'https://learn.chatgpt.com/docs/developer-commands'
+  )
+
+  [[ -f "$readme" ]] || return 1
+  for required_text in "${required_texts[@]}"; do
+    grep -Fq -- "$required_text" "$readme" || return 1
+  done
+  if grep -Eiq 'paths.*(auto|automatic|自动).*(activat|激活|触发)|路径.*自动.*(激活|触发)' "$readme"; then
+    return 1
+  fi
+  if grep -Eiq 'hooks?.*(guaranteed|保证).*AGENTS|AGENTS.*(guaranteed|保证).*hooks?' \
+      "$readme"; then
+    return 1
+  fi
+
+  repo_root="$(cd "$ROOT/.." && pwd)"
+  write_forbidden_command_stubs "$command_bin" || return 1
+  set +e
+  output="$(cd "$repo_root" && \
+    PATH="$command_bin:$PATH" \
+    DEMO_FORBIDDEN_CALLS="$forbidden_calls" \
+    SKIP_SELF_TESTS=1 ./codex/run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  grep -Fxq 'Codex 三层 Harness 演示完毕' <<<"$output" || return 1
+  [[ ! -e "$forbidden_calls" ]]
+}
+
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
 run_regression 'invalid active feature values are rejected' test_invalid_active_features
 run_regression 'NUL bytes in CURRENT_FEATURE are rejected' test_nul_current_feature
@@ -1592,6 +1845,14 @@ run_regression 'sidebar verifier distinguishes query, value, presence, and skip 
   test_sidebar_verifier_query_and_presence_failures
 run_regression 'sidebar verifier treats timestamped crash-buffer records as crashes' \
   test_sidebar_verifier_crash_filtering
+run_regression 'integrated demo uses public dry-run entry points and restores state' \
+  test_integrated_demo_contract_and_success
+run_regression 'integrated demo trap restores state after a controlled drift failure' \
+  test_integrated_demo_restores_state_after_failure
+run_regression 'integrated demo restores alternate links and protects regular AGENTS files' \
+  test_integrated_demo_restores_alternate_link_and_protects_regular_file
+run_regression 'operational README covers contracts and its primary quick start runs' \
+  test_operational_readme_contract_and_quick_start
 run_regression 'process checker rejects missing update-api guidance' \
   test_process_layer_checker_rejects_fact \
   update-api build-services-jar 'm update-api' 'm refresh-api' \
