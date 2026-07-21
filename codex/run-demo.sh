@@ -11,8 +11,6 @@ section() {
 }
 
 DEMO_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-harness-demo.XXXXXX")"
-CURRENT_FEATURE_BACKUP="$DEMO_TMP_DIR/CURRENT_FEATURE.original"
-ORIGINAL_CURRENT_SAVED=0
 ORIGINAL_AGENTS_KIND='missing'
 ORIGINAL_AGENTS_TARGET=''
 
@@ -22,13 +20,6 @@ cleanup() {
 
   trap - EXIT
   set +e
-
-  if [[ "$ORIGINAL_CURRENT_SAVED" -eq 1 ]]; then
-    if ! cp -- "$CURRENT_FEATURE_BACKUP" CURRENT_FEATURE; then
-      echo 'error: 无法还原 CURRENT_FEATURE' >&2
-      cleanup_rc=1
-    fi
-  fi
 
   case "$ORIGINAL_AGENTS_KIND" in
     symlink)
@@ -67,18 +58,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [[ ! -f CURRENT_FEATURE ]]; then
-  echo 'error: 缺少 CURRENT_FEATURE，无法演示 feature 切换' >&2
-  exit 1
-fi
-cp -- CURRENT_FEATURE "$CURRENT_FEATURE_BACKUP"
-ORIGINAL_CURRENT_SAVED=1
-ORIGINAL_FEATURE="$(<CURRENT_FEATURE)"
-if [[ "$ORIGINAL_FEATURE" != 'dev-sidebar' ]]; then
-  echo "error: demo 期待 CURRENT_FEATURE=dev-sidebar，当前为 '$ORIGINAL_FEATURE'" >&2
-  exit 1
-fi
-
 if [[ -L AGENTS.md ]]; then
   ORIGINAL_AGENTS_KIND='symlink'
   ORIGINAL_AGENTS_TARGET="$(readlink AGENTS.md)"
@@ -94,26 +73,26 @@ printf 'AGENTS.md -> %s\n' "$(readlink AGENTS.md)"
 printf '选中上下文标题: %s\n' "$(grep -m1 '^# ' AGENTS.md)"
 
 section '2. 会话分支漂移（Branch drift）'
-DEMO_ROOT="$DEMO_TMP_DIR/harness-root"
+DRIFT_ROOT="$DEMO_TMP_DIR/drift-root"
 STATE_DIR="$DEMO_TMP_DIR/state"
 mkdir -p \
-  "$DEMO_ROOT/features/dev-sidebar" \
-  "$DEMO_ROOT/features/dev-next"
-ln -s "$ROOT/CURRENT_FEATURE" "$DEMO_ROOT/CURRENT_FEATURE"
-ln -s "$ROOT/features/dev-sidebar/AGENTS.md" \
-  "$DEMO_ROOT/features/dev-sidebar/AGENTS.md"
-ln -s "$ROOT/features/dev-sidebar/AGENTS.md" \
-  "$DEMO_ROOT/features/dev-next/AGENTS.md"
+  "$DRIFT_ROOT/features/dev-sidebar" \
+  "$DRIFT_ROOT/features/dev-next"
+printf '%s\n' 'dev-sidebar' > "$DRIFT_ROOT/CURRENT_FEATURE"
+printf '%s\n' '# demo context: dev-sidebar' \
+  > "$DRIFT_ROOT/features/dev-sidebar/AGENTS.md"
+printf '%s\n' '# demo context: dev-next' \
+  > "$DRIFT_ROOT/features/dev-next/AGENTS.md"
 
 session_payload='{"session_id":"demo-session","cwd":".","hook_event_name":"SessionStart"}'
 prompt_payload='{"session_id":"demo-session","cwd":".","hook_event_name":"UserPromptSubmit"}'
 printf '%s\n' "$session_payload" | \
-  HARNESS_ROOT="$DEMO_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
+  HARNESS_ROOT="$DRIFT_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
   ./.codex/hooks/session-start.sh
 echo '[demo] 已记录 demo-session 的 dev-sidebar 快照。'
 
 no_drift_output="$(printf '%s\n' "$prompt_payload" | \
-  HARNESS_ROOT="$DEMO_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
+  HARNESS_ROOT="$DRIFT_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
   ./.codex/hooks/check-branch-drift.sh)"
 if [[ -n "$no_drift_output" ]]; then
   echo 'error: 无漂移检查本应零输出' >&2
@@ -121,9 +100,9 @@ if [[ -n "$no_drift_output" ]]; then
 fi
 echo '[demo] 无漂移：零输出。'
 
-printf '%s\n' 'dev-next' > CURRENT_FEATURE
+printf '%s\n' 'dev-next' > "$DRIFT_ROOT/CURRENT_FEATURE"
 drift_output="$(printf '%s\n' "$prompt_payload" | \
-  HARNESS_ROOT="$DEMO_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
+  HARNESS_ROOT="$DRIFT_ROOT" CODEX_HARNESS_STATE_DIR="$STATE_DIR" \
   ./.codex/hooks/check-branch-drift.sh)"
 if [[ "$drift_output" != *'"continue": false'* || \
       "$drift_output" != *"current feature is 'dev-next'"* ]]; then
@@ -132,8 +111,7 @@ if [[ "$drift_output" != *'"continue": false'* || \
 fi
 echo '[demo] 切换到 dev-next 后的 hook 输出：'
 printf '%s\n' "$drift_output"
-cp -- "$CURRENT_FEATURE_BACKUP" CURRENT_FEATURE
-echo '[demo] 已在继续前还原 CURRENT_FEATURE=dev-sidebar。'
+echo '[demo] 漂移只发生在私有 fixture；真实 CURRENT_FEATURE 始终只读。'
 
 section '3. 涉及仓分支一致性（Branch consistency）'
 if ./features/dev-sidebar/check-branch.sh --demo; then

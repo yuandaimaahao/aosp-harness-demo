@@ -1720,6 +1720,86 @@ test_integrated_demo_restores_alternate_link_and_protects_regular_file() {
   [[ "$(sha256sum "$case_root/AGENTS.md" | awk '{print $1}')" == "$protected_hash" ]]
 }
 
+test_integrated_demo_keeps_real_current_feature_read_only() {
+  local demo="$ROOT/run-demo.sh"
+
+  [[ -x "$demo" ]] || return 1
+  if grep -Fq 'CURRENT_FEATURE_BACKUP' "$demo"; then
+    echo 'unsafe: demo still backs up and restores the real CURRENT_FEATURE' >&2
+    return 1
+  fi
+  if grep -Fq '"$ROOT/CURRENT_FEATURE"' "$demo"; then
+    echo 'unsafe: private drift state still references the real CURRENT_FEATURE' >&2
+    return 1
+  fi
+  if grep -Eq '>[[:space:]]*CURRENT_FEATURE([[:space:]]|$)' "$demo"; then
+    echo 'unsafe: demo still redirects output into the real CURRENT_FEATURE' >&2
+    return 1
+  fi
+  if grep -Eq '(cp|mv|install|tee|truncate)[[:space:]].*[[:space:]]CURRENT_FEATURE([[:space:]]|$)' \
+      "$demo"; then
+    echo 'unsafe: demo still has a write primitive targeting the real CURRENT_FEATURE' >&2
+    return 1
+  fi
+}
+
+test_current_feature_symlink_replacement_cannot_write_victim() {
+  local case_root="$FIXTURE/current-feature-collision-root"
+  local fake_bin="$FIXTURE/current-feature-collision-bin"
+  local demo_tmp_parent="$FIXTURE/current-feature-collision-tmp"
+  local victim="$FIXTURE/current-feature-victim"
+  local collision_marker="$FIXTURE/current-feature-collision-fired"
+  local forbidden_calls="$FIXTURE/current-feature-collision-forbidden.log"
+  local real_python victim_hash original_agents_target output rc
+
+  cp -a "$ROOT" "$case_root" || return 1
+  real_python="$(command -v python3)" || return 1
+  printf '%s\n' 'unrelated victim sentinel' > "$victim"
+  victim_hash="$(sha256sum "$victim" | awk '{print $1}')"
+  [[ -L "$case_root/AGENTS.md" ]] || return 1
+  original_agents_target="$(readlink "$case_root/AGENTS.md")"
+  mkdir -p "$fake_bin" "$demo_tmp_parent"
+  write_forbidden_command_stubs "$fake_bin" || return 1
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'if [[ ! -e "$DEMO_COLLISION_MARKER" && "${1:-}" == -c && "${2:-}" == *'\''data["session_id"]'\''* ]]; then' \
+    '  rm -f -- "$DEMO_REAL_CURRENT_FEATURE"' \
+    '  ln -s -- "$DEMO_COLLISION_VICTIM" "$DEMO_REAL_CURRENT_FEATURE"' \
+    '  : > "$DEMO_COLLISION_MARKER"' \
+    'fi' \
+    'exec "$DEMO_REAL_PYTHON" "$@"' \
+    > "$fake_bin/python3"
+  chmod +x "$fake_bin/python3"
+
+  set +e
+  output="$(cd "$case_root" && \
+    PATH="$fake_bin:$PATH" \
+    DEMO_COLLISION_MARKER="$collision_marker" \
+    DEMO_COLLISION_VICTIM="$victim" \
+    DEMO_FORBIDDEN_CALLS="$forbidden_calls" \
+    DEMO_REAL_CURRENT_FEATURE="$case_root/CURRENT_FEATURE" \
+    DEMO_REAL_PYTHON="$real_python" \
+    TMPDIR="$demo_tmp_parent" \
+    SKIP_SELF_TESTS=1 ./run-demo.sh 2>&1)"
+  rc=$?
+  set -e
+
+  [[ -e "$collision_marker" ]] || return 1
+  if [[ "$(sha256sum "$victim" | awk '{print $1}')" != "$victim_hash" ]]; then
+    echo 'unsafe: CURRENT_FEATURE replacement redirected a demo write into the victim' >&2
+    return 1
+  fi
+  [[ "$rc" -eq 0 ]] || return 1
+  [[ -L "$case_root/CURRENT_FEATURE" ]] || return 1
+  [[ "$(readlink "$case_root/CURRENT_FEATURE")" == "$victim" ]] || return 1
+  [[ -L "$case_root/AGENTS.md" ]] || return 1
+  [[ "$(readlink "$case_root/AGENTS.md")" == "$original_agents_target" ]] || return 1
+  [[ ! -e "$forbidden_calls" ]] || return 1
+  [[ -z "$(find "$demo_tmp_parent" -mindepth 1 -maxdepth 1 -print -quit)" ]] || return 1
+  [[ "$(tail -n 1 <<<"$output")" == 'Codex 三层 Harness 演示完毕' ]]
+}
+
 test_operational_readme_contract_and_quick_start() {
   local readme="$ROOT/README.md"
   local repo_root
@@ -1851,6 +1931,10 @@ run_regression 'integrated demo trap restores state after a controlled drift fai
   test_integrated_demo_restores_state_after_failure
 run_regression 'integrated demo restores alternate links and protects regular AGENTS files' \
   test_integrated_demo_restores_alternate_link_and_protects_regular_file
+run_regression 'integrated demo keeps the real CURRENT_FEATURE read-only' \
+  test_integrated_demo_keeps_real_current_feature_read_only
+run_regression 'CURRENT_FEATURE symlink replacement cannot redirect writes to a victim' \
+  test_current_feature_symlink_replacement_cannot_write_victim
 run_regression 'operational README covers contracts and its primary quick start runs' \
   test_operational_readme_contract_and_quick_start
 run_regression 'process checker rejects missing update-api guidance' \
