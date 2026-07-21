@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="${HARNESS_ROOT:-$SCRIPT_ROOT}"
+
+fail() {
+  local label="$1"
+  local detail="${2:-validation failed}"
+
+  echo "FAIL  $label: $detail" >&2
+  exit 1
+}
+
+require_file() {
+  local file="$1"
+  local label="$2"
+
+  [[ -f "$file" ]] || fail "$label" "missing $file"
+}
+
+check_frontmatter() {
+  local file="$1"
+  local expected_name="$2"
+  local expected_description="$3"
+  local label="$4"
+
+  if ! awk -v expected_name="$expected_name" \
+      -v expected_description="$expected_description" '
+        NR == 1 { valid = ($0 == "---"); next }
+        NR == 2 { valid = valid && ($0 == "name: " expected_name); next }
+        NR == 3 { valid = valid && ($0 == "description: " expected_description); next }
+        NR == 4 { valid = valid && ($0 == "---"); closed = 1; exit }
+        END { exit !(valid && closed) }
+      ' "$file"; then
+    fail "$label frontmatter" "expected only exact name and description metadata"
+  fi
+}
+
+require_text() {
+  local file="$1"
+  local text="$2"
+  local label="$3"
+
+  if ! grep -Fq -- "$text" "$file"; then
+    fail "$label" "$file is missing '$text'"
+  fi
+}
+
+reject_regex() {
+  local file="$1"
+  local pattern="$2"
+  local label="$3"
+
+  if grep -Eiq -- "$pattern" "$file"; then
+    fail "$label" "$file contains forbidden activation metadata or wording"
+  fi
+}
+
+services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
+sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
+services_description='Build and deploy AOSP services.jar after changes under frameworks/base/services, including SystemServer services; use for compile targets, artifacts, push steps, ART cache risks, and feature verification.'
+sepolicy_description='Build and verify AOSP SELinux policy after changes under system/sepolicy, especially new system services requiring service_contexts, service types, allow rules, denial checks, and full feature verification.'
+
+require_file "$services" 'build-services-jar skill artifact'
+check_frontmatter "$services" build-services-jar "$services_description" 'build-services-jar'
+reject_regex "$services" '^[[:space:]]*paths:|automatic(ally)?[[:space:]-]+activat|auto-activat|自动激活' 'build-services-jar activation claim'
+require_text "$services" '$build-services-jar' 'build-services-jar explicit selection'
+require_text "$services" 'AGENTS.md' 'build-services-jar AGENTS routing'
+require_text "$services" 'frontmatter description' 'build-services-jar implicit selection'
+require_text "$services" 'File paths alone do not select skills.' 'build-services-jar path selection accuracy'
+require_text "$services" 'm services' 'build-services-jar compile target'
+require_text "$services" '> /tmp/build-services.log 2>&1 &' 'build-services-jar background log'
+require_text "$services" '#### build completed successfully ####' 'build-services-jar success marker'
+require_text "$services" 'out/target/product/vsoc_x86_64/system/framework/services.jar' 'build-services-jar artifact path'
+require_text "$services" 'target device' 'build-services-jar ADB target warning'
+require_text "$services" 'change device state' 'build-services-jar ADB state warning'
+require_text "$services" 'adb root' 'build-services-jar adb root step'
+require_text "$services" 'adb remount' 'build-services-jar adb remount step'
+require_text "$services" 'adb push' 'build-services-jar adb push step'
+require_text "$services" 'adb reboot' 'build-services-jar adb reboot step'
+require_text "$services" 'ART' 'build-services-jar ART cache guidance'
+require_text "$services" 'dexpreopt' 'build-services-jar dexpreopt guidance'
+require_text "$services" '/data/dalvik-cache/' 'build-services-jar dalvik cache recovery'
+require_text "$services" 'm update-api' 'build-services-jar update-api guidance'
+require_text "$services" 'SELinux' 'build-services-jar SELinux dependency'
+require_text "$services" 'verify-*.sh' 'build-services-jar feature verification'
+require_text "$services" 'RESULT PASS' 'build-services-jar pass criterion'
+echo "PASS  build-services-jar skill 工件完整"
+
+require_file "$sepolicy" 'build-sepolicy skill artifact'
+check_frontmatter "$sepolicy" build-sepolicy "$sepolicy_description" 'build-sepolicy'
+reject_regex "$sepolicy" '^[[:space:]]*paths:|automatic(ally)?[[:space:]-]+activat|auto-activat|自动激活' 'build-sepolicy activation claim'
+require_text "$sepolicy" '$build-sepolicy' 'build-sepolicy explicit selection'
+require_text "$sepolicy" 'AGENTS.md' 'build-sepolicy AGENTS routing'
+require_text "$sepolicy" 'frontmatter description' 'build-sepolicy implicit selection'
+require_text "$sepolicy" 'File paths alone do not select skills.' 'build-sepolicy path selection accuracy'
+require_text "$sepolicy" 'm selinux_policy' 'build-sepolicy compile target'
+require_text "$sepolicy" '> /tmp/build-sepolicy.log 2>&1 &' 'build-sepolicy background log'
+require_text "$sepolicy" '#### build completed successfully ####' 'build-sepolicy success marker'
+require_text "$sepolicy" 'service_contexts' 'build-sepolicy service context mapping'
+require_text "$sepolicy" 'service_manager_type' 'build-sepolicy service type guidance'
+require_text "$sepolicy" 'allow system_server' 'build-sepolicy system_server allow guidance'
+require_text "$sepolicy" 'allow sidebar_app' 'build-sepolicy client find guidance'
+require_text "$sepolicy" 'avc: denied' 'build-sepolicy denial check'
+require_text "$sepolicy" 'service list' 'build-sepolicy service registration check'
+require_text "$sepolicy" 'full image' 'build-sepolicy full-image deployment'
+require_text "$sepolicy" 'cvd stop' 'build-sepolicy CVD stop step'
+require_text "$sepolicy" 'cvd start' 'build-sepolicy CVD start step'
+require_text "$sepolicy" 'not a services.jar push' 'build-sepolicy jar-push warning'
+require_text "$sepolicy" 'verify-*.sh' 'build-sepolicy feature verification'
+require_text "$sepolicy" 'RESULT PASS' 'build-sepolicy pass criterion'
+echo "PASS  build-sepolicy skill 工件完整"
+
+echo "RESULT PASS"

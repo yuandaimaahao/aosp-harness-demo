@@ -837,6 +837,162 @@ assert data["systemMessage"] == (
 PY
 }
 
+assert_skill_frontmatter() {
+  local file="$1"
+  local expected_name="$2"
+  local expected_description="$3"
+
+  python3 - "$file" "$expected_name" "$expected_description" <<'PY'
+from pathlib import Path
+import sys
+
+skill_path = Path(sys.argv[1])
+expected_name = sys.argv[2]
+expected_description = sys.argv[3]
+lines = skill_path.read_text(encoding="utf-8").splitlines()
+
+assert lines and lines[0] == "---", f"{skill_path}: missing opening frontmatter boundary"
+try:
+    closing_boundary = lines.index("---", 1)
+except ValueError as exc:
+    raise AssertionError(f"{skill_path}: missing closing frontmatter boundary") from exc
+
+frontmatter = lines[1:closing_boundary]
+entries = []
+for line in frontmatter:
+    key, separator, value = line.partition(":")
+    assert separator and key, f"{skill_path}: malformed frontmatter line: {line!r}"
+    entries.append((key, value.strip()))
+
+assert [key for key, _ in entries] == ["name", "description"], (
+    f"{skill_path}: frontmatter keys must be exactly name and description"
+)
+metadata = dict(entries)
+assert metadata["name"] == expected_name, f"{skill_path}: unexpected skill name"
+assert metadata["description"], f"{skill_path}: description must not be empty"
+assert metadata["description"] == expected_description, (
+    f"{skill_path}: description differs from the repository contract"
+)
+PY
+}
+
+require_skill_texts() {
+  local file="$1"
+  shift
+  local text
+
+  for text in "$@"; do
+    grep -Fq "$text" "$file" || return 1
+  done
+}
+
+test_process_skill_artifacts() {
+  local services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
+  local sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
+  local services_description
+  local sepolicy_description
+
+  services_description='Build and deploy AOSP services.jar after changes under frameworks/base/services, including SystemServer services; use for compile targets, artifacts, push steps, ART cache risks, and feature verification.'
+  sepolicy_description='Build and verify AOSP SELinux policy after changes under system/sepolicy, especially new system services requiring service_contexts, service types, allow rules, denial checks, and full feature verification.'
+
+  [[ -f "$services" ]] || return 1
+  [[ -f "$sepolicy" ]] || return 1
+  assert_skill_frontmatter "$services" build-services-jar "$services_description" || return 1
+  assert_skill_frontmatter "$sepolicy" build-sepolicy "$sepolicy_description" || return 1
+
+  if grep -Eq '^[[:space:]]*paths:' "$services" "$sepolicy"; then
+    return 1
+  fi
+  if grep -Eiq 'automatic(ally)?[[:space:]-]+activat|auto-activat|自动激活' \
+      "$services" "$sepolicy"; then
+    return 1
+  fi
+
+  require_skill_texts "$services" \
+    '$build-services-jar' \
+    'AGENTS.md' \
+    'description' \
+    'File paths alone do not select skills.' \
+    'm services' \
+    '#### build completed successfully ####' \
+    '> /tmp/build-services.log 2>&1 &' \
+    'out/target/product/vsoc_x86_64/system/framework/services.jar' \
+    'adb root' \
+    'adb remount' \
+    'adb push' \
+    'adb reboot' \
+    'target device' \
+    'change device state' \
+    'ART' \
+    'dexpreopt' \
+    '/data/dalvik-cache/' \
+    'm update-api' \
+    'SELinux' \
+    'verify-*.sh' \
+    'RESULT PASS' || return 1
+
+  require_skill_texts "$sepolicy" \
+    '$build-sepolicy' \
+    'AGENTS.md' \
+    'description' \
+    'File paths alone do not select skills.' \
+    'm selinux_policy' \
+    '#### build completed successfully ####' \
+    '> /tmp/build-sepolicy.log 2>&1 &' \
+    'service_contexts' \
+    'service_manager_type' \
+    'allow system_server' \
+    'allow sidebar_app' \
+    'avc: denied' \
+    'service list' \
+    'full image' \
+    'cvd stop' \
+    'cvd start' \
+    'not a services.jar push' \
+    'verify-*.sh' \
+    'RESULT PASS'
+}
+
+test_process_layer_checker() {
+  local checker="$ROOT/.codex/bin/check-process-layer"
+  local arbitrary_cwd="$FIXTURE/process-layer-cwd"
+  local expected output
+
+  [[ -x "$checker" ]] || return 1
+  mkdir -p "$arbitrary_cwd"
+  output="$(cd "$arbitrary_cwd" && "$checker")" || return 1
+  expected="$(printf '%s\n' \
+    'PASS  build-services-jar skill 工件完整' \
+    'PASS  build-sepolicy skill 工件完整' \
+    'RESULT PASS')"
+  [[ "$output" == "$expected" ]]
+}
+
+test_process_layer_checker_rejects_missing_fact() {
+  local checker="$ROOT/.codex/bin/check-process-layer"
+  local case_root="$FIXTURE/process-layer-negative"
+  local source_services="$ROOT/.agents/skills/build-services-jar/SKILL.md"
+  local source_sepolicy="$ROOT/.agents/skills/build-sepolicy/SKILL.md"
+  local fixture_services="$case_root/.agents/skills/build-services-jar/SKILL.md"
+  local fixture_sepolicy="$case_root/.agents/skills/build-sepolicy/SKILL.md"
+  local output rc
+
+  [[ -x "$checker" ]] || return 1
+  [[ -f "$source_services" ]] || return 1
+  [[ -f "$source_sepolicy" ]] || return 1
+  mkdir -p "$(dirname "$fixture_services")" "$(dirname "$fixture_sepolicy")"
+  awk 'index($0, "m update-api") == 0 { print }' \
+    "$source_services" > "$fixture_services"
+  cp "$source_sepolicy" "$fixture_sepolicy"
+
+  set +e
+  output="$(HARNESS_ROOT="$case_root" "$checker" 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -ne 0 ]] || return 1
+  grep -Fq 'FAIL  build-services-jar update-api guidance' <<<"$output"
+}
+
 run_regression 'invalid CURRENT_FEATURE values are rejected' test_invalid_current_features
 run_regression 'invalid active feature values are rejected' test_invalid_active_features
 run_regression 'NUL bytes in CURRENT_FEATURE are rejected' test_nul_current_feature
@@ -861,6 +1017,9 @@ run_regression 'feature detection errors are concise and create no state' test_f
 run_regression 'Python encoding cannot redirect validated hook state' test_python_encoding_cannot_redirect_hook_state
 run_regression 'hooks reject unsafe state directory paths' test_unsafe_state_paths_are_rejected
 run_regression 'missing session snapshots fail closed with restart guidance' test_missing_session_snapshot_fails_closed
+run_regression 'repository process skills contain the required AOSP guidance' test_process_skill_artifacts
+run_regression 'process layer checker is cwd-independent and reports exact success' test_process_layer_checker
+run_regression 'process layer checker rejects missing required guidance' test_process_layer_checker_rejects_missing_fact
 
 if [[ "$REGRESSION_FAILURES" -ne 0 ]]; then
   echo "FAIL  $REGRESSION_FAILURES Codex harness regression case(s)" >&2
