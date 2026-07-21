@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ROOT="${HARNESS_ROOT:-$DEFAULT_ROOT}"
+source "$DEFAULT_ROOT/.codex/hooks/feature-common.sh"
+
+dry_run=0
+if [[ "${1:-}" == '--dry-run' ]]; then
+  dry_run=1
+  shift
+fi
+
+if ! feature="$(detect_feature "$ROOT")" || [[ -z "$feature" ]]; then
+  echo "error: 无法从锚点仓分支或 $ROOT/CURRENT_FEATURE 检测 feature；Codex 未启动。" >&2
+  exit 1
+fi
+
+expected_target="features/$feature/AGENTS.md"
+if ! target="$(feature_context_path "$ROOT" "$feature")"; then
+  echo "error: feature '$feature' 缺少 $expected_target；请创建该上下文或修正 CURRENT_FEATURE。Codex 未启动。" >&2
+  exit 1
+fi
+
+if [[ -e "$ROOT/.repo" ]]; then
+  check_branch="$ROOT/features/$feature/check-branch.sh"
+  if [[ ! -x "$check_branch" ]]; then
+    echo "error: 缺少可执行的 $check_branch，无法校验涉及仓分支；Codex 未启动。" >&2
+    exit 1
+  fi
+  if ! HARNESS_ROOT="$ROOT" FEATURE_NAME="$feature" "$check_branch"; then
+    echo "error: feature '$feature' 的涉及仓分支校验失败；AGENTS.md 未切换，Codex 未启动。" >&2
+    exit 1
+  fi
+fi
+
+sync_feature_link "$ROOT" "$target"
+echo "[codex-feature] AGENTS.md -> $target"
+
+if [[ "$dry_run" -eq 1 ]]; then
+  exit 0
+fi
+
+cd "$ROOT"
+exec codex "$@"

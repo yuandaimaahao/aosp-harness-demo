@@ -1,0 +1,6 @@
+# repository	feature	description
+frameworks/base	dev-sidebar	SidebarService、SystemServer 注册和 public/System API
+frameworks/native	dev-sidebar	SidebarFlinger native 合成实现
+packages/apps/SidebarApp	dev-sidebar	常驻边栏应用
+build/make	dev-sidebar	产品配置和模块接入
+system/sepolicy	dev-sidebar	新系统服务的 SELinux 策略
