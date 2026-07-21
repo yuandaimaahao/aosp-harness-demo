@@ -1,5 +1,8 @@
 # SessionStart hook 遇到「真实文件根」时留的备份（软链模型下正常不产生；根本就是软链）
 CLAUDE.md.bak.*
 
+# Local isolated development worktrees.
+.worktrees/
+
 # 说明：树根 CLAUDE.md 是指向 features/<分支>/CLAUDE.md 的软链，已提交进仓（展示结构）；
 # 不再有 load-feature 物化到各仓根的 CLAUDE.md（v1 做法，已废）。
