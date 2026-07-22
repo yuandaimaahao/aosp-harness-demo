@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ROOT="${HARNESS_ROOT:-$DEFAULT_ROOT}"
 dry_run=0
+contract_only=0
 
 args=()
 while (($# > 0)); do
@@ -14,6 +15,7 @@ while (($# > 0)); do
       shift
       ;;
     --contract)
+      contract_only=1
       shift
       ;;
     *)
@@ -26,7 +28,15 @@ done
 contract="$(HARNESS_ROOT="$ROOT" \
   "$ROOT/.harness/bin/resolve-feature.sh" --client codex --contract)"
 if [[ -d "$ROOT/.repo" ]]; then
-  HARNESS_ROOT="$ROOT" "$ROOT/.harness/bin/check-branches.sh"
+  branch_output=''
+  if ! branch_output="$(HARNESS_ROOT="$ROOT" \
+    "$ROOT/.harness/bin/check-branches.sh")"; then
+    printf '%s\n' "$branch_output" >&2
+    exit 1
+  fi
+  if ((contract_only == 0)); then
+    printf '%s\n' "$branch_output"
+  fi
 fi
 printf '%s\n' "$contract"
 

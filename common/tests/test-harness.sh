@@ -208,6 +208,7 @@ test_shared_branch_checker() {
     init_repo "$fixture/$repo" dev-sidebar
   done
   HARNESS_ROOT="$fixture" "$fixture/.harness/bin/check-branches.sh" >/dev/null
+  HARNESS_ROOT="$fixture" "$fixture/.harness/bin/check-parity.sh" >/dev/null
 
   git -C "$fixture/frameworks/native" switch -qc dev-other
   set +e
