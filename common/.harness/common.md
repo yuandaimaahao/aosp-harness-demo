@@ -6,9 +6,11 @@ stay in their own directories.
 
 ## Active feature
 
-- feature: dev-sidebar
-- repository manifest: .harness/features/dev-sidebar/repos.tsv
-- verification entry point: .harness/features/dev-sidebar/verify-sidebar.sh
+- active feature: read CURRENT_FEATURE at startup
+- target branch: the active feature name for every repository in this demo
+- repository manifest: .harness/features/<feature>/repos.tsv
+- build/deploy facts: .harness/features/<feature>/workflow.md
+- verification entry point: the single executable verify-*.sh in the feature directory
 - delivery evidence: only RESULT PASS
 
 ## Manifest schema
@@ -24,12 +26,16 @@ own another copy.
 ## Synchronization rules
 
 1. Change public facts in .harness first.
-2. Run both .claude/bin/claude-feature --dry-run --contract and
+2. Keep shared build/deploy facts in the feature workflow.md. In this demo,
+   target_branch equals CURRENT_FEATURE for every listed repository.
+3. Run both .claude/bin/claude-feature --dry-run --contract and
    .codex/bin/codex-feature --dry-run --contract.
-3. Run .harness/bin/check-parity.sh and require PARITY PASS.
-4. Only one client may write the same feature at a time. End the current
+4. Run .harness/bin/check-parity.sh and require PARITY PASS. In a real repo
+   tree, wrappers also require .harness/bin/check-branches.sh to pass.
+5. Only one client may write the same feature at a time. End the current
    session and save or commit changes before starting the other client.
-5. A wrapper chooses context before a new run. A hook may block drift, but it
-   cannot hot-reload another instruction chain in the current run.
-6. Finish with the shared verifier. RESULT INCOMPLETE and RESULT FAIL are not
-   delivery evidence.
+6. A wrapper chooses context before a new run. The demo SessionStart hook only
+   checks startup parity; real projects should retain client-specific prompt
+   hooks that compare the session snapshot with contract_sha256.
+7. Finish with the shared verifier. RESULT INCOMPLETE, RESULT FAIL, and
+   RESULT EXPLORATION are not delivery evidence.

@@ -50,8 +50,10 @@ common/
 ├── .harness/
 │   ├── common.md                         # 公共事实、流程边界和状态语义
 │   ├── features/dev-sidebar/repos.tsv    # 唯一涉及仓事实源（4 列）
+│   ├── features/dev-sidebar/workflow.md  # 共享编译、部署与验证事实
 │   ├── features/dev-sidebar/verify-sidebar.sh
 │   ├── bin/resolve-feature.sh            # 两个 adapter 共用
+│   ├── bin/check-branches.sh             # 真实 repo 树共享分支门禁
 │   └── bin/check-parity.sh                # 双客户端一致性检查
 ├── .claude/
 │   ├── bin/claude-feature                 # Claude 启动适配器
@@ -85,25 +87,33 @@ path<TAB>convention<TAB>tags<TAB>description
 1. 用户在树根运行 `.claude/bin/claude-feature --dry-run` 或
    `.codex/bin/codex-feature --dry-run`。
 2. 两个 wrapper 调用 `.harness/bin/resolve-feature.sh`，读取
-   `CURRENT_FEATURE`，校验 feature 名、manifest 和 verifier 存在性。
-3. wrapper 输出 `client / feature / manifest / verifier / contract_sha256`。
+   `CURRENT_FEATURE`，校验 feature 名、manifest、workflow 和唯一可执行的
+   `verify-*.sh`。真实 repo 树还先通过共享 `check-branches.sh`。
+3. wrapper 输出 `client / feature / target_branch / manifest / workflow /
+   verifier / repositories / contract_sha256`。
    真正启动客户端时，wrapper 先固定工作目录到树根，再执行 `claude` 或
    `codex`；本 demo 默认只演示 dry-run。
 4. 任一客户端完成工作后调用同一份
    `.harness/features/dev-sidebar/verify-sidebar.sh --demo`。
-5. `check-parity.sh` 同时运行两个 adapter 的 dry-run，去掉 `client` 字段后
-   比较输出，并确认两个上下文文件都引用公共事实源。
+5. `check-parity.sh` 先直接生成 canonical contract，再逐个比较两个 adapter；
+   同时确认两个上下文文件引用公共事实源，客户端目录没有复制 manifest、
+   workflow 或 verifier。
 
 同一棵源码树不允许 Claude 与 Codex 同时在同一 feature 分支写入。切换客户端
 前先结束当前会话，确认工作区干净或已保存，再用目标 wrapper 启动新会话；hooks
 只能阻止漂移，不能在现有会话中热重载另一套上下文。
+
+教学 Demo 的 SessionStart 只校验启动时 parity，不实现跨客户端通用漂移 hook。
+真实项目保留各客户端自己的 UserPromptSubmit schema，并比较会话启动时保存的
+`contract_sha256`；漂移时阻断并要求重启。
 
 ## 错误处理与验证
 
 - 缺少 `CURRENT_FEATURE`、非法 feature 名、manifest 或 verifier 时，wrapper
   fail closed，不启动客户端。
 - verifier 的查询失败记为 `FAIL`；存在 `SKIP` 且未显式 `--allow-skip` 时记为
-  `RESULT INCOMPLETE` 并返回非零。
+  `RESULT INCOMPLETE` 并返回非零。`--allow-skip` 只允许与 `--demo` 同用，
+  输出 `RESULT EXPLORATION`，不能作为交付 PASS。
 - parity 发现两个 adapter 的公共字段不一致时返回非零，并打印差异字段。
 - 所有测试只使用临时 fixture；不触碰仓库中已有的 `demo-out/`。
 

@@ -1,5 +1,5 @@
 {
-  "description": "Claude adapter for the shared AOSP Harness demo.",
+  "//": "Startup parity only; keep a Claude-specific prompt drift guard in real projects.",
   "hooks": {
     "SessionStart": [
       {

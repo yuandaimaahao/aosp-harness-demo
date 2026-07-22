@@ -1,5 +1,5 @@
 {
-  "description": "Codex adapter for the shared AOSP Harness demo.",
+  "description": "Startup parity only; keep a Codex-specific UserPromptSubmit drift guard in real projects.",
   "hooks": {
     "SessionStart": [
       {

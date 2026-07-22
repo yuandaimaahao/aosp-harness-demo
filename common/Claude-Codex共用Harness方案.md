@@ -38,9 +38,11 @@ java,system-server。Claude 和 Codex 都从这份文件生成契约摘要，不
     ├── .harness/
     │   ├── common.md
     │   ├── features/dev-sidebar/repos.tsv
+    │   ├── features/dev-sidebar/workflow.md
     │   ├── features/dev-sidebar/verify-sidebar.sh
     │   └── bin/
     │       ├── resolve-feature.sh
+    │       ├── check-branches.sh
     │       └── check-parity.sh
     ├── .claude/
     │   ├── bin/claude-feature
@@ -106,13 +108,16 @@ wrapper 启动新 run。
     repositories
     contract_sha256
 
+公共 contract 还包含 target_branch 和 workflow。这个 Demo 约定所有涉及仓的
+目标分支等于 CURRENT_FEATURE；更复杂的项目可以把分支扩展成 manifest 列。
+
 其中 client 是适配器自身字段，其他字段必须完全相同。parity checker 会：
 
-1. 分别运行 Claude 和 Codex dry-run。
-2. 将 client 字段归一化为 CLIENT。
-3. 比较剩余字段。
+1. 直接调用公共 resolver 生成 canonical contract。
+2. 分别运行 Claude 和 Codex dry-run。
+3. 将 client 字段归一化为 CLIENT，逐个 adapter 对照 canonical contract。
 4. 检查两个上下文都引用 .harness/common.md。
-5. 拒绝 .claude/repos.tsv 或 .codex/repos.tsv 这样的复制事实源。
+5. 递归拒绝客户端目录里的 repos.tsv、workflow.md 或 verify-*.sh 复制品。
 
 如果任意一边出现漂移，parity 返回非零，CI 不能继续。
 
@@ -125,7 +130,8 @@ wrapper 启动新 run。
 - FAIL：查询失败、结果错误或服务缺失。
 - SKIP：该断言没有执行。
 - RESULT INCOMPLETE：没有 FAIL，但默认仍有 SKIP，返回非零。
-- RESULT PASS (SKIP allowed)：只有探索阶段显式允许 SKIP 时才返回 0。
+- RESULT EXPLORATION (SKIP allowed)：只有 --demo 探索阶段显式允许 SKIP 时
+  才返回 0；它不是交付 PASS。
 
 真实设备模式应额外固定 ANDROID_SERIAL，检查 adb 状态，记录部署前时间基线，
 查询 crash buffer，并把查询错误判为 FAIL。Demo 使用确定性环境变量和
@@ -140,6 +146,10 @@ wrapper 启动新 run。
    dry-run 和 parity。
 3. 先选 Claude 或 Codex 一个客户端开始写入，不并行修改同一 feature。
 
+真实 repo 树存在 .repo/ 时，两个 wrapper 会先运行共享 check-branches.sh。
+它要求清单里的仓全部存在且位于 target_branch；缺仓、非法仓、detached HEAD
+或分支漂移都会 fail closed。
+
 ### 切换客户端
 
 1. 停止当前客户端会话。
@@ -150,11 +160,17 @@ wrapper 启动新 run。
 两个客户端共用源码目录，但不共用会话状态。不要让一个客户端在工作时修改
 另一个客户端的 CLAUDE.md、AGENTS.md、settings 或 hooks。
 
+本 Demo 的 SessionStart 只执行启动时 parity，没有伪装成通用的跨客户端漂移
+hook。真实项目应分别保留 Claude 与 Codex 自己的 UserPromptSubmit 契约，并让
+它们比较会话启动时的 contract_sha256 快照；发生变化时阻断并要求重新通过
+wrapper 启动。
+
 ### 收工
 
 运行：
 
     ./.harness/bin/check-parity.sh
+    ./.harness/bin/check-branches.sh
     ./.harness/features/dev-sidebar/verify-sidebar.sh
 
 只有 parity 成功且 verifier 输出 RESULT PASS 才把任务标为完成。

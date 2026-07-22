@@ -23,8 +23,12 @@ while (($# > 0)); do
   esac
 done
 
-HARNESS_ROOT="$ROOT" \
-  "$ROOT/.harness/bin/resolve-feature.sh" --client codex --contract
+contract="$(HARNESS_ROOT="$ROOT" \
+  "$ROOT/.harness/bin/resolve-feature.sh" --client codex --contract)"
+if [[ -d "$ROOT/.repo" ]]; then
+  HARNESS_ROOT="$ROOT" "$ROOT/.harness/bin/check-branches.sh"
+fi
+printf '%s\n' "$contract"
 
 if ((dry_run)); then
   exit 0

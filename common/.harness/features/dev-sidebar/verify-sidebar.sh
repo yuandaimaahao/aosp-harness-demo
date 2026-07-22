@@ -29,6 +29,11 @@ while (($# > 0)); do
   esac
 done
 
+if ((allow_skip && demo == 0)); then
+  echo 'error: --allow-skip requires --demo' >&2
+  exit 2
+fi
+
 if ((demo == 0)); then
   serial="${ANDROID_SERIAL:-}"
   [[ "$serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]] || {
@@ -57,7 +62,7 @@ skip_check() {
   skip_count=$((skip_count + 1))
 }
 
-if [[ "${DEMO_SKIP:-0}" == 1 ]]; then
+if ((demo)) && [[ "${DEMO_SKIP:-0}" == 1 ]]; then
   skip_check 'sidebar service registration（demo requested skip）'
 elif ((demo)); then
   if [[ "${DEMO_SERVICE_REGISTERED:-1}" == 1 ]]; then
@@ -109,7 +114,7 @@ if ((skip_count > 0 && allow_skip == 0)); then
   exit 2
 fi
 if ((skip_count > 0)); then
-  echo 'RESULT PASS (SKIP allowed)'
+  echo 'RESULT EXPLORATION (SKIP allowed)'
 else
   echo 'RESULT PASS'
 fi
