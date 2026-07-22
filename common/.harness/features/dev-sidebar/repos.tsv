@@ -1,0 +1,6 @@
+# path	convention	tags	description
+frameworks/base	source	java,system-server	系统服务与 SystemServer 代码
+frameworks/native	source	cpp,binder	Native Binder 与 JNI 代码
+packages/apps/SidebarApp	source	app	sidebar 应用与资源
+build/make	build	soong,make	构建入口与产品配置
+system/sepolicy	policy	selinux,service_contexts	服务上下文与 SELinux 策略

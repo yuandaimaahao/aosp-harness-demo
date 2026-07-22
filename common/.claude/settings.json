@@ -1,0 +1,16 @@
+{
+  "description": "Claude adapter for the shared AOSP Harness demo.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.harness/bin/check-parity.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
