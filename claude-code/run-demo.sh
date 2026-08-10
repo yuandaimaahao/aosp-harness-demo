@@ -18,6 +18,10 @@ trap restore_feature EXIT
 
 sep() { echo; echo "############################################################"; echo "# $1"; echo "############################################################"; }
 
+sep "① 上下文：安装器暴露版本化公共 Harness"
+./features/install-harness.sh
+echo "    .claude → $(readlink .claude)"
+
 sep "① 上下文：启动 wrapper 在 Claude 进程启动前同步 feature 软链"
 ./.claude/bin/claude-feature --dry-run
 echo "{\"cwd\":\"$PWD\",\"hook_event_name\":\"SessionStart\"}" | .claude/hooks/load-feature.sh
@@ -53,7 +57,7 @@ sep "③ 验证闭环：verify-sidebar.sh --demo 四步确定性断言"
 ./features/dev-sidebar/verify-sidebar.sh --demo
 
 sep "回归测试"
-./tests/test-harness.sh
+./.claude/tests/test-harness.sh
 
 sep "三层演示完毕"
 echo "对应关系见 README.md『三层与文中章节对应』表。"

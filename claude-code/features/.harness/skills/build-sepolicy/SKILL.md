@@ -5,7 +5,8 @@ paths:
   - "system/sepolicy/**"
 ---
 
-<!-- DEMO —— ② 流程层示例 skill。paths glob 命中 system/sepolicy/** 时自动激活。 -->
+<!-- DEMO —— ② 流程层示例 skill。物理源位于 features/.harness/skills/，
+     经树根 .claude 软链暴露，paths 命中 system/sepolicy/** 时才可见。 -->
 
 # build-sepolicy（② 流程：改 sepolicy 时激活）
 
@@ -15,13 +16,13 @@ paths:
 
 1. **声明服务类型**（`system/sepolicy/private/service_contexts` 或 vendor 对应文件）：
 
-   ```
+   ```text
    sidebar    u:object_r:sidebar_service:s0
    ```
 
 2. **定义 type + 允许规则**（`.te`，如 `private/sidebar.te`）：
 
-   ```
+   ```text
    type sidebar_service, service_manager_type;
    allow system_server sidebar_service:service_manager { add find };
    ```
@@ -37,5 +38,4 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 ```
 
 - 策略随整机镜像生效，改动一般走稳环（`m` 整机 → `cvd stop/start` 换新镜像）更稳。
-- 验证：起机后 `adb shell dmesg | grep 'avc: denied'` 应无本服务相关 denial；
-  `adb shell service list | grep sidebar` 能看到服务 —— 收口到 `features/<分支>/verify-*.sh`。
+- 验证：起机后 `adb shell dmesg | grep 'avc: denied'` 应无本服务相关 denial；`adb shell service list | grep sidebar` 能看到服务——收口到 `features/<分支>/verify-*.sh`。

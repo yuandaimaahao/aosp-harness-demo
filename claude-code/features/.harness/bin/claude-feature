@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -L)"
+source "$SCRIPT_DIR/../hooks/feature-common.sh"
+
+DEFAULT_ROOT="$(harness_project_root "$SCRIPT_DIR" || true)"
 ROOT="${HARNESS_ROOT:-$DEFAULT_ROOT}"
-source "$DEFAULT_ROOT/.claude/hooks/feature-common.sh"
+if [[ -z "$ROOT" ]]; then
+  echo "error: 无法从 $SCRIPT_DIR 解析 AOSP 工程根。请通过树根 .claude 入口执行。" >&2
+  exit 1
+fi
 
 dry_run=0
 if [[ "${1:-}" == "--dry-run" ]]; then

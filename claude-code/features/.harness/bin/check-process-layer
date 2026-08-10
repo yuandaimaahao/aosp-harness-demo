@@ -2,15 +2,17 @@
 # ② 流程层离线自检：不启动 Claude，只验证示例 skill 工件和关键流程内容完整。
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -L)"
+source "$SCRIPT_DIR/../hooks/feature-common.sh"
+ROOT="${HARNESS_ROOT:-$(harness_project_root "$SCRIPT_DIR")}"
 
 require_text() {
   local file="$1"
-  local text="$2"
+  local expected="$2"
   local label="$3"
 
-  if ! grep -Fq "$text" "$file"; then
-    echo "FAIL  $label：$file 缺少 '$text'" >&2
+  if ! grep -Fq "$expected" "$file"; then
+    echo "FAIL  $label：$file 缺少 '$expected'" >&2
     exit 1
   fi
 }

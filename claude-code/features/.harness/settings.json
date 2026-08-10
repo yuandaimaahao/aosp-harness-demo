@@ -1,6 +1,5 @@
 {
-  "//": "DEMO —— 2 hooks registration (SessionStart 软链 / UserPromptSubmit 漂移). Real tree: <AOSP_ROOT>/.claude/settings.json",
-
+  "//": "DEMO —— 公共 Harness 的物理位置是 features/.harness；树根 .claude 软链负责标准路径暴露",
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/load-feature.sh" } ] }

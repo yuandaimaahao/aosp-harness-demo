@@ -5,8 +5,8 @@ paths:
   - "frameworks/base/services/**"
 ---
 
-<!-- DEMO —— ② 流程层示例 skill。paths glob 命中时（agent Read 到 frameworks/base/services/** 下的文件）自动激活；
-     平时零上下文占用。真实工程里放 AOSP 树根 .claude/skills/，不嵌进 gerrit project（否则被跟踪 → 污染上游）。 -->
+<!-- DEMO —— ② 流程层示例 skill。物理源位于 features/.harness/skills/，
+     经树根 .claude 软链暴露，避免 features/.claude 造成重复 skill 注册。 -->
 
 # build-services-jar（② 流程：改 services 代码时激活）
 
@@ -27,17 +27,16 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 ## push 清单（快环）
 
 ```bash
-adb root && adb remount            # ← 会改动真机状态，执行前先确认目标设备
+adb root && adb remount
 adb push out/target/product/vsoc_x86_64/system/framework/services.jar \
          /system/framework/services.jar
-adb reboot                         # ← 同样会改动真机状态
+adb reboot
 ```
 
 ## 已知坑
 
-- **ART 缓存**：push services.jar 后 dexpreopt/boot image 与新 jar 校验不一致会拖慢启动甚至起不来。
-  诡异时清 `/data/dalvik-cache/`，或走稳环（`m` 整机 → `cvd stop` → `cvd start` 换新镜像）。
-- **新增系统服务**：必须同步 `system/sepolicy`（service_contexts + .te），否则 avc denied 起不来 —— 见 `build-sepolicy` skill。
+- **ART 缓存**：push services.jar 后 dexpreopt/boot image 与新 jar 校验不一致会拖慢启动甚至起不来。诡异时清 `/data/dalvik-cache/`，或走稳环（`m` 整机 → `cvd stop` → `cvd start` 换新镜像）。
+- **新增系统服务**：必须同步 `system/sepolicy`（service_contexts + .te），否则 avc denied 起不来——见 `build-sepolicy` skill。
 - **改 public/System API**：必须 `m update-api`，否则 checkapi 挂构建。
 
 ## 编过 ≠ 改对

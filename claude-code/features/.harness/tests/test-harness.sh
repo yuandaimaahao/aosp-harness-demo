@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -L)"
+source "$SCRIPT_DIR/../hooks/feature-common.sh"
+ROOT="$(harness_project_root "$SCRIPT_DIR")"
 FIXTURE="$(mktemp -d)"
 BRANCH_FIXTURE=""
+
+# 公共 Harness 的物理事实源必须只有 features/.harness；树根 .claude 仅作暴露入口。
+test -L "$ROOT/.claude"
+test "$(readlink "$ROOT/.claude")" = "features/.harness"
+test -d "$ROOT/features/.harness"
+test ! -e "$ROOT/features/.claude"
+
+install_output="$("$ROOT/features/install-harness.sh")"
+grep -Fq '.claude -> features/.harness' <<<"$install_output"
+installer_safety_output="$("$ROOT/.claude/tests/test-install-harness.sh")"
+grep -Fq 'PASS  harness installer is idempotent and fail-safe' <<<"$installer_safety_output"
 
 cleanup() {
   rm -f "$FIXTURE/CLAUDE.md" \
@@ -47,9 +60,12 @@ readme_quick_start="$(
     in_section && in_fence { print }
   ' "$ROOT/README.md"
 )"
-expected_quick_start="$(printf '%s\n' 'cd aosp-harness-demo/claude-code' './run-demo.sh')"
+expected_quick_start="$(printf '%s\n' \
+  'cd aosp-harness-demo/claude-code' \
+  './features/install-harness.sh' \
+  './run-demo.sh')"
 if [ "$readme_quick_start" != "$expected_quick_start" ]; then
-  echo "FAIL  README quick start 必须进入 claude-code/ 后运行 demo" >&2
+  echo "FAIL  README quick start 必须进入 claude-code/、安装 Harness 后运行 demo" >&2
   exit 1
 fi
 
@@ -69,6 +85,10 @@ process_output="$("$ROOT/.claude/bin/check-process-layer")"
 grep -Fq 'PASS  build-services-jar skill 工件完整' <<<"$process_output"
 grep -Fq 'PASS  build-sepolicy skill 工件完整' <<<"$process_output"
 grep -Fq 'RESULT PASS' <<<"$process_output"
+
+# 真实文件 → 根软链迁移必须具备备份与回滚能力。
+link_safety_output="$("$ROOT/.claude/tests/test-link-migration-safety.sh")"
+grep -Fq 'PASS  demo root CLAUDE.md migration is rollback-safe' <<<"$link_safety_output"
 
 rm -f "$FIXTURE/CLAUDE.md"
 mkdir "$FIXTURE/.repo"

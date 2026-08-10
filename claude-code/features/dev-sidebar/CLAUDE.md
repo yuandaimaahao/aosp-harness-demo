@@ -1,5 +1,6 @@
 <!-- DEMO · 启动前同步 + 单文件 —— 这是《AOSP 整机源码 Harness 工程探索》的 feature 上下文示例。
-     真实环境里 <AOSP_ROOT>/CLAUDE.md 是指向本文件的软链；.claude/bin/claude-feature 在 Claude 启动前选定它。
+     真实环境里 <AOSP_ROOT>/.claude 指向 features/.harness，<AOSP_ROOT>/CLAUDE.md 指向本文件；
+     .claude/bin/claude-feature 在 Claude 启动前选定 feature 上下文。
      整个 feature 的上下文都在这一个文件里：树级 bootstrap/硬约束 + feature 总览 + 各仓约定。
      SessionStart 只做幂等检查和恢复告警，不承担首次加载顺序保证。 -->
 
