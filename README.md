@@ -1,3 +1,5 @@
+
+
 # AOSP 整机源码 Harness Demo
 
 本仓库包含两套彼此独立的客户端 Demo，以及一套共用 Harness 方案 Demo：
@@ -7,3 +9,11 @@
 - [`common/`](common/)：Claude Code + Codex 共用公共层、两个适配器、parity 检查和同步方案。
 
 三个 Demo 都不依赖真实 AOSP 源码树或 Android 设备。
+
+## 怎么跑
+
+```bash
+cd aosp-harness-demo/claude-code
+./features/install-harness.sh
+./run-demo.sh
+```
