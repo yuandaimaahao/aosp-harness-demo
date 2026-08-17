@@ -1,6 +1,6 @@
 # AOSP 整机源码 Harness —— 可运行 Demo
 
-这是[《AOSP 整机源码 Harness 工程探索》](https://transsioner.feishu.cn/docx/SkmjdUAKuonHDax9kUIctYOWnPp)一文方案的可运行最小复刻。它演示「上下文 / 流程 / 验证闭环」三层如何协作，无需真实 AOSP 树。
+这是《AOSP 整机源码 Harness 工程探索》一文方案的可运行最小复刻。它演示「上下文 / 流程 / 验证闭环」三层如何协作，无需真实 AOSP 树。
 
 > ⚠️ 这是**教学 Demo**，不是真实 AOSP 树。为了让目录语义也可验证，Demo 同样把公共 Harness 放在 `features/.harness/`，树根 `.claude` 只是安装器创建的软链；真实部署时再把 `features/` 本身初始化为独立 Git 仓。
 >
