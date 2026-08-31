@@ -31,6 +31,19 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+if [[ "$DEMO" -eq 0 && "$ALLOW_SKIP" -eq 1 ]]; then
+  echo 'error: --allow-skip requires --demo' >&2
+  exit 2
+fi
+if [[ "$DEMO" -eq 0 ]]; then
+  serial="${ANDROID_SERIAL-}"
+  if [[ -z "$serial" || ! "$serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then
+    echo 'error: set ANDROID_SERIAL to a safe, explicit target serial' >&2
+    exit 2
+  fi
+  ADB=(adb -s "$serial")
+fi
+
 pass=0; fail=0; skip=0
 ok()   { echo "PASS  $1"; pass=$((pass+1)); }
 no()   { echo "FAIL  $1"; fail=$((fail+1)); }
@@ -49,7 +62,7 @@ adb_shell() {
       *)                                  echo "" ;;
     esac
   else
-    adb shell "$@" 2>/dev/null
+    "${ADB[@]}" shell "$@" 2>/dev/null
   fi
 }
 
@@ -75,7 +88,7 @@ read_crash_since() {
   else
     local logcat_since="$since"
     [[ "$logcat_since" == *.* ]] || logcat_since="${logcat_since}.000"
-    adb logcat -b crash -d -v epoch -T "$logcat_since" 2>/dev/null
+    "${ADB[@]}" logcat -b crash -d -v epoch -T "$logcat_since" 2>/dev/null
   fi
 }
 

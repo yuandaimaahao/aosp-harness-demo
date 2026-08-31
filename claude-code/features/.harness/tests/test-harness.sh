@@ -137,6 +137,9 @@ grep -Fq 'RESULT FAIL' <<<"$crash_error_output"
 
 # logcat 的纯整数 -T 参数会与“最近 N 行”语义冲突；epoch 秒必须规范化为带小数点。
 adb() {
+  [ "$1" = -s ] || return 1
+  [ "$2" = demo-serial ] || return 1
+  shift 2
   case "$*" in
     "shell getprop sys.boot_completed") echo 1 ;;
     "shell pidof system_server") echo 1423 ;;
@@ -147,7 +150,7 @@ adb() {
   esac
 }
 export -f adb
-normalized_since_output="$("$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200)"
+normalized_since_output="$(ANDROID_SERIAL=demo-serial "$ROOT/features/dev-sidebar/verify-sidebar.sh" --since 200)"
 unset -f adb
 grep -Fq 'PASS  crash buffer 自 200 起无崩溃' <<<"$normalized_since_output"
 
