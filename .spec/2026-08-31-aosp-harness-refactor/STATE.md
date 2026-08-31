@@ -1,12 +1,14 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 01-device-safety 复盘五问均否：PLAN 无需调整；下一片仍为 02-offline-quality-gate
-updated: '2026-09-01T00:40:12+08:00'
-current_spec: null
-spec_stage: null
+basis: 门④ autopilot：三轮独立 tasks review 已达 fix_loop_max=3；前两轮 findings 闭合，第三轮 3 重要/1
+  次要均按熔断规则采纳修复并记录错误代价；check-tasks/check-req/check-criteria/git diff --check 全通过，6
+  个串行任务覆盖 R1-R9 与 6 文件/387 行硬门
+updated: '2026-09-01T03:19:43+08:00'
+current_spec: 2026-09-01-02-offline-quality-gate
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -56,6 +58,10 @@ workflow: requirements-first
 | 2026-09-01T00:00:59+08:00 | spec/execute | spec/accept | 任务 1.1-1.8 与 2.1-2.3 全部有实现报告、红阶段证据和独立 diff review；熔断裁定已记 ledger；完整 device-safety 回归 exit 0 且末行为 RESULT PASS  device safety |
 | 2026-09-01T00:39:35+08:00 | spec/accept | retro | 01-device-safety 验收通过：R1-R7、不变量、收敛与 6 文件/320 行预算全部通过；已快进合入 main 并更新 PLAN/DECISIONS |
 | 2026-09-01T00:40:12+08:00 | retro | select | 01-device-safety 复盘五问均否：PLAN 无需调整；下一片仍为 02-offline-quality-gate |
+| 2026-09-01T00:41:21+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-01-02-offline-quality-gate |
+| 2026-09-01T01:47:59+08:00 | spec/requirements | spec/design | 门② autopilot：requirements 三轮独立审查最终 PASS，R1-R9/不变量/摘要/预算闭合，三项机械检查全通过 |
+| 2026-09-01T02:19:09+08:00 | spec/design | spec/tasks | 门③ autopilot：design 独立复审 PASS（0 阻断/0 重要/0 次要），八节、R1-R9 映射、接口签名、Mermaid、6 文件/387 行预算与机械检查全部通过 |
+| 2026-09-01T03:19:43+08:00 | spec/tasks | spec/execute | 门④ autopilot：三轮独立 tasks review 已达 fix_loop_max=3；前两轮 findings 闭合，第三轮 3 重要/1 次要均按熔断规则采纳修复并记录错误代价；check-tasks/check-req/check-criteria/git diff --check 全通过，6 个串行任务覆盖 R1-R9 与 6 文件/387 行硬门 |
 
 ## SKIPPED 记录
 
