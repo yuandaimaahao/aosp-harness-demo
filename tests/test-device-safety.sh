@@ -117,6 +117,45 @@ device_safety_run_fixture() {
     device_safety_fail 'fixture: adb log must include rejected unknown command'
 }
 
+device_safety_run_claude_invalid_serial_matrix() {
+  local invalid_serials serial case_name fixture_dir stderr_file stdout_file adb_log label rc
+  local case_index=0
+
+  invalid_serials=(
+    '__UNSET__' '-bad' '.bad' '_bad' ':bad' 'bad/path' 'bad value'
+    $'bad\nvalue' 'bad;value' 'bad+value'
+  )
+
+  for serial in "${invalid_serials[@]}"; do
+    case_index=$((case_index + 1))
+    case_name="$serial"
+    [[ "$serial" != '__UNSET__' ]] || case_name='missing'
+    label="claude $case_name ANDROID_SERIAL"
+
+    device_safety_fake_adb_install "claude-invalid-$case_index" demo-serial
+    fixture_dir="$DEVICE_SAFETY_TMPDIR/claude-invalid-$case_index"
+    stderr_file="$fixture_dir/stderr"
+    stdout_file="$fixture_dir/stdout"
+    adb_log="$ADB_LOG"
+
+    if [[ "$serial" == '__UNSET__' ]]; then
+      env -u ANDROID_SERIAL PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+        bash ./claude-code/features/dev-sidebar/verify-sidebar.sh \
+        >"$stdout_file" 2>"$stderr_file"
+    else
+      ANDROID_SERIAL="$serial" PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+        bash ./claude-code/features/dev-sidebar/verify-sidebar.sh \
+        >"$stdout_file" 2>"$stderr_file"
+    fi
+    rc=$?
+
+    [[ "$rc" -eq 2 ]] || device_safety_fail "$label: expected rc=2 and zero adb calls"
+    grep -Fq 'ANDROID_SERIAL' "$stderr_file" ||
+      device_safety_fail "$label: missing ANDROID_SERIAL error"
+    [[ ! -s "$adb_log" ]] || device_safety_fail "$label: expected zero adb calls"
+  done
+}
+
 main() {
   local scope
 
@@ -134,4 +173,5 @@ main() {
 }
 
 device_safety_register_scope fixture device_safety_run_fixture
+device_safety_register_scope claude-invalid-serial device_safety_run_claude_invalid_serial_matrix
 main "$@"
