@@ -178,7 +178,7 @@ device_safety_run_claude_valid_serial_matrix() {
 
     [[ -s "$adb_log" ]] ||
       device_safety_fail "claude $serial: expected non-empty adb log"
-    [[ "$(grep -Fvc "$expected_prefix" "$adb_log")" -eq 0 ]] ||
+    awk -v prefix="$expected_prefix" 'index($0, prefix) != 1 { exit 1 }' "$adb_log" ||
       device_safety_fail "claude $serial: expected adb -s prefix on every call"
     [[ "$rc" -eq 0 && "$(tail -n 1 "$stdout_file")" == 'RESULT PASS' ]] ||
       device_safety_fail "claude $serial: expected rc=0 and RESULT PASS"
