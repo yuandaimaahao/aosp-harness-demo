@@ -707,6 +707,32 @@ device_safety_run_skill_contract_selftest() {
   device_safety_expect_synthetic_skill_rejection append-serial "$append_path"
 }
 
+device_safety_run_legacy() {
+  local legacy_tests legacy_test fake_bin
+
+  device_safety_fake_adb_install legacy demo-serial
+  fake_bin="$DEVICE_SAFETY_FAKE_BIN"
+  legacy_tests=(
+    './claude-code/features/.harness/tests/test-harness.sh'
+    './codex/tests/test-harness.sh'
+    './common/tests/test-harness.sh'
+  )
+
+  for legacy_test in "${legacy_tests[@]}"; do
+    PATH="$fake_bin:$PATH" bash "$legacy_test" ||
+      device_safety_fail "legacy failed: $legacy_test"
+  done
+}
+
+device_safety_run_all() {
+  local scope
+
+  for scope in fixture claude-invalid-serial claude-valid-serial flag-demo skills legacy; do
+    device_safety_run_scope "$scope" || return $?
+    [[ "$DEVICE_SAFETY_FAILURES" -eq 0 ]] || return 1
+  done
+}
+
 main() {
   local scope
 
@@ -718,9 +744,10 @@ main() {
   DEVICE_SAFETY_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/device-safety.XXXXXX")" || return 1
   trap device_safety_cleanup EXIT
 
-  scope="${DEVICE_SAFETY_TEST_SCOPE:-fixture}"
+  scope="${DEVICE_SAFETY_TEST_SCOPE:-all}"
   device_safety_run_scope "$scope" || return $?
   [[ "$DEVICE_SAFETY_FAILURES" -eq 0 ]] || return 1
+  [[ "$scope" != all ]] || printf 'RESULT PASS  device safety\n'
 }
 
 device_safety_register_scope fixture device_safety_run_fixture
@@ -734,4 +761,6 @@ device_safety_register_scope skill-contract device_safety_run_skill_contract
 device_safety_register_scope skill-contract-selftest device_safety_run_skill_contract_selftest
 device_safety_register_scope mutation-selftest device_safety_run_skill_mutation_selftest
 device_safety_register_scope skills device_safety_run_skills
+device_safety_register_scope legacy device_safety_run_legacy
+device_safety_register_scope all device_safety_run_all
 main "$@"
