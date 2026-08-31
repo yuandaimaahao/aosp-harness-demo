@@ -38,4 +38,14 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 ```
 
 - 策略随整机镜像生效，改动一般走稳环（`m` 整机 → `cvd stop/start` 换新镜像）更稳。
-- 验证：起机后 `adb shell dmesg | grep 'avc: denied'` 应无本服务相关 denial；`adb shell service list | grep sidebar` 能看到服务——收口到 `features/<分支>/verify-*.sh`。
+- 起机后执行以下验证：`dmesg` 不应出现本服务相关的 denial，服务列表应包含 `sidebar`；收口到 `features/<分支>/verify-*.sh`。
+
+```bash
+device_serial="${ANDROID_SERIAL-}"
+if [[ -z "$device_serial" || ! "$device_serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then
+  echo 'error: set ANDROID_SERIAL to a safe, explicit target serial' >&2
+  exit 2
+fi
+adb -s "$device_serial" shell dmesg | grep 'avc: denied'
+adb -s "$device_serial" shell service list | grep sidebar
+```
