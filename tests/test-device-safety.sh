@@ -185,6 +185,83 @@ device_safety_run_claude_valid_serial_matrix() {
   done
 }
 
+device_safety_run_flag_and_demo_for() {
+  local verifier_name="$1" verifier_path="$2" entry case_verifier serial fixture_dir stderr_file stdout_file adb_log rc
+  local flag_cases=(
+    'claude|__UNSET__' 'claude|-bad'
+    'codex|__UNSET__' 'codex|-bad'
+  )
+  local expected_error='--allow-skip requires --demo'
+
+  [[ -x "$verifier_path" ]] || {
+    device_safety_fail "$verifier_name flag-demo: verifier must be executable"
+    return
+  }
+
+  for entry in "${flag_cases[@]}"; do
+    IFS='|' read -r case_verifier serial <<<"$entry"
+    [[ "$case_verifier" == "$verifier_name" ]] || continue
+    if [[ "$serial" == '__UNSET__' ]]; then
+      fixture_dir="$DEVICE_SAFETY_TMPDIR/$verifier_name-flag-missing"
+      device_safety_fake_adb_install "$verifier_name-flag-missing" demo-serial
+      stderr_file="$fixture_dir/stderr"
+      stdout_file="$fixture_dir/stdout"
+      adb_log="$ADB_LOG"
+      env -u ANDROID_SERIAL PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+        bash "$verifier_path" --allow-skip >"$stdout_file" 2>"$stderr_file"
+      rc=$?
+      [[ "$rc" -eq 2 ]] && grep -Fq -- "$expected_error" "$stderr_file" &&
+        ! grep -Fq 'ANDROID_SERIAL' "$stderr_file" && [[ ! -s "$adb_log" ]] ||
+        device_safety_fail "$verifier_name real allow-skip missing serial: expected flag error before ANDROID_SERIAL"
+    else
+      fixture_dir="$DEVICE_SAFETY_TMPDIR/$verifier_name-flag-invalid"
+      device_safety_fake_adb_install "$verifier_name-flag-invalid" demo-serial
+      stderr_file="$fixture_dir/stderr"
+      stdout_file="$fixture_dir/stdout"
+      adb_log="$ADB_LOG"
+      ANDROID_SERIAL="$serial" PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+        bash "$verifier_path" --allow-skip >"$stdout_file" 2>"$stderr_file"
+      rc=$?
+      [[ "$rc" -eq 2 ]] && grep -Fq -- "$expected_error" "$stderr_file" &&
+        ! grep -Fq 'ANDROID_SERIAL' "$stderr_file" && [[ ! -s "$adb_log" ]] ||
+        device_safety_fail "$verifier_name real allow-skip invalid serial: expected flag error before ANDROID_SERIAL"
+    fi
+  done
+
+  device_safety_fake_adb_install "$verifier_name-demo-skip" demo-serial
+  fixture_dir="$DEVICE_SAFETY_TMPDIR/$verifier_name-demo-skip"
+  stderr_file="$fixture_dir/stderr"
+  stdout_file="$fixture_dir/stdout"
+  adb_log="$ADB_LOG"
+  DEMO_APP_INSTALLED=0 PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+    bash "$verifier_path" --demo --allow-skip >"$stdout_file" 2>"$stderr_file"
+  rc=$?
+
+  [[ "$rc" -eq 0 ]] ||
+    device_safety_fail "$verifier_name demo allow-skip: expected rc=0"
+  grep -Eq '^SKIP  ' "$stdout_file" ||
+    device_safety_fail "$verifier_name demo allow-skip: expected SKIP detail"
+  [[ "$(tail -n 1 "$stdout_file")" == 'RESULT PASS (SKIP allowed)' ]] ||
+    device_safety_fail "$verifier_name demo allow-skip: expected RESULT PASS (SKIP allowed)"
+  [[ ! -s "$adb_log" ]] ||
+    device_safety_fail "$verifier_name demo allow-skip: expected zero adb calls"
+}
+
+device_safety_run_claude_flag_demo_matrix() {
+  device_safety_run_flag_and_demo_for \
+    claude ./claude-code/features/dev-sidebar/verify-sidebar.sh
+}
+
+device_safety_run_codex_flag_demo_matrix() {
+  device_safety_run_flag_and_demo_for \
+    codex ./codex/features/dev-sidebar/verify-sidebar.sh
+}
+
+device_safety_run_flag_and_demo_matrix() {
+  device_safety_run_claude_flag_demo_matrix
+  device_safety_run_codex_flag_demo_matrix
+}
+
 main() {
   local scope
 
@@ -204,4 +281,7 @@ main() {
 device_safety_register_scope fixture device_safety_run_fixture
 device_safety_register_scope claude-invalid-serial device_safety_run_claude_invalid_serial_matrix
 device_safety_register_scope claude-valid-serial device_safety_run_claude_valid_serial_matrix
+device_safety_register_scope claude-flag-demo device_safety_run_claude_flag_demo_matrix
+device_safety_register_scope codex-flag-demo device_safety_run_codex_flag_demo_matrix
+device_safety_register_scope flag-demo device_safety_run_flag_and_demo_matrix
 main "$@"
