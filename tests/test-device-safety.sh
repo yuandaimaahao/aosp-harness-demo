@@ -338,7 +338,8 @@ device_safety_run_skill_blocks() {
 device_safety_check_skill_file() {
   local skill_name="$1" path="$2" blocks_dir extracted_count block
   local serial_line regex_line first_adb serial_at regex_at serial_count regex_count
-  local expected_prefix line trimmed line_number=0 adb_count adb_contract_valid adb_tokens adb_token_count
+  local expected_prefix adb_word_pattern line trimmed adb_remainder line_number=0
+  local adb_count adb_contract_valid serial_init_line regex_guard_line
 
   blocks_dir="$DEVICE_SAFETY_TMPDIR/skill-contract-$skill_name"
   extracted_count="$(device_safety_extract_device_blocks "$skill_name" "$path" "$blocks_dir")" || {
@@ -361,31 +362,42 @@ device_safety_check_skill_file() {
   adb_count=0
   adb_contract_valid=1
   expected_prefix='adb -s "$device_serial" '
+  adb_word_pattern='(^|[^[:alnum:]_])adb([^[:alnum:]_]|$)'
   while IFS= read -r line || [[ -n "$line" ]]; do
     line_number=$((line_number + 1))
     trimmed="${line#"${line%%[![:space:]]*}"}"
     trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
     [[ -z "$trimmed" || "$trimmed" == \#* ]] && continue
 
+    serial_init_line=0
+    regex_guard_line=0
     if [[ "$trimmed" == "$serial_line" ]]; then
+      serial_init_line=1
       serial_count=$((serial_count + 1))
       serial_at="$line_number"
-    elif [[ "$trimmed" =~ device_serial[[:space:]]*= ]]; then
-      device_safety_fail "$skill_name device block 1: device_serial reassignment"
-      return 1
     fi
     if [[ "$trimmed" == "$regex_line" ]]; then
+      regex_guard_line=1
       regex_count=$((regex_count + 1))
       regex_at="$line_number"
     fi
 
-    adb_tokens="$(grep -oE '(^|[[:space:];|&()])adb($|[[:space:];|&()])' <<<"$trimmed")"
-    adb_token_count="$(grep -c . <<<"$adb_tokens")"
-    [[ "$adb_token_count" -eq 0 ]] && continue
-    [[ -n "$first_adb" ]] || first_adb="$line_number"
-    adb_count=$((adb_count + adb_token_count))
-    [[ "$adb_token_count" -eq 1 && "$trimmed" == "$expected_prefix"* ]] ||
-      adb_contract_valid=0
+    if [[ "$trimmed" == *device_serial* && "$serial_init_line" -eq 0 &&
+      "$regex_guard_line" -eq 0 && "$trimmed" != "$expected_prefix"* ]]; then
+      device_safety_fail "$skill_name device block 1: device_serial reference not allowed"
+      return 1
+    fi
+
+    if [[ "$trimmed" =~ $adb_word_pattern ]]; then
+      [[ -n "$first_adb" ]] || first_adb="$line_number"
+      adb_count=$((adb_count + 1))
+      if [[ "$trimmed" != "$expected_prefix"* ]]; then
+        adb_contract_valid=0
+      else
+        adb_remainder="${trimmed#adb}"
+        [[ "$adb_remainder" =~ $adb_word_pattern ]] && adb_contract_valid=0
+      fi
+    fi
   done <"$block"
 
   if [[ "$serial_count" -ne 1 || "$regex_count" -ne 1 ||
@@ -451,6 +463,14 @@ device_safety_write_synthetic_skill() {
         'fi' \
         'device_serial="$other_serial"' >>"$path"
       ;;
+    append)
+      printf '%s\n' \
+        'device_serial="${ANDROID_SERIAL-}"' \
+        'if [[ -z "$device_serial" || ! "$device_serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then' \
+        '  exit 2' \
+        'fi' \
+        'device_serial+=-other' >>"$path"
+      ;;
     *)
       return 2
       ;;
@@ -472,6 +492,7 @@ device_safety_expect_synthetic_skill_rejection() {
 device_safety_run_skill_contract_selftest() {
   local fixture_dir safe_path chained_path devices_path other_serial_path duplicate_path
   local zero_arg_path operator_path same_line_path comment_path reassignment_path
+  local redirect_path append_path
 
   fixture_dir="$DEVICE_SAFETY_TMPDIR/skill-contract-selftest"
   mkdir -p "$fixture_dir"
@@ -485,6 +506,8 @@ device_safety_run_skill_contract_selftest() {
   same_line_path="$fixture_dir/same-line.md"
   comment_path="$fixture_dir/comment.md"
   reassignment_path="$fixture_dir/reassignment.md"
+  redirect_path="$fixture_dir/redirect.md"
+  append_path="$fixture_dir/append.md"
 
   device_safety_write_synthetic_skill "$safe_path" 'adb -s "$device_serial" root'
   device_safety_check_skill_file synthetic-safe "$safe_path" ||
@@ -525,6 +548,14 @@ device_safety_run_skill_contract_selftest() {
   device_safety_write_synthetic_skill "$reassignment_path" \
     'adb -s "$device_serial" root' reassignment
   device_safety_expect_synthetic_skill_rejection reassignment "$reassignment_path"
+
+  device_safety_write_synthetic_skill "$redirect_path" \
+    'adb -s "$device_serial" root; adb>/tmp/adb.out' safe
+  device_safety_expect_synthetic_skill_rejection redirect-adb "$redirect_path"
+
+  device_safety_write_synthetic_skill "$append_path" \
+    'adb -s "$device_serial" root' append
+  device_safety_expect_synthetic_skill_rejection append-serial "$append_path"
 }
 
 main() {
