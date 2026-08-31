@@ -1,0 +1,14 @@
+command: DEVICE_SAFETY_TEST_SCOPE=skill-blocks bash ./tests/test-device-safety.sh
+exit_code: 1
+
+stdout:
+(empty)
+
+stderr:
+FAIL  build-sepolicy: expected exactly one fenced device block
+
+note: The synthetic fixture first proved that one build-only fenced Bash block and one
+device-command fenced Bash block yield exactly the device block. The production
+build-services-jar skill has one matching fenced block; build-sepolicy currently has
+only inline ADB commands, so the state-machine count is zero. No ADB command is run by
+this static scope.

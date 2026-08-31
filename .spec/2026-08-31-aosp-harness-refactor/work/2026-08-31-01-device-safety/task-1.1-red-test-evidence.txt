@@ -1,0 +1,4 @@
+Command: test -e ./tests/test-device-safety.sh; rc=$?; printf 'red_test_e_rc=%s\n' "$rc"
+Exit code: 1
+Output:
+red_test_e_rc=1

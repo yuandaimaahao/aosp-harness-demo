@@ -1,0 +1,5 @@
+Command: DEVICE_SAFETY_TEST_SCOPE=codex-flag-demo bash ./tests/test-device-safety.sh
+Exit: 1
+Output:
+FAIL  codex real allow-skip missing serial: expected flag error before ANDROID_SERIAL
+FAIL  codex real allow-skip invalid serial: expected flag error before ANDROID_SERIAL

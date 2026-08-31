@@ -1,0 +1,19 @@
+Command:
+git diff --numstat 2f3e46baa2ed60d284da6c98dc28452c44f98786..HEAD
+
+HEAD:
+d9566179fadb9a3a5e4347806ec2f258a5885ba5
+
+Output:
+11	1	claude-code/features/.harness/skills/build-sepolicy/SKILL.md
+9	4	claude-code/features/.harness/skills/build-services-jar/SKILL.md
+4	1	claude-code/features/.harness/tests/test-harness.sh
+15	2	claude-code/features/dev-sidebar/verify-sidebar.sh
+5	0	codex/features/dev-sidebar/verify-sidebar.sh
+766	0	tests/test-device-safety.sh
+
+Computed total added + deleted lines:
+818
+
+Result:
+RED: 818 > 400

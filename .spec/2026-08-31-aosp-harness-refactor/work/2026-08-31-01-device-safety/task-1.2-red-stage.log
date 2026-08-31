@@ -1,0 +1,33 @@
+FAIL  claude missing ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude missing ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude missing ANDROID_SERIAL: expected zero adb calls
+FAIL  claude -bad ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude -bad ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude -bad ANDROID_SERIAL: expected zero adb calls
+FAIL  claude .bad ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude .bad ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude .bad ANDROID_SERIAL: expected zero adb calls
+FAIL  claude _bad ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude _bad ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude _bad ANDROID_SERIAL: expected zero adb calls
+FAIL  claude :bad ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude :bad ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude :bad ANDROID_SERIAL: expected zero adb calls
+FAIL  claude bad/path ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude bad/path ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude bad/path ANDROID_SERIAL: expected zero adb calls
+FAIL  claude bad value ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude bad value ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude bad value ANDROID_SERIAL: expected zero adb calls
+FAIL  claude bad
+value ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude bad
+value ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude bad
+value ANDROID_SERIAL: expected zero adb calls
+FAIL  claude bad;value ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude bad;value ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude bad;value ANDROID_SERIAL: expected zero adb calls
+FAIL  claude bad+value ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude bad+value ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude bad+value ANDROID_SERIAL: expected zero adb calls

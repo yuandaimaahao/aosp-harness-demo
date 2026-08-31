@@ -1,0 +1,8 @@
+Command: bash ./tests/test-device-safety.sh
+Exit status: 1
+
+FAIL  claude missing ANDROID_SERIAL: expected rc=2 and zero adb calls
+FAIL  claude missing ANDROID_SERIAL: missing ANDROID_SERIAL error
+FAIL  claude missing ANDROID_SERIAL: expected zero adb calls
+
+No stdout was emitted, so the required success final line was not emitted.

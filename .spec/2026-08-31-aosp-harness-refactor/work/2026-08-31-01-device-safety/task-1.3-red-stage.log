@@ -1,0 +1,11 @@
+command: DEVICE_SAFETY_TEST_SCOPE=claude-valid-serial bash ./tests/test-device-safety.sh
+exit_code: 1
+
+stdout:
+(empty)
+
+stderr:
+FAIL  claude demo-serial: expected adb -s prefix on every call
+FAIL  claude demo-serial: expected rc=0 and RESULT PASS
+FAIL  claude A0._:-z: expected adb -s prefix on every call
+FAIL  claude A0._:-z: expected rc=0 and RESULT PASS

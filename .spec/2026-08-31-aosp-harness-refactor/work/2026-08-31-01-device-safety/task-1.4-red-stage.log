@@ -1,0 +1,15 @@
+command: DEVICE_SAFETY_TEST_SCOPE=flag-demo bash ./tests/test-device-safety.sh
+exit_code: 1
+
+stdout:
+(empty)
+
+stderr:
+FAIL  claude real allow-skip missing serial: expected flag error before ANDROID_SERIAL
+FAIL  claude real allow-skip invalid serial: expected flag error before ANDROID_SERIAL
+FAIL  codex real allow-skip missing serial: expected flag error before ANDROID_SERIAL
+FAIL  codex real allow-skip invalid serial: expected flag error before ANDROID_SERIAL
+
+note: Each real-mode fixture used a fresh private fake adb log. The failure is caused by
+the pre-production verifier behavior (wrong rc and/or missing required flag error), not
+by any access to a development-machine adb server.

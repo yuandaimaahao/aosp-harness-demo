@@ -1,0 +1,24 @@
+negative oracle comparison command:
+prefix='adb -s demo-serial '
+sample='unexpected adb -s demo-serial shell getprop sys.boot_completed '
+old_nonmatching="$(printf '%s\n' "$sample" | grep -Fvc "$prefix")"
+new_nonmatching="$(printf '%s\n' "$sample" | awk -v prefix="$prefix" 'index($0, prefix) != 1 { count++ } END { print count + 0 }')"
+
+negative oracle comparison stdout:
+old_contains_nonmatching=0
+new_line_start_nonmatching=1
+negative_oracle_rc=0
+
+claude valid serial red-stage command:
+DEVICE_SAFETY_TEST_SCOPE=claude-valid-serial bash ./tests/test-device-safety.sh
+
+claude valid serial red-stage stdout:
+(empty)
+
+claude valid serial red-stage stderr:
+FAIL  claude demo-serial: expected adb -s prefix on every call
+FAIL  claude demo-serial: expected rc=0 and RESULT PASS
+FAIL  claude A0._:-z: expected adb -s prefix on every call
+FAIL  claude A0._:-z: expected rc=0 and RESULT PASS
+
+claude_valid_serial_rc=1
