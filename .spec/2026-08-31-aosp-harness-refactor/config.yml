@@ -1,0 +1,17 @@
+# 2026-08-31-aosp-harness-refactor 的框架配置。只写要覆盖的项也可以，其余取内置默认值。
+# 取值域见 spec 第 11 节。
+
+# 审查者：agent | human | both | skip
+# skip 表示不做审查，因而也没有改写循环；它不跳过「人拍板」。
+review:
+  plan: both
+  requirements: both
+  design: both
+  tasks: both
+
+fix_loop_max: 3              # 审查-改写循环上限；执行阶段修复循环同此值
+merge_design_tasks: false    # 门③通过后才起草 tasks；true 则两份合并成一次拍板
+isolation: worktree          # worktree | branch | none
+question_budget: 15          # requirements 阶段提问总上限
+question_rounds_max: 2       # 提问轮次上限
+notify_on_noop_review: false # 复盘无变更时是否通知用户
