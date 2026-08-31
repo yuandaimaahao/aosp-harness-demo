@@ -44,6 +44,11 @@ while (($# > 0)); do
   esac
 done
 
+if ((demo == 0 && allow_skip == 1)); then
+  echo 'error: --allow-skip requires --demo' >&2
+  exit 2
+fi
+
 if ((demo == 0)); then
   serial="${ANDROID_SERIAL-}"
   if [[ -z "$serial" || ! "$serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then
