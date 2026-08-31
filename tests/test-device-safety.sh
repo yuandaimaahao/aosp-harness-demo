@@ -156,6 +156,35 @@ device_safety_run_claude_invalid_serial_matrix() {
   done
 }
 
+device_safety_run_claude_valid_serial_matrix() {
+  local valid_serials serial fixture_dir stderr_file stdout_file adb_log expected_prefix rc
+  local case_index=0
+
+  valid_serials=('demo-serial' 'A0._:-z')
+
+  for serial in "${valid_serials[@]}"; do
+    case_index=$((case_index + 1))
+    device_safety_fake_adb_install "claude-valid-$case_index" "$serial"
+    fixture_dir="$DEVICE_SAFETY_TMPDIR/claude-valid-$case_index"
+    stderr_file="$fixture_dir/stderr"
+    stdout_file="$fixture_dir/stdout"
+    adb_log="$ADB_LOG"
+    expected_prefix="adb -s $serial "
+
+    ANDROID_SERIAL="$serial" PATH="$DEVICE_SAFETY_FAKE_BIN:$PATH" \
+      bash ./claude-code/features/dev-sidebar/verify-sidebar.sh --since 200 \
+      >"$stdout_file" 2>"$stderr_file"
+    rc=$?
+
+    [[ -s "$adb_log" ]] ||
+      device_safety_fail "claude $serial: expected non-empty adb log"
+    [[ "$(grep -Fvc "$expected_prefix" "$adb_log")" -eq 0 ]] ||
+      device_safety_fail "claude $serial: expected adb -s prefix on every call"
+    [[ "$rc" -eq 0 && "$(tail -n 1 "$stdout_file")" == 'RESULT PASS' ]] ||
+      device_safety_fail "claude $serial: expected rc=0 and RESULT PASS"
+  done
+}
+
 main() {
   local scope
 
@@ -174,4 +203,5 @@ main() {
 
 device_safety_register_scope fixture device_safety_run_fixture
 device_safety_register_scope claude-invalid-serial device_safety_run_claude_invalid_serial_matrix
+device_safety_register_scope claude-valid-serial device_safety_run_claude_valid_serial_matrix
 main "$@"
