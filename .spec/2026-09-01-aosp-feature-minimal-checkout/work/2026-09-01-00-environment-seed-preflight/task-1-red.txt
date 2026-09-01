@@ -1,0 +1,6 @@
+command: python3 .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py self-test
+exit: 2
+stdout:
+stderr:
+python3: can't open file '/tmp/aosp-minimal-terminal.VCkxxc/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py': [Errno 2] No such file or directory
+assertion: no PASS output was emitted

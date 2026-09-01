@@ -1,0 +1,6 @@
+Task 3 red-stage evidence
+Command: python3 "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py" accept --project-root "$PWD" --base-commit 7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 --manifest "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json" --merge-commit 0000000000000000000000000000000000000000 --ledger "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/ledger.md"
+Exit: 1
+Stdout: empty
+Stderr: RESULT FAIL supersession CAPABILITY_UNAVAILABLE
+Observed before modes/accept.py existed.

@@ -1,0 +1,223 @@
+# review 包 806fb63b..85daade3
+
+## commit 列表
+
+```
+85daade feat(spec): add supersession accept mode
+```
+
+## diff --stat
+
+```
+ .../work/modes/accept.py                           | 198 +++++++++++++++++++++
+ 1 file changed, 198 insertions(+)
+```
+
+## diff
+
+```diff
+diff --git a/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/accept.py b/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/accept.py
+new file mode 100644
+index 0000000..0014e6d
+--- /dev/null
++++ b/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/accept.py
+@@ -0,0 +1,198 @@
++"""Two-parent merge, ledger, and isolated rollback gate."""
++from __future__ import annotations
++import pathlib
++import re
++import shutil
++import subprocess
++import tempfile
++
++try:
++    from supersession_lib import ContractError, load_and_validate_manifest, validate_plan
++except ModuleNotFoundError:
++    import sys
++    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
++    from supersession_lib import ContractError, load_and_validate_manifest, validate_plan
++
++PREFIX = ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/"
++OWNED = [("supersession.json", "work/supersession_lib.py", "work/verify-supersession.py"),
++         ("work/modes/pre_commit.py",), ("work/modes/accept.py",), ("work/modes/self_test.py",)]
++TASK = re.compile(r"^- 任务 ([1-4]): 完成 commits=\[([0-9a-f]{40})\] report="
++                  r"\.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-\1-report\.md "
++                  r"review=\.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-\1-([0-9a-f]{12})-([0-9a-f]{12})\.md$")
++MERGE = re.compile(r"^- merge: 完成 commits=\[([0-9a-f]{40})\] parent1=\[([0-9a-f]{40})\] parent2=\[([0-9a-f]{40})\]$")
++REGRESSIONS = (("./common/tests/test-harness.sh", "RESULT PASS  shared Harness regression suite"),
++               ("./common/.harness/bin/check-parity.sh", "PARITY PASS  Claude/Codex 共享同一公共契约"),
++               ("./common/.harness/features/dev-sidebar/verify-sidebar.sh --demo", "RESULT PASS"))
++
++
++def _git(root, *args):
++    result = subprocess.run(["git", "-C", str(root), *args], text=True, stdout=subprocess.PIPE,
++                            stderr=subprocess.PIPE, check=False)
++    if result.returncode:
++        raise ContractError("LEDGER_SHA_MISMATCH")
++    return result.stdout.strip()
++
++
++def _ledger(path):
++    try:
++        lines = path.read_text(encoding="utf-8").splitlines()
++    except OSError:
++        raise ContractError("LEDGER_INCOMPLETE") from None
++    tasks, merge = {}, None
++    for line in lines:
++        task, joined = TASK.fullmatch(line), MERGE.fullmatch(line)
++        if line.startswith("- 任务 "):
++            if not task or int(task[1]) in tasks:
++                raise ContractError("LEDGER_FORMAT_INVALID")
++            number, sha, parent, tip = task.groups()
++            if sha[:12] != tip or (int(number) > 1 and parent == tip):
++                raise ContractError("LEDGER_SHA_MISMATCH")
++            tasks[int(number)] = (sha, parent)
++        elif line.startswith("- merge:"):
++            if not joined or merge:
++                raise ContractError("LEDGER_FORMAT_INVALID")
++            merge = joined.groups()
++    if set(tasks) != {1, 2, 3, 4} or not merge:
++        raise ContractError("LEDGER_INCOMPLETE")
++    rows = [tasks[index] for index in range(1, 5)]
++    return [row[0] for row in rows], [row[1] for row in rows], merge
++
++
++def _structure(root, base, merge_sha, tasks, review_parents, joined, paths):
++    if not re.fullmatch(r"[0-9a-f]{40}", merge_sha) or joined != (merge_sha, base, tasks[-1]):
++        raise ContractError("LEDGER_SHA_MISMATCH")
++    if _git(root, "rev-parse", "--verify", f"{merge_sha}^{{commit}}") != merge_sha:
++        raise ContractError("LEDGER_SHA_MISMATCH")
++    if _git(root, "show", "-s", "--format=%P", merge_sha).split() != [base, tasks[-1]]:
++        raise ContractError("COMMIT_TYPE_INVALID")
++    expected = [[PREFIX + name for name in group] for group in OWNED]
++    if sorted(sum(expected, [])) != paths or sorted(_git(root, "diff", "--name-only", base, merge_sha).splitlines()) != paths:
++        raise ContractError("COMMIT_SCOPE_MISMATCH")
++    parents = [base] + tasks[:-1]
++    for sha, parent, owned in zip(tasks, parents, expected):
++        if _git(root, "show", "-s", "--format=%P", sha).split() != [parent]:
++            raise ContractError("COMMIT_TYPE_INVALID")
++        if sorted(_git(root, "diff", "--name-only", parent, sha).splitlines()) != owned:
++            raise ContractError("COMMIT_SCOPE_MISMATCH")
++    if review_parents != [parent[:12] for parent in parents]:
++        raise ContractError("LEDGER_SHA_MISMATCH")
++
++
++def validate_reverted_paths(root, paths, base):
++    if any((root / path).exists() for path in paths) or _git(root, "diff", "--name-only", base, "HEAD"):
++        raise ContractError("ROLLBACK_MISMATCH")
++
++
++def _regressions(root):
++    for command, expected in REGRESSIONS:
++        result = subprocess.run(["bash", "-lc", command], cwd=root, text=True, stdout=subprocess.PIPE,
++                                stderr=subprocess.PIPE, check=False)
++        if result.returncode or result.stderr or result.stdout.splitlines()[-1:] != [expected]:
++            raise ContractError("REGRESSION_FAILED")
++
++
++def _rollback(root, merge_sha, paths, base):
++    worktree = pathlib.Path(tempfile.mkdtemp(prefix="supersession-revert-"))
++    shutil.rmtree(worktree)
++    added = False
++    try:
++        add = subprocess.run(["git", "-C", str(root), "worktree", "add", "--detach", str(worktree), merge_sha],
++                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
++        if add.returncode:
++            raise ContractError("ROLLBACK_MISMATCH")
++        added = True
++        revert = subprocess.run(["git", "-C", str(worktree), "revert", "-m", "1", "--no-edit", merge_sha],
++                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
++        if revert.returncode:
++            raise ContractError("ROLLBACK_MISMATCH")
++        validate_reverted_paths(worktree, paths, base)
++        _regressions(worktree)
++    finally:
++        if added:
++            subprocess.run(["git", "-C", str(root), "worktree", "remove", "--force", str(worktree)], check=False,
++                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++        elif worktree.exists():
++            shutil.rmtree(worktree)
++
++
++def run(args, context):
++    root = pathlib.Path(args.project_root).resolve()
++    manifest = load_and_validate_manifest(pathlib.Path(args.manifest))
++    if args.base_commit != manifest["base_commit"]:
++        raise ContractError("BASE_HEAD_MISMATCH")
++    validate_plan(root, manifest)
++    tasks, parents, joined = _ledger(pathlib.Path(args.ledger))
++    _structure(root, args.base_commit, args.merge_commit, tasks, parents, joined, manifest["commit_paths"])
++    _rollback(root, args.merge_commit, manifest["commit_paths"], args.base_commit)
++    return context["pass_line"]
++
++
++def _write(path, text, executable=False):
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(text, encoding="utf-8")
++    if executable:
++        path.chmod(0o755)
++
++
++def _commit(root, message):
++    subprocess.run(["git", "-C", str(root), "add", "."], check=True, stdout=subprocess.PIPE)
++    subprocess.run(["git", "-C", str(root), "commit", "-m", message], check=True, stdout=subprocess.PIPE)
++    return _git(root, "rev-parse", "HEAD")
++
++
++def _self_test():
++    with tempfile.TemporaryDirectory(prefix="supersession-accept-") as directory:
++        root = pathlib.Path(directory)
++        for args in (("init",), ("config", "user.email", "self@test"), ("config", "user.name", "Self Test")):
++            subprocess.run(["git", "-C", str(root), *args], check=True, stdout=subprocess.PIPE)
++        for path, line in (("common/tests/test-harness.sh", REGRESSIONS[0][1]),
++                           ("common/.harness/bin/check-parity.sh", REGRESSIONS[1][1]),
++                           ("common/.harness/features/dev-sidebar/verify-sidebar.sh", REGRESSIONS[2][1])):
++            _write(root / path, f"echo '{line}'\n", True)
++        _write(root / "baseline", "ok\n")
++        base = _commit(root, "base")
++        subprocess.run(["git", "-C", str(root), "checkout", "-b", "tasks"], check=True, stdout=subprocess.PIPE)
++        tasks, parents = [], [base]
++        for number, group in enumerate(OWNED, 1):
++            for name in group:
++                _write(root / (PREFIX + name), f"{number}\n")
++            tasks.append(_commit(root, f"task {number}"))
++            if number > 1:
++                parents.append(tasks[-2])
++        subprocess.run(["git", "-C", str(root), "checkout", "-"], check=True, stdout=subprocess.PIPE)
++        subprocess.run(["git", "-C", str(root), "merge", "--no-ff", "tasks", "-m", "merge"], check=True, stdout=subprocess.PIPE)
++        merge, paths = _git(root, "rev-parse", "HEAD"), sorted(PREFIX + name for group in OWNED for name in group)
++        lines = [f"- 任务 {i}: 完成 commits=[{sha}] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-{i}-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-{i}-{parent[:12]}-{sha[:12]}.md" for i, (sha, parent) in enumerate(zip(tasks, parents), 1)]
++        ledger = root / "ledger"
++        _write(ledger, "\n".join(lines + [f"- merge: 完成 commits=[{merge}] parent1=[{base}] parent2=[{tasks[-1]}]"]) + "\n")
++        parsed = _ledger(ledger)
++        _structure(root, base, merge, *parsed, paths)
++        _rollback(root, merge, paths, base)
++        cases = ((lambda: _ledger(root / "missing"), "LEDGER_INCOMPLETE"),
++                 (lambda: _structure(root, base, tasks[-1], tasks, [p[:12] for p in parents], (tasks[-1], base, tasks[-1]), paths), "COMMIT_TYPE_INVALID"),
++                 (lambda: validate_reverted_paths(root, paths, base), "ROLLBACK_MISMATCH"))
++        for action, expected in cases:
++            try: action()
++            except ContractError as error:
++                if error.code == expected: continue
++            raise ContractError("INTERNAL_ERROR")
++        _write(root / "common/tests/test-harness.sh", "exit 1\n", True)
++        try: _regressions(root)
++        except ContractError as error:
++            if error.code == "REGRESSION_FAILED": return
++        raise ContractError("INTERNAL_ERROR")
++
++
++def main(argv):
++    try:
++        if argv != ["self-test"]: raise ContractError("ARGUMENT_ERROR")
++        _self_test()
++    except ContractError as error:
++        print(f"RESULT FAIL supersession {error.code}", file=__import__("sys").stderr)
++        return 1
++    print("RESULT PASS supersession-accept-mode-self-test")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(__import__("sys").argv[1:]))
+```

@@ -1,0 +1,9 @@
+command: python3 .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py self-test
+working-directory: /tmp/aosp-minimal-terminal.VCkxxc
+task-parent: 3cc6f8fd54bdfe8efb7557409de9989890da7d41
+exit-code: 1
+stdout-bytes: 0
+stderr-bytes: 48
+stdout:
+stderr:
+RESULT FAIL supersession CAPABILITY_UNAVAILABLE

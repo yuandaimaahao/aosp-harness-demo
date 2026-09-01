@@ -1,0 +1,4 @@
+command: python3 "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py" pre-commit --project-root "$PWD" --base-commit 7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 --manifest "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json"
+exit=1
+stdout=
+stderr=RESULT FAIL supersession CAPABILITY_UNAVAILABLE
