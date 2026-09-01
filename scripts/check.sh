@@ -46,12 +46,12 @@ quality_run_secrets() {
   unset GITLEAKS_CONFIG GITLEAKS_CONFIG_TOML
   canary_dir="$(mktemp -d)" || quality_protocol_error 'cannot create gitleaks canary'
   canary_dir="$(cd -- "$canary_dir" && pwd -P)" || quality_protocol_error 'cannot resolve gitleaks canary'
-  case "$canary_dir/" in "$repo_root/"*) rm -rf -- "$canary_dir"; quality_protocol_error 'canary must be outside repository' ;; esac
   trap 'rm -rf -- "$canary_dir"' EXIT
-  printf 'aws_access_key_id = %s%s\n' 'AKIA' 'ABCDEFGHIJKLMNOP' >"$canary_dir/canary.txt"
-  gitleaks "${gitleaks_args[@]}" "$canary_dir"; canary_rc=$?
+  case "$canary_dir/" in "$repo_root/"*) rm -rf -- "$canary_dir" || quality_protocol_error 'cannot remove gitleaks canary'; quality_protocol_error 'canary must be outside repository' ;; esac
+  printf 'aws_access_key_id = %s%s\n' 'AKIA' 'ABCDEFGHIJKLMNOP' >"$canary_dir/canary.txt" || quality_protocol_error 'cannot write gitleaks canary'
+  if gitleaks "${gitleaks_args[@]}" "$canary_dir"; then canary_rc=0; else canary_rc=$?; fi
   [[ "$canary_rc" -eq 1 ]] || quality_protocol_error 'gitleaks canary contract'
-  rm -rf -- "$canary_dir"; trap - EXIT
+  rm -rf -- "$canary_dir" || quality_protocol_error 'cannot remove gitleaks canary'; trap - EXIT
   gitleaks "${gitleaks_args[@]}" "$repo_root" || return 1
 }
 if [[ "$mode" == --ci ]]; then
