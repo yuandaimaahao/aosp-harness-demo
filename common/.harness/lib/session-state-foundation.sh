@@ -15,6 +15,14 @@ harness_validate_feature_name() {
 }
 
 _harness_session_state_run() (
+  if [[ $# != 3 ]]; then
+    printf '%s\n' 'error: unsafe session state' >&2
+    return 2
+  fi
+  if [[ $1 != path ]] || ! _harness_component_is_safe "$2" || ! _harness_component_is_safe "$3"; then
+    printf '%s\n' 'error: unsafe session state' >&2
+    return 2
+  fi
   umask 077
   python3 - "$@" <<'PY'
 import errno, os, pathlib, stat, sys
@@ -109,7 +117,7 @@ except (OSError, OperationFailure):
 PY
 )
 
-harness_session_state_path() {
+_harness_session_state_foundation_path() {
   if [[ $# != 2 ]] || ! _harness_component_is_safe "$1" || ! _harness_component_is_safe "$2"; then
     printf '%s\n' 'error: unsafe session state' >&2
     return 2

@@ -2,7 +2,7 @@
 set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-PROVIDER=${PROVIDER:-"$ROOT/common/.harness/lib/session-state.sh"}
+PROVIDER=${PROVIDER:-"$ROOT/common/.harness/lib/session-state-foundation.sh"}
 DEFAULT_ROOT="/tmp/aosp-harness-$EUID"
 
 # Make the preexisting-empty-root case deterministic. The outer invocation owns
@@ -67,31 +67,44 @@ assert_api() {
   cmp -s "$API_OUT_FILE" "$expected_out" || fail "$2: stdout mismatch"
   cmp -s "$API_ERR_FILE" "$expected_err" || fail "$2: stderr mismatch"
 }
-
+assert_call() {
+  local expected_rc=$1 label=$2 expected_out=$3 expected_err=$4
+  shift 4
+  capture_api "$@"
+  assert_api "$expected_rc" "$label" "$expected_out" "$expected_err"
+}
 [[ -f "$PROVIDER" ]] || fail 'validate valid: provider missing'
+unset HARNESS_SESSION_STATE_PROVIDER_VERSION
+export HARNESS_STATE_ROOT='./source-harness-sentinel' XDG_RUNTIME_DIR='./source-xdg-sentinel' TMPDIR='./source-tmp-sentinel'
+source_sentinel_before=$(declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR)
 # shellcheck source=/dev/null
 source "$PROVIDER" || fail 'validate valid: source failed'
+source_sentinel_after=$(declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR)
+[[ "$source_sentinel_after" == "$source_sentinel_before" ]] || fail 'source sentinel: declarations changed'
+unset HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR
 
+for public_name in harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove; do
+  if declare -F "$public_name" >/dev/null; then
+    fail "public surface: $public_name must be absent"
+  fi
+done
+declare -F harness_validate_feature_name >/dev/null || fail 'public surface: validate missing'
+declare -F _harness_session_state_foundation_path >/dev/null || fail 'private surface: foundation path missing'
+declare -F _harness_session_state_run >/dev/null || fail 'private surface: dispatcher missing'
+[[ ! -v HARNESS_SESSION_STATE_PROVIDER_VERSION ]] || fail 'public surface: provider marker must be absent'
 valid_1=$(printf 'a')
 valid_128=$(printf 'a%.0s' {1..128})
-capture_api harness_validate_feature_name 'a._-Z9'
-assert_api 0 'validate punctuation valid' '' ''
-capture_api harness_validate_feature_name "$valid_1"
-assert_api 0 'validate valid' '' ''
-capture_api harness_validate_feature_name "$valid_128"
-assert_api 0 'validate 128-byte' '' ''
+assert_call 0 'validate punctuation valid' '' '' harness_validate_feature_name 'a._-Z9'
+assert_call 0 'validate valid' '' '' harness_validate_feature_name "$valid_1"
+assert_call 0 'validate 128-byte' '' '' harness_validate_feature_name "$valid_128"
 
 invalid_names=('' '.' '..' '-a' 'a/b' 'a\\b' 'a b' $'a\nb' 'é' "${valid_128}a")
 for name in "${invalid_names[@]}"; do
-  capture_api harness_validate_feature_name "$name"
-  assert_api 2 'validate invalid' '' $'error: invalid feature name\n'
+  assert_call 2 'validate invalid' '' $'error: invalid feature name\n' harness_validate_feature_name "$name"
 done
 
-capture_api harness_validate_feature_name
-assert_api 2 'validate arity zero' '' $'error: invalid feature name\n'
-capture_api harness_validate_feature_name a b
-assert_api 2 'validate arity extra' '' $'error: invalid feature name\n'
-
+assert_call 2 'validate arity zero' '' $'error: invalid feature name\n' harness_validate_feature_name
+assert_call 2 'validate arity extra' '' $'error: invalid feature name\n' harness_validate_feature_name a b
 # Sourcing is definition-only: even a dangerous root must not be parsed or
 # touched until an operation is called. Keep an independent inode/content oracle.
 SOURCE_FIXTURE=$(mktemp -d "$TMP_TEST/source-fixture.XXXXXX")
@@ -114,11 +127,8 @@ after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC
 [[ "$before" == "$after" ]] || fail 'source dangerous root: fixture changed'
 cmp -s "$SOURCE_FIXTURE/sentinel" "$SOURCE_SENTINEL_EXPECTED" || fail 'source dangerous root: sentinel content changed'
 [[ ! -e "$SOURCE_TARGET" && ! -L "$SOURCE_TARGET" ]] || fail 'source dangerous root: target appeared'
-
 # The predicate explicitly pins byte-oriented matching to the C locale.
 grep -Fq 'LC_ALL=C' "$PROVIDER" || fail 'validate locale: C locale missing'
-
-declare -F harness_session_state_path >/dev/null || fail 'path HARNESS precedence: function missing'
 
 call_path_env() (
   local harness_set=$1 harness_value=$2 xdg_set=$3 xdg_value=$4 tmp_set=$5 tmp_value=$6
@@ -128,7 +138,7 @@ call_path_env() (
   [[ "$harness_set" == set ]] && export HARNESS_STATE_ROOT=$harness_value
   [[ "$xdg_set" == set ]] && export XDG_RUNTIME_DIR=$xdg_value
   [[ "$tmp_set" == set ]] && export TMPDIR=$tmp_value
-  harness_session_state_path "$@"
+  _harness_session_state_foundation_path "$@"
 )
 object_state() {
   if [[ -e "$1" || -L "$1" ]]; then
@@ -179,27 +189,37 @@ XDG_CANDIDATE="$PATH_FIXTURE/xdg/aosp-harness-$EUID"
 TMP_CANDIDATE="$PATH_FIXTURE/tmp/aosp-harness-$EUID"
 xdg_before=$(object_state "$XDG_CANDIDATE")
 tmp_before=$(object_state "$TMP_CANDIDATE")
-capture_api call_path_env set "$HARNESS_ROOT" set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$HARNESS_PROJECT" "$HARNESS_SESSION"
-assert_api 0 'path HARNESS precedence' "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"$'\n' ''
+assert_call 0 'path HARNESS precedence' "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"$'\n' '' call_path_env set "$HARNESS_ROOT" set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$HARNESS_PROJECT" "$HARNESS_SESSION"
 [[ $(object_state "$XDG_CANDIDATE") == "$xdg_before" ]] || fail 'path HARNESS precedence: XDG candidate changed'
 [[ $(object_state "$TMP_CANDIDATE") == "$tmp_before" ]] || fail 'path HARNESS precedence: TMP candidate changed'
 for path in "$HARNESS_PHYSICAL" "$HARNESS_PHYSICAL/$HARNESS_PROJECT" "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"; do
   assert_fresh_dir "$path" 'path HARNESS fresh'
+done
+for dispatcher_case in '' 'path' 'path project' 'path project session extra' 'other project session' 'path . session' 'path project ..'; do
+  read -r -a dispatcher_args <<<"$dispatcher_case"
+  HARNESS_STATE_ROOT=$HARNESS_ROOT assert_call 2 "dispatcher unsafe: $dispatcher_case" '' $'error: unsafe session state\n' _harness_session_state_run "${dispatcher_args[@]}"
+done
+HARNESS_STATE_ROOT=$HARNESS_ROOT assert_call 0 'dispatcher success' "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"$'\n' '' _harness_session_state_run path "$HARNESS_PROJECT" "$HARNESS_SESSION"
+FAULT_PROVIDER="$TMP_TEST/session-state-fault.sh"
+FAULT_ROOT="$PATH_FIXTURE/fault-root"
+sed 's/os.mkdir(name, 0o700, dir_fd=parent_fd)/raise OperationFailure/' "$PROVIDER" >"$FAULT_PROVIDER"
+for private_name in _harness_session_state_foundation_path _harness_session_state_run; do
+  private_args=("$HARNESS_PROJECT" "$HARNESS_SESSION")
+  [[ "$private_name" == _harness_session_state_run ]] && private_args=(path "$HARNESS_PROJECT" "$HARNESS_SESSION")
+  HARNESS_STATE_ROOT=$FAULT_ROOT PROVIDER=$FAULT_PROVIDER assert_call 1 "$private_name operation failure" '' $'error: session state operation failed\n' bash -c 'source "$PROVIDER"; "$@"' bash "$private_name" "${private_args[@]}"
 done
 
 XDG_PROJECT="xdg-$NAME_SUFFIX"
 XDG_SESSION="session-$NAME_SUFFIX"
 XDG_ROOT=$(cd "$PATH_FIXTURE/xdg" && pwd -P)/aosp-harness-$EUID
 tmp_before=$(object_state "$TMP_CANDIDATE")
-capture_api call_path_env unset '' set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$XDG_PROJECT" "$XDG_SESSION"
-assert_api 0 'path XDG selection' "$XDG_ROOT/$XDG_PROJECT/$XDG_SESSION"$'\n' ''
+assert_call 0 'path XDG selection' "$XDG_ROOT/$XDG_PROJECT/$XDG_SESSION"$'\n' '' call_path_env unset '' set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$XDG_PROJECT" "$XDG_SESSION"
 [[ $(object_state "$TMP_CANDIDATE") == "$tmp_before" ]] || fail 'path XDG selection: TMP candidate changed'
 
 TMP_PROJECT="tmp-$NAME_SUFFIX"
 TMP_SESSION="session-$NAME_SUFFIX"
 TMP_ROOT=$(cd "$PATH_FIXTURE/tmp" && pwd -P)/aosp-harness-$EUID
-capture_api call_path_env unset '' unset '' set "$PATH_FIXTURE/tmp" "$TMP_PROJECT" "$TMP_SESSION"
-assert_api 0 'path TMP selection' "$TMP_ROOT/$TMP_PROJECT/$TMP_SESSION"$'\n' ''
+assert_call 0 'path TMP selection' "$TMP_ROOT/$TMP_PROJECT/$TMP_SESSION"$'\n' '' call_path_env unset '' unset '' set "$PATH_FIXTURE/tmp" "$TMP_PROJECT" "$TMP_SESSION"
 
 if (( DEFAULT_ROOT_EXISTED == 0 )); then
   mkdir -m 700 "$DEFAULT_ROOT"
@@ -210,16 +230,15 @@ DEFAULT_SESSION="session-$NAME_SUFFIX"
 EMPTY_TMP_PROJECT="empty-tmp-$NAME_SUFFIX"
 EMPTY_TMP_SESSION="session-$NAME_SUFFIX"
 DEFAULT_PATHS+=("$DEFAULT_PROJECT/$DEFAULT_SESSION" "$EMPTY_TMP_PROJECT/$EMPTY_TMP_SESSION")
-capture_api call_path_env unset '' unset '' unset '' "$DEFAULT_PROJECT" "$DEFAULT_SESSION"
-assert_api 0 'path default selection' "$DEFAULT_ROOT/$DEFAULT_PROJECT/$DEFAULT_SESSION"$'\n' ''
-capture_api call_path_env unset '' unset '' set '' "$EMPTY_TMP_PROJECT" "$EMPTY_TMP_SESSION"
-assert_api 0 'path empty TMP selection' "$DEFAULT_ROOT/$EMPTY_TMP_PROJECT/$EMPTY_TMP_SESSION"$'\n' ''
+assert_call 0 'path default selection' "$DEFAULT_ROOT/$DEFAULT_PROJECT/$DEFAULT_SESSION"$'\n' '' call_path_env unset '' unset '' unset '' "$DEFAULT_PROJECT" "$DEFAULT_SESSION"
+assert_call 0 'path empty TMP selection' "$DEFAULT_ROOT/$EMPTY_TMP_PROJECT/$EMPTY_TMP_SESSION"$'\n' '' call_path_env unset '' unset '' set '' "$EMPTY_TMP_PROJECT" "$EMPTY_TMP_SESSION"
 [[ $(stat -c '%i' "$DEFAULT_ROOT") == "$DEFAULT_FIXTURE_INODE" ]] || fail 'path default selection: preexisting root inode changed'
 
 INVALID_ROOT="$PATH_FIXTURE/invalid-root"
 UNSAFE_PROJECT="unsafe-$NAME_SUFFIX"
 UNSAFE_SESSION="session-$NAME_SUFFIX"
 assert_unsafe_call 'path arity zero' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset ''
+assert_unsafe_call 'path arity one' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset '' "$UNSAFE_PROJECT"
 assert_unsafe_call 'path arity extra' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset '' "$UNSAFE_PROJECT" "$UNSAFE_SESSION" extra
 for ids in '. session' 'project ..' '-project session' 'project bad/session' 'project bad\\session' 'project bad session'; do
   read -r project session extra <<<"$ids"
@@ -252,4 +271,4 @@ if (( DEFAULT_ROOT_EXISTED == 1 )); then
   [[ $(stat -c '%i' "$DEFAULT_ROOT") == "$DEFAULT_ROOT_ORIGINAL_INODE" ]] || fail 'path default selection: original root inode changed'
 fi
 
-printf 'RESULT PASS  session state\n'
+printf 'RESULT PASS  session state foundation\n'
