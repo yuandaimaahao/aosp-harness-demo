@@ -39,6 +39,21 @@ quality_run_static() {
     shfmt -d -i 2 -ci -bn "$path" || return 1
   done
 }
+quality_run_secrets() {
+  local config="$repo_root/.gitleaks.toml" config_sha=27630a96d6c55755cc37620f3933d5cab94b1eb78a726a32e11212972525d76e canary_dir canary_rc
+  local -a gitleaks_args=(dir --no-banner --redact --exit-code 1 --config "$config")
+  [[ "$(sha256sum "$config" | awk '{print $1}')" == "$config_sha" ]] || quality_protocol_error 'gitleaks config contract'
+  unset GITLEAKS_CONFIG GITLEAKS_CONFIG_TOML
+  canary_dir="$(mktemp -d)" || quality_protocol_error 'cannot create gitleaks canary'
+  canary_dir="$(cd -- "$canary_dir" && pwd -P)" || quality_protocol_error 'cannot resolve gitleaks canary'
+  case "$canary_dir/" in "$repo_root/"*) rm -rf -- "$canary_dir"; quality_protocol_error 'canary must be outside repository' ;; esac
+  trap 'rm -rf -- "$canary_dir"' EXIT
+  printf 'aws_access_key_id = %s%s\n' 'AKIA' 'ABCDEFGHIJKLMNOP' >"$canary_dir/canary.txt"
+  gitleaks "${gitleaks_args[@]}" "$canary_dir"; canary_rc=$?
+  [[ "$canary_rc" -eq 1 ]] || quality_protocol_error 'gitleaks canary contract'
+  rm -rf -- "$canary_dir"; trap - EXIT
+  gitleaks "${gitleaks_args[@]}" "$repo_root" || return 1
+}
 if [[ "$mode" == --ci ]]; then
   for tool_spec in shellcheck:0.11.0 shfmt:3.14.0 gitleaks:8.30.1; do
     tool="${tool_spec%%:*}"; expected="${tool_spec#*:}"
@@ -51,5 +66,8 @@ if [[ "$mode" == --ci ]]; then
   done
 fi
 quality_run_core || exit 1
-[[ "$mode" != --ci ]] || quality_run_static || exit 1
+if [[ "$mode" == --ci ]]; then
+  quality_run_static || exit 1
+  quality_run_secrets || exit 1
+fi
 printf 'RESULT PASS  aosp-harness offline quality gate\n'
