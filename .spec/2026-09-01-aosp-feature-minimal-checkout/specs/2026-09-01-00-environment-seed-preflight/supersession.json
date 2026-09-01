@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "kind": "spec_supersession",
+  "base_commit": "7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7",
+  "plan_version": 6,
+  "superseded_spec": "2026-09-01-00-environment-seed-preflight",
+  "replacements": [
+    {"id": "2026-09-01-00a-seed-contract-runtime", "depends_on": []},
+    {"id": "2026-09-01-00b-environment-seed-probe", "depends_on": ["2026-09-01-00a-seed-contract-runtime"]}
+  ],
+  "requirement_owners": [
+    {"requirement": "R1", "owners": ["00b"]},
+    {"requirement": "R2", "owners": ["00b"]},
+    {"requirement": "R3", "owners": ["00b"]},
+    {"requirement": "R4", "owners": ["00b"]},
+    {"requirement": "R5", "owners": ["00a"]},
+    {"requirement": "R6", "owners": ["00b"]},
+    {"requirement": "R7", "owners": ["00b"]},
+    {"requirement": "R8", "owners": ["00a"]},
+    {"requirement": "R9", "owners": ["00b"]},
+    {"requirement": "R10", "owners": ["00b"]},
+    {"requirement": "R11", "owners": ["00b"]},
+    {"requirement": "R12", "owners": ["00b"]},
+    {"requirement": "R13", "owners": ["00b"]},
+    {"requirement": "R14", "owners": ["00b"]},
+    {"requirement": "R15", "owners": ["00b"]},
+    {"requirement": "R16", "owners": ["00b"]},
+    {"requirement": "R17", "owners": ["00b"]},
+    {"requirement": "R18", "owners": ["00b"]},
+    {"requirement": "R19", "owners": ["00b"]},
+    {"requirement": "R20", "owners": ["00b"]},
+    {"requirement": "R21", "owners": ["00a", "00b"]},
+    {"requirement": "R22", "owners": ["00a"]},
+    {"requirement": "R23", "owners": ["00a", "00b"]},
+    {"requirement": "R24", "owners": ["current"]},
+    {"requirement": "R25", "owners": ["00a", "00b"]},
+    {"requirement": "R26", "owners": ["00b"]},
+    {"requirement": "R27", "owners": ["00a", "00b"]}
+  ],
+  "line_budgets": {
+    "combined_original": {"non_generated_min": 890, "non_generated_max": 1310},
+    "successors": [
+      {"id": "2026-09-01-00a-seed-contract-runtime", "non_generated_min": 610, "non_generated_max": 730, "review_summary_max": 140},
+      {"id": "2026-09-01-00b-environment-seed-probe", "non_generated_min": 470, "non_generated_max": 630, "review_summary_max": 160}
+    ]
+  },
+  "commit_paths": [
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json",
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/accept.py",
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/pre_commit.py",
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/self_test.py",
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/supersession_lib.py",
+    ".spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py"
+  ]
+}
