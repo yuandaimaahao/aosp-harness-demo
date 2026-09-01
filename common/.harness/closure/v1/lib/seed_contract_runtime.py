@@ -37,8 +37,8 @@ def _b64(v):
     return base64.b64decode(v)
 def _rel(v): _text(v); _bad() if "\0" in v or v.startswith("/") or any(x in ("", ".", "..") for x in v.split("/")) else None
 def _credential_key(v):
-    parts=tuple(x for x in re.split("[^a-z0-9]+",re.sub(r"(?<=[a-z0-9])(?=[A-Z])","_",v).lower()) if x)
-    return any(x in {"token","secret","credential","signature","password","passwd","auth","authorization","apikey"} for x in parts) or any(parts[x:x+2]==("api","key") for x in range(len(parts)-1))
+    compact=re.sub("[^a-z0-9]","",v.lower())
+    return any(x in compact for x in ("token","secret","credential","signature","password","passwd","apikey")) or compact in ("auth","authorization","authentication","oauth")
 def _url(v):
     if v is None: return
     type(v) is str or _bad()
