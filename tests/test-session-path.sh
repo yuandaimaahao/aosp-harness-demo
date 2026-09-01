@@ -8,9 +8,67 @@ TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-path-test.XXXXXX")
 trap 'rm -rf "$TMP_TEST"' EXIT
 
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
-[[ ${1:-} == --case && ${2:-} == source-validate && $# == 2 ]] || fail 'option: expected --case source-validate'
+[[ ${1:-} == --case && $# == 2 ]] || fail 'option: expected --case name'
+GROUP=$2
+[[ $GROUP == source-validate || $GROUP == roots-static ]] || fail "option: unsupported case $GROUP"
 [[ -f "$FOUNDATION" ]] || fail 'source present: foundation missing'
 [[ -f "$PROVIDER" ]] || fail 'source present: provider missing'
+if [[ $GROUP == roots-static ]]; then
+  capture() { : >"$TMP_TEST/out"; : >"$TMP_TEST/err"; "$@" >"$TMP_TEST/out" 2>"$TMP_TEST/err"; RC=$?; }
+  invoke() {
+    local tag=$1 project=$2 session=$3; shift 3
+    capture env "$@" bash -c 'source "$1"; source "$2"; _harness_session_path_core "$3" "$4"' \
+      _ "$FOUNDATION" "$PROVIDER" "$project" "$session"
+  }
+  expect() {
+    local label=$1 rc=$2 out=$3 err=$4
+    [[ $RC == "$rc" ]] || fail "$label: rc $RC"
+    cmp -s "$TMP_TEST/out" <(printf %s "$out") || fail "$label: stdout"
+    cmp -s "$TMP_TEST/err" <(printf %s "$err") || fail "$label: stderr"
+  }
+  mkdir "$TMP_TEST/harness" "$TMP_TEST/xdg" "$TMP_TEST/tmp" "$TMP_TEST/physical"
+  ln -s "$TMP_TEST/physical" "$TMP_TEST/logical"
+  printf sentinel >"$TMP_TEST/xdg/sentinel"; printf sentinel >"$TMP_TEST/tmp/sentinel"
+  lower_before=$(find "$TMP_TEST/xdg" "$TMP_TEST/tmp" -printf '%p|%y|%m|%s\n' | LC_ALL=C sort)
+  invoke harness p s HARNESS_STATE_ROOT="$TMP_TEST/harness/state" XDG_RUNTIME_DIR="$TMP_TEST/xdg" TMPDIR="$TMP_TEST/tmp"
+  [[ $RC != 1 ]] || ! cmp -s "$TMP_TEST/err" <(printf 'error: session state operation failed\n') || fail 'root HARNESS: python path engine missing'
+  expect 'root HARNESS' 0 "$TMP_TEST/harness/state/p/s"$'\n' ''
+  [[ $lower_before == "$(find "$TMP_TEST/xdg" "$TMP_TEST/tmp" -printf '%p|%y|%m|%s\n' | LC_ALL=C sort)" ]] || fail 'root HARNESS: lower priority changed'
+  tmp_before=$(find "$TMP_TEST/tmp" -printf '%P|%y|%m|%s\n' | LC_ALL=C sort); invoke xdg p s -u HARNESS_STATE_ROOT XDG_RUNTIME_DIR="$TMP_TEST/xdg" TMPDIR="$TMP_TEST/tmp"
+  expect 'root XDG' 0 "$TMP_TEST/xdg/aosp-harness-$(id -u)/p/s"$'\n' ''; [[ $tmp_before == "$(find "$TMP_TEST/tmp" -printf '%P|%y|%m|%s\n' | LC_ALL=C sort)" ]] || fail 'root XDG: lower priority changed'
+  invoke tmp p s -u HARNESS_STATE_ROOT -u XDG_RUNTIME_DIR TMPDIR="$TMP_TEST/tmp"
+  expect 'root TMP' 0 "$TMP_TEST/tmp/aosp-harness-$(id -u)/p/s"$'\n' ''
+  default_project="path-default-$$"
+  invoke default "$default_project" s -u HARNESS_STATE_ROOT -u XDG_RUNTIME_DIR -u TMPDIR
+  expect 'root default' 0 "/tmp/aosp-harness-$(id -u)/$default_project/s"$'\n' ''
+  rmdir "/tmp/aosp-harness-$(id -u)/$default_project/s" "/tmp/aosp-harness-$(id -u)/$default_project"
+  invoke physical p s HARNESS_STATE_ROOT="$TMP_TEST/logical/state"
+  expect 'root physical' 0 "$TMP_TEST/physical/state/p/s"$'\n' ''
+  for spec in 'harness-empty|' 'harness-relative|relative' "harness-control|$TMP_TEST/"$'\n'bad "harness-dot|$TMP_TEST/../bad" 'harness-slash|/' "harness-missing|$TMP_TEST/missing/state"; do
+    label=${spec%%|*}; value=${spec#*|}; before=$(find "$TMP_TEST" ! -path "$TMP_TEST/out" ! -path "$TMP_TEST/err" -printf '%P|%y|%m|%s\n' | LC_ALL=C sort)
+    invoke "$label" p s HARNESS_STATE_ROOT="$value" XDG_RUNTIME_DIR="$TMP_TEST/xdg" TMPDIR="$TMP_TEST/tmp"
+    expect "$label" 2 '' $'error: unsafe session state\n'
+    [[ $before == "$(find "$TMP_TEST" ! -path "$TMP_TEST/out" ! -path "$TMP_TEST/err" -printf '%P|%y|%m|%s\n' | LC_ALL=C sort)" ]] || fail "$label: created state"
+  done
+  mkdir "$TMP_TEST/isolation"
+  for project in p1 p2; do for session in s1 s2; do
+    invoke isolation "$project" "$session" HARNESS_STATE_ROOT="$TMP_TEST/isolation/state"
+    expect "isolation $project/$session" 0 "$TMP_TEST/isolation/state/$project/$session"$'\n' ''
+  done; done
+  while IFS= read -r path; do [[ ! -L $path && $(stat -c %u:%a "$path") == "$(id -u):700" ]] || fail "isolation unsafe: $path"; done \
+    < <(find "$TMP_TEST/isolation/state" -type d | LC_ALL=C sort)
+  for kind in link file mode; do for layer in root project session; do
+    base="$TMP_TEST/static-$kind-$layer"; mkdir "$base"; root="$base/state"; target=$root
+    [[ $layer == root ]] || { mkdir -m 700 "$root"; target="$root/project"; }
+    [[ $layer != session ]] || { mkdir -m 700 "$target"; target="$target/session"; }
+    case $kind in link) mkdir "$base/victim"; printf sentinel >"$base/victim/sentinel"; ln -s "$base/victim" "$target";; file) printf sentinel >"$target";; mode) mkdir -m 755 "$target";; esac
+    before=$(find "$base" -printf '%P|%y|%l|%m|%s\n' | LC_ALL=C sort)
+    invoke static project session HARNESS_STATE_ROOT="$root"; expect "static $kind/$layer" 2 '' $'error: unsafe session state\n'
+    [[ $before == "$(find "$base" -printf '%P|%y|%l|%m|%s\n' | LC_ALL=C sort)" ]] || fail "static $kind/$layer: inventory changed"
+  done; done
+  printf 'RESULT PASS  session path safety\n'
+  exit 0
+fi
 if [[ ${HARNESS_TEST_SELF_CHECK:-0} == 0 ]]; then
   HARNESS_TEST_SELF_CHECK=1 HARNESS_TEST_FORCE_SOURCE_FAIL=none \
     bash "${BASH_SOURCE[0]}" --case source-validate >"$TMP_TEST/self-out" 2>"$TMP_TEST/self-err"
