@@ -1,4 +1,4 @@
-import base64, hashlib, json, os; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+import base64, hashlib, json, os; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
     def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
@@ -35,7 +35,13 @@ def _b64(v):
         if type(v) is not str or base64.b64encode(base64.b64decode(v, validate=True)).decode() != v: _bad()
     except (ValueError,base64.binascii.Error): _bad()
     return base64.b64decode(v)
-def _rel(v): _text(v); _bad() if v.startswith("/") or any(x in ("", ".", "..") for x in v.split("/")) else None
+def _rel(v): _text(v); _bad() if "\0" in v or v.startswith("/") or any(x in ("", ".", "..") for x in v.split("/")) else None
+def _url(v):
+    if v is None: return
+    type(v) is str or _bad()
+    try: u=urlsplit(v)
+    except ValueError: _bad()
+    u.username is None and not {k.lower() for k,_ in parse_qsl(u.query,keep_blank_values=True)} & {"access_token","token","password","passwd","secret","api_key","apikey","authorization"} or _bad()
 def _scope(v): _exact(v,("role","public_aosp_baseline","vendor_context","platform_family")); type(v["public_aosp_baseline"]) is type(v["vendor_context"]) is bool or _bad(); _bad() if v not in ({"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"},{"role":"local_lk7k_product","public_aosp_baseline":False,"vendor_context":True,"platform_family":"aosp-17"}) else None
 def _entry(v):
     _exact(v,("path_b64","status_record_b64","entry_kind","mode","content_sha256","symlink_target_sha256")); _b64(v["path_b64"]); _b64(v["status_record_b64"]); _u(v["mode"])
@@ -71,7 +77,7 @@ def _journal(v):
     for r in v["records"]: [_b64(x) for x in r["argv_b64"]] if type(r["argv_b64"]) is list else _bad(); _b64(r["cwd_b64"]); [_u(r[x]) for x in ("exit_code","trace_first_sequence","trace_last_sequence")]; r["trace_first_sequence"] <= r["trace_last_sequence"] or _bad()
 def _manifest(v):
     _exact(v,("repository_commit","locked_xml_sha256","project_count","remotes","projects")); _hex(v["repository_commit"],(40,64)); _hex(v["locked_xml_sha256"]); _u(v["project_count"]); type(v["remotes"]) is list and type(v["projects"]) is list or _bad(); v["project_count"]==len(v["projects"]) or _bad()
-    for r in v["remotes"]: _exact(r,("name","fetch_url","review_url","mirror_url")); _text(r["name"]); [x is None or (_text(x),"@" not in x or _bad()) for x in (r["fetch_url"],r["review_url"],r["mirror_url"])]
+    for r in v["remotes"]: _exact(r,("name","fetch_url","review_url","mirror_url")); _text(r["name"]); [_url(x) for x in (r["fetch_url"],r["review_url"],r["mirror_url"])]
     for p in v["projects"]: _exact(p,("path","name","remote","revision","head","source_state_digest")); _rel(p["path"]); [_text(p[x]) for x in ("name","remote","revision")]; _hex(p["head"],(40,64)); _hex(p["source_state_digest"])
     [r["name"] for r in v["remotes"]]==sorted({r["name"] for r in v["remotes"]}) and [p["path"].encode() for p in v["projects"]]==sorted({p["path"].encode() for p in v["projects"]}) or _bad()
 def _tools(v):
@@ -82,7 +88,7 @@ def _minimum(v): _exact(v,("available_bytes","available_inodes","effective_memor
 def _resources(v):
     _exact(v,("estimated_disk_upper_bound_bytes","minimums","measured","passed")); _u(v["estimated_disk_upper_bound_bytes"]); _minimum(v["minimums"]); _exact(v["measured"],("available_bytes","available_inodes","host_mem_available_bytes","cgroup_mem_remaining_bytes","effective_memory_bytes","online_cpu_count","cpuset_cpu_count","effective_cpu_numerator","effective_cpu_denominator")); [_u(v["measured"][x]) for x in v["measured"] if x not in ("cgroup_mem_remaining_bytes","cpuset_cpu_count")]; [v["measured"][x] is None or _u(v["measured"][x]) for x in ("cgroup_mem_remaining_bytes","cpuset_cpu_count")]; _exact(v["passed"],("disk","inodes","memory","cpu")); all(type(x) is bool for x in v["passed"].values()) or _bad(); m=v["measured"]; c=m["cgroup_mem_remaining_bytes"]; m["online_cpu_count"]>0 and m["effective_cpu_numerator"]>0 and m["effective_cpu_denominator"]>0 and (m["cpuset_cpu_count"] is None or m["cpuset_cpu_count"]>0) and __import__("math").gcd(m["effective_cpu_numerator"],m["effective_cpu_denominator"])==1 and m["effective_memory_bytes"]==(min(m["host_mem_available_bytes"],c) if c is not None else m["host_mem_available_bytes"]) or _bad(); p=v["passed"]; p=={"disk":m["available_bytes"]>=max(v["minimums"]["available_bytes"],v["estimated_disk_upper_bound_bytes"]),"inodes":m["available_inodes"]>=v["minimums"]["available_inodes"],"memory":m["effective_memory_bytes"]>=v["minimums"]["effective_memory_bytes"],"cpu":m["effective_cpu_numerator"]>=v["minimums"]["effective_cpus"]*m["effective_cpu_denominator"]} or _bad()
 def _lunch(v,identity=False):
-    keys=("target","product","release","variant","variables") if identity else ("target","product","release","variant","variables","out_dir_relative","envsetup_exit","lunch_exit"); _exact(v,keys); [_text(v[x]) for x in ("target","product","release","variant")]; _exact(v["variables"],("TARGET_PRODUCT","TARGET_RELEASE","TARGET_BUILD_VARIANT","TARGET_ARCH","TARGET_2ND_ARCH","HOST_OS","HOST_ARCH")); [x is None or _text(x) for x in v["variables"].values()]; identity or (_rel(v["out_dir_relative"]),v["out_dir_relative"].startswith("tmp/preflight/") or _bad(),_u(v["envsetup_exit"]),_u(v["lunch_exit"]))
+    keys=("target","product","release","variant","variables") if identity else ("target","product","release","variant","variables","out_dir_relative","envsetup_exit","lunch_exit"); _exact(v,keys); [_text(v[x]) for x in ("target","product","release","variant")]; _exact(v["variables"],("TARGET_PRODUCT","TARGET_RELEASE","TARGET_BUILD_VARIANT","TARGET_ARCH","TARGET_2ND_ARCH","HOST_OS","HOST_ARCH")); [x is None or type(x) is str or _bad() for x in v["variables"].values()]; identity or (_rel(v["out_dir_relative"]),v["out_dir_relative"].startswith("tmp/preflight/") or _bad(),_u(v["envsetup_exit"]),_u(v["lunch_exit"]))
 def _seed_state(v,project_count=None):
     _exact(v,("state","clean_source_proof","affected_project_count","before_digest","after_digest","observed_ignored_inputs")); v["state"] in ("clean","dirty") and type(v["clean_source_proof"]) is bool or _bad(); _u(v["affected_project_count"]); _hex(v["before_digest"]); _hex(v["after_digest"]); (((v["state"]=="clean" and v["clean_source_proof"] is True and v["affected_project_count"]==0) or (v["state"]=="dirty" and v["clean_source_proof"] is False and 0<v["affected_project_count"]<=project_count)) if project_count is not None else True) or _bad(); type(v["observed_ignored_inputs"]) is list or _bad()
     for x in v["observed_ignored_inputs"]:
