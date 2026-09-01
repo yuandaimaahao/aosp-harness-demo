@@ -208,7 +208,9 @@ def publish_object(*, state_dir: str, artifact_store: str, object_kind: str, pay
         finally: os.close(file)
     except ContractError: raise
     except OSError as error:
-        if error.errno==17 and read(digest): os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+        try:
+            if error.errno==17 and read(digest): os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+        except OSError: pass
         raise ContractError("PUBLISH_OBJECT_ORPHANED" if linked else "PUBLISH_PRECOMMIT_FAILED") from None
     finally:
         if fd is not None: os.close(fd)
