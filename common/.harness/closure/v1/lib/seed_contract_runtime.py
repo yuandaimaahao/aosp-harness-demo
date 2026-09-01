@@ -1,13 +1,9 @@
 import hashlib, json; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
-    __slots__ = ("_code",)
-    def __init__(self, code): self._code = code; super().__init__(code)
+    def __init__(self, code): self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
 def _pairs(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result: raise ContractError("DUPLICATE_JSON_KEY")
-        result[key] = value
+    if len(result := dict(pairs)) != len(pairs): raise ContractError("DUPLICATE_JSON_KEY")
     return result
 def _guard(value):
     if value is None or isinstance(value, bool): return
@@ -18,8 +14,8 @@ def _guard(value):
         return
     if isinstance(value, dict):
         for key, item in value.items():
-            if not isinstance(key, str): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
-            _guard(key); _guard(item)
+            if not isinstance(key, str) or not key.isascii(): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
+            _guard(item)
         return
     raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
 def canonical_bytes(*, value):
@@ -29,6 +25,7 @@ def domain_digest(*, domain_ascii, value):
     except (AttributeError, UnicodeEncodeError): raise ContractError("ARGUMENT_ERROR") from None
     return hashlib.sha256(prefix + canonical_bytes(value=value)).hexdigest()
 def load_artifact(*, path, expected_kind):
+    if type(path) is not str or type(expected_kind) is not str or not path or not expected_kind: raise ContractError("ARGUMENT_ERROR")
     try: raw = open(path, "rb").read()
     except (OSError, TypeError): raise ContractError("DESCRIPTOR_NOT_FOUND") from None
     try: value = json.loads(raw.decode(), object_pairs_hook=_pairs)
