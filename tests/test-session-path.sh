@@ -8,10 +8,10 @@ trap 'rm -rf "$TMP_TEST"' EXIT
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
 [[ ${1:-} == --case && $# == 2 ]] || fail 'option: expected --case name'
 GROUP=$2
-[[ $GROUP == source-validate || $GROUP == roots-static ]] || fail "option: unsupported case $GROUP"
+[[ $GROUP == source-validate || $GROUP == roots-static || $GROUP == mutations ]] || fail "option: unsupported case $GROUP"
 [[ -f "$FOUNDATION" ]] || fail 'source present: foundation missing'
 [[ -f "$PROVIDER" ]] || fail 'source present: provider missing'
-if [[ $GROUP == roots-static ]]; then
+if [[ $GROUP == roots-static || $GROUP == mutations ]]; then
   capture() { : >"$TMP_TEST/out"; : >"$TMP_TEST/err"; "$@" >"$TMP_TEST/out" 2>"$TMP_TEST/err"; RC=$?; }
   invoke() {
     local tag=$1 project=$2 session=$3; shift 3
@@ -24,6 +24,70 @@ if [[ $GROUP == roots-static ]]; then
     cmp -s "$TMP_TEST/out" <(printf %s "$out") || fail "$label: stdout"
     cmp -s "$TMP_TEST/err" <(printf %s "$err") || fail "$label: stderr"
   }
+fi
+if [[ $GROUP == mutations ]]; then
+  copy_provider() {
+    cp "$PROVIDER" "$1"
+    for spec in 'MANAGED HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN' 'EXPECTED_EUID HARNESS_TEST_MARKER_EXPECTED_EUID' 'OS_ERROR HARNESS_TEST_MARKER_OS_ERROR'; do
+      read -r label marker <<<"$spec"; count=$(grep -c "$marker" "$1" || :)
+      [[ $count == 1 ]] || fail "marker $label count: expected 1 got $count"
+    done
+  }
+  replace_once() {
+    local file=$1 needle=$2 replacement=$3
+    [[ $(grep -F -c -- "$needle" "$file") == 1 ]] || fail 'mutation needle count'
+    python3 - "$file" "$needle" "$replacement" <<'PY'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1]); text = path.read_text()
+if text.count(sys.argv[2]) != 1: raise SystemExit(1)
+path.write_text(text.replace(sys.argv[2], sys.argv[3]))
+PY
+  }
+  mutate_invoke() {
+    local copy=$1 root=$2
+    capture env -u XDG_RUNTIME_DIR -u TMPDIR HARNESS_STATE_ROOT="$root" bash -c \
+      'source "$1"; source "$2"; _harness_session_path_core project session' _ "$FOUNDATION" "$copy"
+  }
+  managed='    pass  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN'
+  catch_line='            pass  # provider-copy catch sentinel is injected here'
+  for kind in dir link file; do
+    base="$TMP_TEST/swap-$kind"; mkdir "$base"; mkdir -m 700 "$base/state"; printf sentinel >"$base/state/victim"
+    copy="$base/provider.sh"; copy_provider "$copy"; hit="$base/hit"; old_meta=$(stat -c '%D|%i|%a' "$base/state"); old_hash=$(sha256sum "$base/state/victim" | awk '{print $1}')
+    case $kind in
+      dir) action="os.rename(name, name+'.old', src_dir_fd=parent_fd, dst_dir_fd=parent_fd); os.mkdir(name, 0o700, dir_fd=parent_fd)";;
+      link) action="os.rename(name, name+'.old', src_dir_fd=parent_fd, dst_dir_fd=parent_fd); os.symlink('state.old', name, dir_fd=parent_fd)";;
+      file) action="os.rename(name, name+'.old', src_dir_fd=parent_fd, dst_dir_fd=parent_fd); os.close(os.open(name, os.O_CREAT|os.O_WRONLY, 0o600, dir_fd=parent_fd))";;
+    esac
+    replace_once "$copy" "$managed" "    if phase == 'before_open' and name == 'state': $action; pathlib.Path('$hit').touch()  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN"
+    mutate_invoke "$copy" "$base/state"; expect "swap $kind" 2 '' $'error: unsafe session state\n'
+    [[ -e $hit && $old_meta == "$(stat -c '%D|%i|%a' "$base/state.old")" && $old_hash == "$(sha256sum "$base/state.old/victim" | awk '{print $1}')" && ! -e $base/state/project && ! -e $base/state.old/project ]] || fail "swap $kind: victim or traversal"
+  done
+  for kind in safe unsafe disappear; do
+    base="$TMP_TEST/eexist-$kind"; mkdir "$base"; copy="$base/provider.sh"; copy_provider "$copy"; hit="$base/hit"; caught="$base/caught"
+    if [[ $kind == disappear ]]; then action="if name == 'state': (os.mkdir(name, 0o700, dir_fd=parent_fd), pathlib.Path('$hit').touch()) if phase == 'before_mkdir' else (os.rmdir(name, dir_fd=parent_fd), pathlib.Path('$base/gone').touch()) if phase == 'after_eexist' else None"
+    else action="if phase == 'before_mkdir' and name == 'state': os.mkdir(name, 0o700, dir_fd=parent_fd); pathlib.Path('$hit').touch()"; [[ $kind == safe ]] || action="$action; os.chmod(name, 0o755, dir_fd=parent_fd)"; fi
+    replace_once "$copy" "$managed" "    $action  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN"
+    replace_once "$copy" "$catch_line" "            pathlib.Path('$caught').touch()  # provider-copy catch sentinel is injected here"
+    mutate_invoke "$copy" "$base/state"
+    case $kind in safe) expected=0; out="$base/state/project/session"$'\n'; err='';; unsafe) expected=2; out=''; err=$'error: unsafe session state\n';; disappear) expected=1; out=''; err=$'error: session state operation failed\n';; esac
+    expect "eexist $kind" "$expected" "$out" "$err"; [[ -e $hit && -e $caught && ( $kind != disappear || -e $base/gone && ! -e $base/state ) ]] || fail "eexist $kind: injection missed"
+    [[ $kind != unsafe || $(stat -c %a "$base/state") == 755 && ! -e $base/state/project ]] || fail 'eexist unsafe: winner modified'
+  done
+  base="$TMP_TEST/mkdir-replace"; mkdir "$base"; copy="$base/provider.sh"; copy_provider "$copy"; hit="$base/hit"
+  replace_once "$copy" "$managed" "    if phase == 'before_open' and name == 'state' and made: os.rename(name, name+'.old', src_dir_fd=parent_fd, dst_dir_fd=parent_fd); os.mkdir(name, 0o700, dir_fd=parent_fd); os.chmod(name, 0o755, dir_fd=parent_fd); pathlib.Path('$hit').touch()  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN"
+  mutate_invoke "$copy" "$base/state"; expect 'mkdir replacement' 2 '' $'error: unsafe session state\n'
+  [[ -e $hit && $(stat -c %a "$base/state") == 755 && $(stat -c %a "$base/state.old") == 700 && ! -e $base/state/project ]] || fail 'mkdir replacement modified'
+  for kind in owner eio; do
+    base="$TMP_TEST/$kind"; mkdir "$base"; copy="$base/provider.sh"; copy_provider "$copy"
+    if [[ $kind == owner ]]; then replace_once "$copy" '    expected_euid = os.geteuid()  # HARNESS_TEST_MARKER_EXPECTED_EUID' "    expected_euid = os.geteuid() + (name == 'state'); pathlib.Path('$base/hit').touch()  # HARNESS_TEST_MARKER_EXPECTED_EUID"; expected=2; err=$'error: unsafe session state\n'
+    else replace_once "$copy" '        pass  # HARNESS_TEST_MARKER_OS_ERROR' '        raise OSError(errno.EIO)  # HARNESS_TEST_MARKER_OS_ERROR'; expected=1; err=$'error: session state operation failed\n'; fi
+    mutate_invoke "$copy" "$base/state"; expect "$kind" "$expected" '' "$err"; [[ $kind != owner || -e $base/hit && ! -e $base/state/project ]] || fail 'owner injection missed'
+  done
+  for phase in before_mkdir after_eexist before_open; do [[ $(grep -c "_managed_checkpoint(\"$phase\"" "$PROVIDER") == 1 ]] || fail "phase $phase count"; done
+  ! grep -q fchmod "$PROVIDER" || fail 'forbidden fchmod'
+  printf 'RESULT PASS  session path safety\n'; exit 0
+fi
+if [[ $GROUP == roots-static ]]; then
   mkdir "$TMP_TEST/harness" "$TMP_TEST/xdg" "$TMP_TEST/tmp" "$TMP_TEST/physical"
   ln -s "$TMP_TEST/physical" "$TMP_TEST/logical"
   printf sentinel >"$TMP_TEST/xdg/sentinel"; printf sentinel >"$TMP_TEST/tmp/sentinel"

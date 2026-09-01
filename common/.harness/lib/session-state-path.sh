@@ -43,22 +43,33 @@ def select_root():
     base = os.environ["XDG_RUNTIME_DIR"] if "XDG_RUNTIME_DIR" in os.environ else os.environ.get("TMPDIR") or "/tmp"
     return physical_dir(checked_path(base)), f"aosp-harness-{os.geteuid()}"
 def identity(info): return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode)
+def _managed_checkpoint(phase, parent_fd, name, made):
+    pass  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN
 def open_managed(parent_fd, name):
+    made = False
     try:
         before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
     except FileNotFoundError:
+        _managed_checkpoint("before_mkdir", parent_fd, name, made)
         try:
             os.mkdir(name, 0o700, dir_fd=parent_fd)
+            made = True
+            try:
+                before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            except OSError as exc:
+                raise OperationFailure from exc
         except FileExistsError:
-            pass
+            pass  # provider-copy catch sentinel is injected here
+            _managed_checkpoint("after_eexist", parent_fd, name, made)
+            try:
+                before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            except OSError as exc:
+                raise OperationFailure from exc
         except OSError as exc:
             path_error(exc)
-        try:
-            before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
-        except OSError as exc:
-            raise OperationFailure from exc
     except OSError as exc:
         path_error(exc)
+    _managed_checkpoint("before_open", parent_fd, name, made)
     if not stat.S_ISDIR(before.st_mode): raise UnsafeState
     child_fd = None
     try:
@@ -66,7 +77,8 @@ def open_managed(parent_fd, name):
     except OSError as exc:
         if child_fd is not None: os.close(child_fd)
         managed_open_error(exc)
-    if (identity(before) != identity(current) or current.st_uid != os.geteuid()
+    expected_euid = os.geteuid()  # HARNESS_TEST_MARKER_EXPECTED_EUID
+    if (identity(before) != identity(current) or current.st_uid != expected_euid
             or stat.S_IMODE(current.st_mode) != 0o700):
         os.close(child_fd); raise UnsafeState
     try:
@@ -79,6 +91,7 @@ def dispatch(project, session):
     parent, root = select_root()
     fds = []
     try:
+        pass  # HARNESS_TEST_MARKER_OS_ERROR
         try:
             fds.append(os.open(parent, OPEN_DIR))
         except OSError as exc:
