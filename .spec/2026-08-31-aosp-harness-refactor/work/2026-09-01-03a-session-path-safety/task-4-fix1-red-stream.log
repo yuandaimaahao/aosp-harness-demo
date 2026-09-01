@@ -1,0 +1,3 @@
+fixture stdout bytes=34: RESULT PASS  session path safety followed by two LF bytes
+observed=$(cat fixture); [[ $observed == "$SUMMARY" ]]: rc=0
+result=command substitution swallowed the extra trailing LF and the old oracle was false-green

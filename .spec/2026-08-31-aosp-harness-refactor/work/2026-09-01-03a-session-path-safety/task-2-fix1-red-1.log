@@ -1,0 +1,5 @@
+command: bash ./tests/test-session-path.sh --case roots-static
+exit: 1
+stdout: empty
+stderr: FAIL post-mkdir disappear: rc 2
+expected: operation/1

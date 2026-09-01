@@ -1,0 +1,26 @@
+base-head=fad7bf384d9d8807f1f268649bc8ed19e10cf4b0
+default: rc=0 stdout-bytes=41 stderr-bytes=0 cases=19 stdout="RESULT PASS  session path race assurance\n"
+explicit --dependency-absent: rc=0 stdout-bytes=41 stderr-bytes=0 cases=0
+real-provider-absent default: rc=0 stdout-bytes=41 stderr-bytes=0 cases=0
+real-provider-absent --dependency-absent: rc=0 stdout-bytes=41 stderr-bytes=0 cases=0
+01 swap-root-safe-dir
+02 swap-root-link
+03 swap-root-file
+04 swap-project-safe-dir
+05 swap-project-link
+06 swap-project-file
+07 swap-session-safe-dir
+08 swap-session-link
+09 swap-session-file
+10 eexist-root-safe
+11 eexist-project-unsafe
+12 eexist-session-disappear
+13 mkdir-success-replace-root
+14 wrong-euid-project
+15 mkdir-failure-project
+16 post-mkdir-disappear-session
+17 open-disappear-root
+18 final-stat-disappear-session
+19 real-eio
+tools=ShellCheck 0.11.0 PASS; shfmt 3.14.0 no-diff
+lines=269/400; headroom=131

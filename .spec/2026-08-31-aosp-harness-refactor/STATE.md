@@ -3,8 +3,8 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门④ autopilot：03a tasks三轮独立review最终PASS；四任务唯一红首错、逐任务review串行、最终HEAD exact2/400与manifest/clean门闭合
-updated: '2026-09-01T20:27:43+08:00'
+basis: 门④ autopilot回流：task4 v5.5边界经独立review PASS，真实foundation缺席、managed-body oracle、固定工具及exact2门均闭合
+updated: '2026-09-01T22:48:55+08:00'
 current_spec: 2026-09-01-03a-session-path-safety
 spec_stage: execute
 mode: standard
@@ -79,6 +79,10 @@ workflow: requirements-first
 | 2026-09-01T19:27:15+08:00 | spec/requirements | spec/design | 门② autopilot：03a requirements三轮独立review最终PASS；R1-R7、逐层竞态/攻击oracle、inert回滚、exact2/400与manifest闭合，机械检查全PASS |
 | 2026-09-01T20:12:15+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v5.4与03a1拆片增量review PASS；03a requirements backflow和design round3最终PASS，40-case runnable sizing 311/400与全部机械检查PASS |
 | 2026-09-01T20:27:43+08:00 | spec/tasks | spec/execute | 门④ autopilot：03a tasks三轮独立review最终PASS；四任务唯一红首错、逐任务review串行、最终HEAD exact2/400与manifest/clean门闭合 |
+| 2026-09-01T22:16:19+08:00 | spec/execute | spec/accept | execute audit：task4 fix1 BLOCKED，shfmt-clean exact2实测527/400，必须进入accept backflow而非继续实现 |
+| 2026-09-01T22:16:19+08:00 | spec/accept | spec/design | accept backflow：PLAN v5.5将全部动态mutation测试移至03a1，03a重新设计shfmt-clean<=400交付边界 |
+| 2026-09-01T22:48:55+08:00 | spec/design | spec/tasks | 门③ autopilot回流：PLAN/requirements round2 PASS，design/tasks round3 PASS，round2 runnable sizing与机械检查闭合392/400 |
+| 2026-09-01T22:48:55+08:00 | spec/tasks | spec/execute | 门④ autopilot回流：task4 v5.5边界经独立review PASS，真实foundation缺席、managed-body oracle、固定工具及exact2门均闭合 |
 
 ## SKIPPED 记录
 

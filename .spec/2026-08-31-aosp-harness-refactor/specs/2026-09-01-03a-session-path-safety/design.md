@@ -18,7 +18,7 @@
 | Bash core + foundation public validate | R1, R3 |
 | Python root selector / managed fd chain | R3, R4 |
 | multi-phase checkpoint、identity、owner、EIO markers | R4, R5 |
-| present/inert/attack test + manifest gate | R6, R7 |
+| present/inert/static/anchor test + format/manifest gate | R6, R7 |
 
 ## 3. 架构
 
@@ -83,12 +83,12 @@ foundation facade 与 run export 是 source compatibility guard，但 core 不�
 6. 再取 after name stat，比较 after↔fd dev/inode/type。任一 identity/type/owner/mode 不符映射 unsafe/`2`。
 7. 从 physical parent fd 开始，对 root leaf、project、session 三次调用，只从刚持有的 child fd 继续；`finally` 逆序关闭全部 fd。
 
-### Error/mutation points
+### Error与03a1测试锚点
 
 - `HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN`：只位于 no-op checkpoint 函数体且生产文本精确一次；copy replacement 按 `phase`/`name`/`made` 命中目标层，可真实介入 mkdir 前、EEXIST catch 后与 open 前。
 - `HARNESS_TEST_MARKER_EXPECTED_EUID`：生产文本精确一次；copy replacement 依 `name` 只改目标层 expected EUID。
 - `HARNESS_TEST_MARKER_OS_ERROR`：生产文本精确一次，位于首个 Python fd 操作前；copy 抛真实 `OSError(errno.EIO)`。
-- marker 都是测试复制文本锚点；生产逻辑不读取 test-only env。
+- marker 都是供03a1复制生产文本后替换的测试锚点；生产逻辑不读取 test-only env。03a只检查anchor/phase的唯一性与位置结构，不执行任何anchor-driven provider-copy动态注入；roots-static可保留不替换这三个anchor的确定性post-mkdir disappearance错误分类probe。
 
 ## 5. 数据模型
 
@@ -114,7 +114,7 @@ sequenceDiagram
   participant B as path core
   participant V as foundation public validate
   participant Y as path Python
-  participant A as 03a1 provider-copy test
+  participant A as 03a1 provider-copy race test
   T->>B: project-id, session-id
   B->>V: validate project then session
   V-->>B: accept/reject
@@ -126,8 +126,9 @@ sequenceDiagram
   end
   Y-->>B: physical path or classified error
   B-->>T: exact stdout/stderr/rc
-  A->>Y: copy once, replace one unique anchor
-  Y-->>A: sentinel + exact 0/1/2 + unchanged victim
+  Note over A,Y: 03a1开始后才copy once并替换唯一anchor
+  A->>Y: phase/layer/kind mutation
+  Y-->>A: sentinel + exact 0/1/2 + unchanged object signatures
 ```
 
 ## 7. 错误处理
@@ -150,15 +151,17 @@ Python 不输出中间诊断；顶层 catch 只输出 requirements 的两个固�
 - validate：包装 public validate，log project/session 两参数并拒绝合法 session；PATH 内 fake `python3` 调用数必须为零，断言 unsafe/`2` 与 inventory 不变。
 - roots：HARNESS/XDG/TMP/default 四成功输出，HARNESS 成功时低优先级 untouched，symlink parent 输出 physical path；危险/缺席表逐字节 unsafe/`2`。
 - managed：同根两 project×两 session和全部 type/EUID/0700/nonlink；root/project/session 各自软链接、文件、wrong-mode 静态表。
-- mutations：共用 copy/count/replace/sentinel/inventory helper；本片在root层实际覆盖existing safe-dir/link/file swap、wrong EUID、EEXIST safe/unsafe/disappearing、mkdir-success replacement与EIO。每例先证明注入命中，再检查exact streams/rc/victim/inventory；project/session穷举由03a1独占，且03a1通过前没有consumer。
+- structure：用`grep -Fo | wc -l`证明三个anchor各精确一次；从embedded Python文本中按函数边界提取`open_managed`函数体，并证明`before_mkdir`/`after_eexist`/`before_open`在全文件及该函数体内各精确一次，防止调用被移入dead/unrelated代码；provider不含`fchmod`。本片不接受`--case mutations`，不执行anchor-driven provider-copy。
+- dynamic boundary：root/project/session全部anchor-driven existing swap、wrong EUID、EEXIST safe/unsafe/disappearing、mkdir-success replacement、checkpoint-driven mkdir/post-mkdir/open/final-stat消失、真实EIO，以及sentinel/catch/made/victim完整签名，统一由03a1的单一data-driven driver验收；03a1通过前没有consumer。03a保留的非anchor post-mkdir probe只证明普通OS错分类，不替代03a1 race oracle。
 - surface/regression：四 public state API 与 marker absent；foundation files BASE..HEAD 不变；path 摘要唯一，foundation test和offline gate通过。
-- size/review：以 `prototypes/` 下 runnable/countable skeleton 的实测行数和 case inventory 为依据；实现硬门仍为 exact 2 files/400 numstat，controller 维护六列连续 manifest。
+- dispatcher：真实foundation缺席时default与`--dependency-absent`都进入all-missing inert；foundation存在时default只按顺序执行source-validate、roots-static。每个子进程stdout用含单一摘要和末尾LF的期望文件`cmp`，stderr为空且rc为0，避免command substitution吞掉末尾LF。
+- size/review：执行HEAD `fad7bf384d9d8807f1f268649bc8ed19e10cf4b0` 的只读round2 prototype已包含managed函数体位置self-disproof、真实foundation文件缺席default/flag与可运行03a1三层共享driver。03a实测provider114+test278=`392/400`；03a1 prototype `269/400`实跑19个case，完整37-case只需增加18个data rows/calls。权威证据是`work/2026-09-01-03a-session-path-safety/v5.5-round2-sizing-report.md`。controller维护六列连续manifest，并先断言shfmt `v3.14.0`、ShellCheck `0.11.0`版本，再对exact两文件运行固定argv。
 
 ## 9. 文件清单
 
 | 文件 | 创建/修改 | 职责 | 目标 |
 |---|---|---|---:|
-| `common/.harness/lib/session-state-path.sh` | 创建 | source guard、private core、root/managed fd hardening | 见 sizing 实测 |
-| `tests/test-session-path.sh` | 创建 | present/inert、root/static/race/mutation 回归 | 见 sizing 实测 |
+| `common/.harness/lib/session-state-path.sh` | 创建 | source guard、private core、root/managed fd hardening | 114行当前实测 |
+| `tests/test-session-path.sh` | 创建 | present/inert、root/static/anchor/dispatcher 回归 | 278行round2实测 |
 
-BASE..HEAD 硬门不超过 400。`.spec` 下 prototype、sizing、brief、report、review package 和 manifest 不进入实现 diff。
+BASE..HEAD硬门不超过400；最终必须同时通过pinned shfmt 3.14.0无diff与ShellCheck 0.11.0 warning门。`.spec`下prototype、sizing、brief、report、review package和manifest不进入实现diff。

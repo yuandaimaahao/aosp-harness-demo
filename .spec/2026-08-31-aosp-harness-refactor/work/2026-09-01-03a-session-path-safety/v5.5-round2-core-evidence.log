@@ -1,0 +1,12 @@
+base-head=fad7bf384d9d8807f1f268649bc8ed19e10cf4b0
+tools=ShellCheck 0.11.0; shfmt 3.14.0
+fixed-shellcheck-argv=-x --severity=warning <provider> <core-prototype> <race-prototype>
+fixed-shfmt-argv=-d -i 2 -ci -bn <provider> <core-prototype> <race-prototype>
+default: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+--case source-validate: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+--case roots-static: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+--dependency-absent: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+real-foundation-absent default: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+real-foundation-absent --dependency-absent: rc=0 stdout-bytes=33 stderr-bytes=0 stdout="RESULT PASS  session path safety\n"
+phase-moved-outside-open_managed: rc=1 stdout-bytes=0 stderr="FAIL phase before_mkdir global or managed-body count\n"
+lines=provider 114 + formatted core test 278 = 392/400

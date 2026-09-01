@@ -47,3 +47,7 @@
 ## v5.4 — 2026-09-01
 
 由 `reviews/design-03a-round-2.md` blocker 触发：311行可执行原型只实际运行一条fresh路径，其余51条只是case inventory，无法证明复杂三层mutation fixture能进入剩余89行，重现foundation执行期才发现sizing失真的风险。03a保留完整private provider与source/root/static/代表性root race验收；新增仅拥有`test-session-path-races.sh`的03a1穷举三层mutation，且03b必须等待03a与03a1均PASS。provider在03a1前没有消费者或public capability；03a1缺席不改变运行时，03a回滚时03a1走inert PASS。每片继续执行400行门。
+
+## v5.5 — 2026-09-01
+
+由03a `task-4-fix1-report.md`的执行期实测触发：当前未格式化provider+test为397行，但按仓库pinned shfmt格式化后为527行；只把project/session race拆到03a1仍不足，靠压缩会牺牲可读性或oracle。03a保留完整private provider、source/root/static、非anchor确定性错误分类probe与anchor occurrence/phase位置结构测试；全部root/project/session anchor-driven provider-copy mutation移到已规划的03a1，并继续强制03a1 PASS后才开始任何consumer 03b。两片都必须shfmt-clean且各自不超过400行。

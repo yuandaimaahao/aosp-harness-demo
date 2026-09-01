@@ -1,0 +1,4 @@
+BASE=fad7bf384d9d8807f1f268649bc8ed19e10cf4b0
+fixture=provider present, foundation genuinely absent
+default: rc=1 stdout-bytes=0 stderr=FAIL source present: foundation missing
+--dependency-absent: rc=1 stdout-bytes=0 stderr=FAIL source present: foundation missing

@@ -1,9 +1,10 @@
-# 2026-08-31-aosp-harness-refactor 拆分计划 v5.4
+# 2026-08-31-aosp-harness-refactor 拆分计划 v5.5
 
 > 上游：`research/report.md`
 > v5.3 依据：03 task 1.1/1.2 的真实 diff 与增量 PLAN review 证明 359/400 行 sizing prototype 失真且 1400 行例外不满足 P5；按安全完成边界拆为互不叠改的私有模块，只有最终 aggregator 发布完整 capability。
 > v5.3.1 依据：03a design review round 1 发现其实现必须实际消费 foundation public validate，原依赖边只把两 private export 写作 provider 能力，无法机械解释 source guard 与 fail-fast；本版只补齐既有 `03 -> 03a` 边的第三个既存签名，不改变图、顺序、owner 或验收门。
 > v5.4 依据：03a design review round 2 证明 311 行 sizing 原型只执行1个fresh case，无法把完整三层竞态fixture压入剩余89行。03a保留private provider与功能/静态/代表性竞态验收；新增只拥有独立race test的03a1，在任何消费者进入前完成穷举竞态保证。
+> v5.5 依据：03a task4 fix1实测未格式化包397行，但pinned shfmt后为527行；把root代表性race留在03a仍无法同时满足格式门和400行/P5。全部anchor-driven provider-copy mutation移到03a1，03a只保留完整private provider、source/root/static、确定性错误分类probe和anchor结构验收。round2可运行原型实测03a exact2为392/400，03a1三层共享driver为269/400并执行19个代表case，完整37-case矩阵剩18个data rows/calls。
 
 ## 总目标
 
@@ -41,7 +42,7 @@
 | `01-device-safety` | 关闭错设备操作和真实模式假成功的本计划最高风险缺口 | 无 | `./tests/test-device-safety.sh` 输出 `RESULT PASS  device safety` | ✅ 完成 |
 | `02-offline-quality-gate` | 建立根级离线验收和 CI 门禁 | `01-device-safety` | `./scripts/check.sh --offline` 输出统一 PASS | ✅ 已完成 |
 | `03-session-state-safety` | 交付安全名称 API 与私有 fd/root foundation 模块 | `02-offline-quality-gate` | `./tests/test-session-state-foundation.sh` 输出 `RESULT PASS  session state foundation` | ✅ 完成 |
-| `03a-session-path-safety` | 交付 fully-hardened 私有 path 模块及功能/静态/代表性竞态验收 | `03-session-state-safety` | `./tests/test-session-path.sh` 输出 `RESULT PASS  session path safety` | ⏳ 进行中 |
+| `03a-session-path-safety` | 交付 fully-hardened 私有 path 模块及source/root/static/anchor结构验收 | `03-session-state-safety` | `./tests/test-session-path.sh` 输出 `RESULT PASS  session path safety` | ⏳ 进行中 |
 | `03a1-session-path-race-assurance` | 在任何消费者进入前穷举 path 的三层竞态与 mutation oracle | `03a-session-path-safety` | `./tests/test-session-path-races.sh` 输出 `RESULT PASS  session path race assurance` | ⬜ 未开始 |
 | `03b-session-snapshot-safety` | 交付独占的 create-once snapshot write/read 模块 | `03a-session-path-safety`, `03a1-session-path-race-assurance` | `./tests/test-session-snapshot.sh` 输出 `RESULT PASS  session snapshot safety` | ⬜ 未开始 |
 | `03c-session-write-interrupts` | 交付独占的 write child/facade/group signal 模块 | `03b-session-snapshot-safety` | `./tests/test-session-signals.sh` 输出 `RESULT PASS  session write interrupts` | ⬜ 未开始 |
@@ -96,11 +97,11 @@
 
 ### `03a-session-path-safety`
 
-独占交付 `session-state-path.sh`，在 foundation 的 public `harness_validate_feature_name <name>` 与两 private path exports 上补既有 root/project/session 的 nofollow 类型、EUID、0700、name-fd identity 与multi-phase checkpoint。精确私有接口是 `_harness_session_path_core <project-id> <session-id>`：成功唯一输出 physical absolute path+LF并返回0，普通OS错1，协议/安全错2。source 时若三个预期函数缺任一，必须静默返回0且不定义本模块 export/状态public API/marker；独立测试覆盖source/inert、根选择、隔离、三层静态攻击、fake-python fail-fast，并用root层代表性case实际覆盖existing swap、EEXIST safe/unsafe/disappearing、mkdir replacement、wrong EUID和EIO。完整三层mutation矩阵由03a1独占，03a1通过前没有任何消费者进入。
+独占交付 `session-state-path.sh`，在 foundation 的 public `harness_validate_feature_name <name>` 与两 private path exports 上补既有 root/project/session 的 nofollow 类型、EUID、0700、name-fd identity 与multi-phase checkpoint。精确私有接口是 `_harness_session_path_core <project-id> <session-id>`：成功唯一输出 physical absolute path+LF并返回0，普通OS错1，协议/安全错2。source 时若三个预期函数缺任一，必须静默返回0且不定义本模块 export/状态public API/marker；独立shfmt-clean测试覆盖source/inert、根选择、隔离、三层静态攻击、fake-python fail-fast、确定性post-mkdir disappearance分类probe，以及三个anchor与三phase在managed helper内的occurrence/位置结构，不执行anchor-driven provider-copy mutation。全部anchor-driven动态race由03a1独占，03a1通过前没有任何消费者进入。
 
 ### `03a1-session-path-race-assurance`
 
-只新增 `tests/test-session-path-races.sh`，不修改 provider：复用03a生产文本仅一次的 `MANAGED_BEFORE_OPEN`、`EXPECTED_EUID`、`OS_ERROR` anchor，以单一copy/count/replace/sentinel/inventory driver穷举root/project/session三层 existing swap（含换入safe dir、link、file）、wrong EUID、EEXIST safe/unsafe/disappearing和mkdir-success replacement，并证明catch、exact `0|2|1`、无后续创建、victim/replacement不被chmod或跟随。03a core缺席时本测试执行inert断言并以同一摘要PASS，使03a可独立回滚。此片不产出运行时API；其验收证据是03b开始前的强制前置门。
+只新增shfmt-clean `tests/test-session-path-races.sh`，不修改 provider：复用03a生产文本仅一次的 `MANAGED_BEFORE_OPEN`、`EXPECTED_EUID`、`OS_ERROR` anchor，以单一copy/count/replace/sentinel/scoped-inventory driver穷举root/project/session三层 existing swap（含换入safe dir、link、file）、wrong EUID、EEXIST safe/unsafe/disappearing、mkdir-success replacement、checkpoint-driven mkdir/post-mkdir/open/final-stat消失与真实EIO，并证明made/catch、exact `0|2|1`、无后续创建、所有允许对象完整签名和victim/replacement不被chmod或跟随。03a core缺席时本测试执行inert断言并以同一摘要PASS，使03a可独立回滚。此片不产出运行时API；其验收证据是03b开始前的强制前置门。
 
 ### `03b-session-snapshot-safety`
 

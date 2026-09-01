@@ -1,0 +1,4 @@
+tools=ShellCheck 0.11.0, shfmt 3.14.0
+shellcheck -x -e SC2015,SC2016: rc=1 SC2034 line=37 name=tag; SC2053 line=93 rhs=old_meta
+shfmt -d -i 2 -ci -bn: rc=1; formatted test=411 lines; BASE exact2 would be 114+411=525
+verified fix candidate: shellcheck rc=0; shfmt candidate=413 lines; BASE exact2 would be 114+413=527 (>400)

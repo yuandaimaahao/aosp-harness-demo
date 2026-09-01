@@ -1,0 +1,4 @@
+baseline: 7a4e447a04958fea10ddb571315537e06e27c303
+probe: roots-static inventory dev/inode plus link victim content hash and inode/mode
+victim integrity probe exit: 1 (expected 0)
+meaning: baseline roots-static section has none of %D|%i, sha256sum, or victim_before

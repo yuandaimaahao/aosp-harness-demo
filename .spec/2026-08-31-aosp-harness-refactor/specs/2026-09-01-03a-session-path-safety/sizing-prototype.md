@@ -1,49 +1,48 @@
-# 03a runnable sizing prototype — 不进入生产 diff
+# 03a execution-backed sizing — 不进入生产 diff
 
-## 可复现实测
+## 当前权威实测
 
-两个原型都是真实执行骨架，不再把 case 名称计数当作通过：
+早期 `prototypes/` 的 311 行/40 case 结果只保留为设计历史；它没有包含生产测试在pinned shfmt后的真实展开，不能再作为400行门依据。当前权威证据是：
 
-- `prototypes/session-state-path.sh`：136 行，包含完整source guard、public validate调用、四级root selector、三phase checkpoint、EEXIST catch、nofollow open/fstat、`ELOOP|ENOTDIR`安全分类、owner/mode/name-fd identity和固定错误映射。
-- `prototypes/test-session-path.sh`：175 行，实际执行40个case；包含capture/逐字节断言、三个missing-dependency、arity/validate+fake-python、HARNESS/XDG/TMP/default/physical根、2×2隔离、三层×link/file/mode静态攻击，以及root层safe-dir/link/file swap、EEXIST safe/unsafe/disappearing、mkdir replacement、wrong EUID和真实EIO。
+- 权威报告：`../../work/2026-09-01-03a-session-path-safety/v5.5-round2-sizing-report.md`
+- 输入：实现HEAD `fad7bf384d9d8807f1f268649bc8ed19e10cf4b0`
+- 方法：只在临时目录删除完整anchor-driven mutation组，应用task4 dispatcher/精确流/managed-body位置修复；另生成可运行03a1三层共享driver。实现worktree未修改且保持clean。首版`v5.5-sizing-report.md`因真实foundation缺席证据路径错误及03a1仅有抽取骨架而被round1 review否决，只保留历史。
 
-复现：
-
-```bash
-bash -n prototypes/session-state-path.sh prototypes/test-session-path.sh
-bash prototypes/test-session-path.sh
-wc -l prototypes/session-state-path.sh prototypes/test-session-path.sh
-```
-
-实测：
+固定工具与结果：
 
 ```text
-PROTOTYPE PASS  session path sizing (40 executed cases)
-136 prototypes/session-state-path.sh
-175 prototypes/test-session-path.sh
-311 total
+shfmt 3.14.0: shfmt -w/-d -i 2 -ci -bn
+ShellCheck 0.11.0: shellcheck -x --severity=warning
+114 common/.harness/lib/session-state-path.sh
+278 tests/test-session-path.sh
+392 total
 ```
 
-## 实现预算
+pinned shfmt无diff、ShellCheck零warning，`392 <= 400`，余量8行。正常default/source/roots/显式dependency-absent与真实foundation文件缺席default/flag均实跑为精确33-byte PASS、stderr空、rc0。
 
-| 块 | 已实测 | 尚需上限 |
-|---|---:|---:|
-| provider完整控制流 | 136 | 0 |
-| test实际功能/静态/root-race oracle | 175 | 0 |
-| source declare-p/inventory细化、低优先级零变化 | 0 | 34 |
-| foundation/offline/manifest与最终review修正 | 0 | 35 |
-| 余量 | 0 | 20 |
-| 合计 | 311 | 89 |
+## 03a保留边界
 
-生产两文件硬门仍是400。execute每个task后检查BASE..HEAD numstat；达到380行时不再增加case，缺少任何R1–R7 oracle或超过400都回PLAN。project/session的穷举mutation不消耗这89行，已由PLAN v5.4移到独占`03a1-session-path-race-assurance`，且03a1通过前没有consumer。
+- 完整private provider：source guard、public validate调用、四级root selector、fresh/EEXIST/existing统一nofollow fd hardening、固定错误映射。
+- `source-validate`：source副作用inventory、三个单依赖缺席、all-missing inert、private/public surface、validate顺序与fake-python零调用。
+- `roots-static`：HARNESS/XDG/TMP/default/physical root、危险root、post-mkdir disappearance、2×2隔离、root/project/session link/file/mode攻击。
+- 结构：三个生产anchor各一次；三个checkpoint phase在全文件和提取的`open_managed`函数体内各一次；移动phase到无关函数的self-disproof会失败；无`fchmod`。
+- dispatcher：foundation真实缺席时default/显式flag都走all-missing inert；foundation存在时只运行source-validate与roots-static；用文件`cmp`逐字保留摘要末尾LF。
 
-## 03a1边界
+## 移出03a的边界
 
-03a1只新增`tests/test-session-path-races.sh`，复用本原型已跑通的copy/count/replace/sentinel driver，把root代表性mutation扩成root/project/session三层，并增加换入safe dir/link/file。它不修改provider、不发布API，独立400行门；03a回滚时该test以`--dependency-absent`走inert PASS。
+03a不再接受`--case mutations`，不执行任何anchor-driven provider-copy mutation。以下全部移入独占单文件`03a1-session-path-race-assurance`：
+
+- root/project/session existing safe-dir/link/file swap；
+- EEXIST safe/unsafe/disappearing winner与mkdir-success replacement；
+- ordinary mkdir failure、mkdir/post-mkdir/open/final-stat disappearance；
+- wrong EUID、真实EIO、made/catch/phase sentinel；
+- victim/replacement inode/mode/hash/inventory完整签名。
+
+03a1可运行共享driver经pinned shfmt为269行并实跑19个child/case：包含三层×safe-dir/link/file的9个swap，以及把EEXIST三分类、mkdir replacement、wrong EUID、mkdir/post-mkdir/open/final-stat disappearance与EIO分布到不同层的10个代表case；每例使用共享stream/signature/inventory oracle。完整37-case矩阵剩18个data rows/calls，余量131行。若实现复制三层case body、删除完整对象签名或最终超过400，此证据失效并必须回PLAN。
 
 ## 拒绝条件
 
-- 删除marker计数、catch sentinel、fake-python零调用、source保护或精确双流换行数：拒绝。
-- 03a实现diff出现第3个文件或超过400：回PLAN。
-- 将project/session穷举偷回03a、或让03b在03a1 PASS前开始：拒绝。
-- 原型只证明既定Linux/glibc/Bash/Python最低版本设计可表达，不证明其他平台。
+- 03a最终exact2超过400行，或pinned shfmt/ShellCheck不通过：拒绝并回PLAN。
+- 为压行删除source/inert、root/static、anchor/phase、fake-python零调用、精确stream/rc或dispatcher oracle：拒绝。
+- 将任一anchor-driven dynamic mutation偷回03a，或在03a1 PASS前启动consumer：拒绝。
+- 原型与实测只支持Linux kernel >=3.15、glibc >=2.28、Bash >=5.0、Python >=3.8，不外推其他平台。

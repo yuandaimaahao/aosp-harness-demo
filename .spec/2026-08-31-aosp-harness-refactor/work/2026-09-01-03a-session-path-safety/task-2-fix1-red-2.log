@@ -1,0 +1,5 @@
+baseline: 7a4e447a04958fea10ddb571315537e06e27c303
+probe: XDG/TMP dangerous-root cases plus explicit seven-directory oracle
+roots coverage probe exit: 1 (expected 0)
+seven-directory oracle probe exit: 1 (expected 0)
+meaning: baseline test has neither required coverage pattern
