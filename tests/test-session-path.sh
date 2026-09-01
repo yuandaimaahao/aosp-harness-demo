@@ -11,6 +11,12 @@ fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
 [[ ${1:-} == --case && ${2:-} == source-validate && $# == 2 ]] || fail 'option: expected --case source-validate'
 [[ -f "$FOUNDATION" ]] || fail 'source present: foundation missing'
 [[ -f "$PROVIDER" ]] || fail 'source present: provider missing'
+if [[ ${HARNESS_TEST_SELF_CHECK:-0} == 0 ]]; then
+  HARNESS_TEST_SELF_CHECK=1 HARNESS_TEST_FORCE_SOURCE_FAIL=none \
+    bash "${BASH_SOURCE[0]}" --case source-validate >"$TMP_TEST/self-out" 2>"$TMP_TEST/self-err"
+  self_rc=$?
+  [[ $self_rc != 0 ]] || fail 'self-disproof: source fixture failure was masked'
+fi
 
 source_case() {
   local missing=$1 expected=$2 label=$3 audit="$TMP_TEST/$3-audit" watch="$TMP_TEST/$3-watch"
@@ -21,9 +27,11 @@ set -u
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
 source "$FOUNDATION"
 [[ $MISSING == none ]] || unset -f "$MISSING"
+unset HARNESS_SESSION_STATE_PROVIDER_VERSION
+unset -f _harness_session_path_core harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove 2>/dev/null || :
 export HARNESS_STATE_ROOT="$WATCH/bad-harness" XDG_RUNTIME_DIR="$WATCH/bad-xdg" TMPDIR="$WATCH/bad-tmp"
 declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$AUDIT/env-before"
-for name in harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
+for name in _harness_component_is_safe harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
   declare -F "$name" >/dev/null && declare -f "$name"
 done >"$AUDIT/functions-before"
 declare -F | awk '{print $3}' | LC_ALL=C sort >"$AUDIT/names-before"
@@ -32,7 +40,7 @@ source "$PROVIDER" >"$AUDIT/out" 2>"$AUDIT/err"
 rc=$?
 after=$(find "$WATCH" -mindepth 1 -printf '%P|%y|%D|%i|%m|%U|%s\n' | LC_ALL=C sort)
 declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$AUDIT/env-after"
-for name in harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
+for name in _harness_component_is_safe harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
   declare -F "$name" >/dev/null && declare -f "$name"
 done >"$AUDIT/functions-after"
 declare -F | awk '{print $3}' | LC_ALL=C sort >"$AUDIT/names-after"
@@ -44,21 +52,22 @@ cmp -s "$AUDIT/functions-before" "$AUDIT/functions-after" || fail 'source change
 for name in harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove; do
   ! declare -F "$name" >/dev/null || fail "source defined public $name"
 done
+cp "$AUDIT/names-before" "$AUDIT/names-expected"
+[[ $EXPECTED != present ]] || { printf '%s\n' _harness_session_path_core >>"$AUDIT/names-expected"; LC_ALL=C sort -o "$AUDIT/names-expected" "$AUDIT/names-expected"; }
+cmp -s "$AUDIT/names-expected" "$AUDIT/names-after" || fail 'source changed exact function surface'
 if [[ $EXPECTED == present ]]; then
   declare -F _harness_session_path_core >/dev/null || fail 'source did not define core'
-  comm -13 "$AUDIT/names-before" "$AUDIT/names-after" >"$AUDIT/added"
-  [[ $(<"$AUDIT/added") == _harness_session_path_core ]] || fail 'source defined unexpected functions'
 else
   ! declare -F _harness_session_path_core >/dev/null || fail 'source defined core without dependency'
-  cmp -s "$AUDIT/names-before" "$AUDIT/names-after" || fail 'inert source changed function surface'
 fi
+[[ ${HARNESS_TEST_FORCE_SOURCE_FAIL:-} != "$MISSING" ]] || fail 'injected source fixture failure'
 SH
 }
 
-source_case none present present
-source_case harness_validate_feature_name absent missing-validate
-source_case _harness_session_state_foundation_path absent missing-path
-source_case _harness_session_state_run absent missing-run
+source_case none present present || exit $?
+source_case harness_validate_feature_name absent missing-validate || exit $?
+source_case _harness_session_state_foundation_path absent missing-path || exit $?
+source_case _harness_session_state_run absent missing-run || exit $?
 
 # shellcheck source=/dev/null
 source "$FOUNDATION"
