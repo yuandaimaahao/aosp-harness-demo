@@ -93,7 +93,22 @@ def terminal():
     for lines in ([reasons[10],reasons[0],reasons[10]],[reasons[0]]*120): changed=copy.deepcopy(report); changed["summary_lines"]=lines; runtime._validate_artifact(changed)
     for fn in (lambda x:x.update(failed_checks=[]),lambda x:x.update(failed_checks=["UNKNOWN"]),lambda x:x.update(failed_checks=[None]),lambda x:x.update(failed_checks=[reasons[10],reasons[0]]),lambda x:x.update(failed_checks=[reasons[0],reasons[0]]),lambda x:x.update(primary_reason=reasons[10]),lambda x:x["completed_observation_digests"].update(extra=None),lambda x:x["completed_observation_digests"].update(trace="A"*64),lambda x:x.update(summary_lines=[None]),lambda x:x.update(summary_lines=[reasons[0]]*121),lambda x:x.update(summary_lines=["alice"]),lambda x:x.update(summary_lines=["12:00:00Z"]),lambda x:x.update(summary_lines=["1788283200"]),lambda x:x.update(summary_lines=["ghp_abcdefgh"]),lambda x:x.update(summary_lines=["AKIA123"]),lambda x:x.update(summary_lines=["int main(void) { return 0; }"])): changed=copy.deepcopy(report); fn(changed); bad(lambda changed=changed:runtime._validate_artifact(changed),"DESCRIPTOR_SCHEMA_INVALID")
     changed=copy.deepcopy(golden); changed["guard"]["trace_digest"]="1"*64; assert runtime._validate_artifact(changed)==runtime._DOMAINS["seed"] and changed["seed_identity_digest"]==golden["seed_identity_digest"] and domain_digest(domain_ascii=runtime._DOMAINS["seed"],value=changed)!=domain_digest(domain_ascii=runtime._DOMAINS["seed"],value=golden)
+def state_paths():
+    runtime=__import__("seed_contract_runtime")
+    with tempfile.TemporaryDirectory() as d:
+        root=Path(d); state=root/"state"; state.mkdir(); store=state/"artifacts/v1"; ref=state/"refs/new/seed"
+        p=runtime.validate_state_paths(state_dir=str(state),out_ref=str(ref),artifact_store=str(store),forbidden_roots=())
+        assert set(p)=={"state_dir","artifact_store","object_dir","out_ref","ref_parent","lock_path"} and dict(p)=={"state_dir":str(state),"artifact_store":str(store),"object_dir":str(store/"sha256"),"out_ref":str(ref),"ref_parent":str(ref.parent),"lock_path":str(ref)+".lock"}
+        try: p["state_dir"]="x"; assert False
+        except TypeError: pass
+        link=root/"link"; link.symlink_to(state); bads=(("~/state",str(store),None,(),"STATE_DIR_CONTRACT"),("state",str(store),None,(),"STATE_DIR_CONTRACT"),(str(root/"missing"),str(store),None,(),"STATE_DIR_CONTRACT"),(str(link),str(store),None,(),"STATE_DIR_CONTRACT"),(str(state),str(state/"wrong"),None,(),"STATE_DIR_CONTRACT"),(str(state),str(store),None,(str(state),),"STATE_DIR_CONTRACT"),(str(state),str(store),None,("/",),"STATE_DIR_CONTRACT"),(str(state),str(store),str(root/"escape"),(),"OUT_REF_CONTRACT"))
+        parent=state/"bad"; parent.symlink_to(root)
+        bads += ((str(state),str(store),str(parent/"leaf"),(),"OUT_REF_CONTRACT"),)
+        blocked=root/"blocked"; blocked.mkdir(); blocked.chmod(0o500)
+        bads += ((str(blocked),str(blocked/"artifacts/v1"),None,(),"STATE_DIR_CONTRACT"),)
+        for sd,st,rf,roots,code in bads: bad(lambda sd=sd,st=st,rf=rf,roots=roots:runtime.validate_state_paths(state_dir=sd,out_ref=rf,artifact_store=st,forbidden_roots=roots),code)
+        blocked.chmod(0o700)
 if __name__ == "__main__":
-    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal}
+    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths}
     try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
     except (IndexError, KeyError): raise SystemExit("usage: canonical-core|concurrent-core") from None

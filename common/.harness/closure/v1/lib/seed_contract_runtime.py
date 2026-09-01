@@ -1,4 +1,4 @@
-import base64, hashlib, json, os, re; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+import base64, hashlib, json, os, re; from types import MappingProxyType; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
     def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
@@ -23,6 +23,41 @@ def canonical_bytes(*, value: object) -> bytes:
 def domain_digest(*, domain_ascii: str, value: object) -> str:
     if type(domain_ascii) is not str or not domain_ascii.isascii(): raise ContractError("ARGUMENT_ERROR")
     return hashlib.sha256(domain_ascii.encode() + canonical_bytes(value=value)).hexdigest()
+def _open_dirs(path, make=False):
+    fd=os.open("/",os.O_RDONLY|os.O_DIRECTORY)
+    try:
+        for part in path.split("/")[1:]:
+            try: nxt=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            except FileNotFoundError:
+                if not make: raise
+                os.mkdir(part,0o700,dir_fd=fd); nxt=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            os.close(fd); fd=nxt
+        return fd
+    except BaseException: os.close(fd); raise
+def _contained(path, root): return root=="/" or path==root or path.startswith(root+"/")
+def validate_state_paths(*, state_dir: str, out_ref: str | None, artifact_store: str, forbidden_roots: tuple[str, ...]):
+    if type(state_dir) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or out_ref is not None and type(out_ref) is not str: raise ContractError("ARGUMENT_ERROR")
+    state=state_dir; store=os.path.join(state,"artifacts/v1")
+    try:
+        if not os.path.isabs(state) or state.startswith("~") or state!=os.path.normpath(state) or state!=os.path.realpath(state) or artifact_store!=store or not os.access(state,os.W_OK|os.X_OK): raise OSError
+        fd=_open_dirs(state); os.close(fd)
+        roots=tuple(os.path.realpath(x) for x in forbidden_roots)
+        if any(_contained(state,x) or _contained(store,x) for x in roots): raise OSError
+        fd=_open_dirs(os.path.join(store,"sha256"),True); os.close(fd)
+    except (OSError,TypeError,ValueError): raise ContractError("STATE_DIR_CONTRACT") from None
+    if out_ref is None: return MappingProxyType({"state_dir":state,"artifact_store":store,"object_dir":store+"/sha256","out_ref":None,"ref_parent":None,"lock_path":None})
+    try:
+        if not os.path.isabs(out_ref) or out_ref!=os.path.normpath(out_ref) or not _contained(out_ref,state) or out_ref==state or any(_contained(out_ref,x) for x in roots): raise OSError
+        parent,leaf=os.path.dirname(out_ref),os.path.basename(out_ref)
+        if not leaf or leaf in (".",".."): raise OSError
+        fd=_open_dirs(parent,True)
+        try:
+            leaf_fd=os.open(leaf,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd); stat=os.fstat(leaf_fd); os.close(leaf_fd)
+            if not __import__("stat").S_ISREG(stat.st_mode): raise OSError
+        except FileNotFoundError: pass
+        finally: os.close(fd)
+    except (OSError,TypeError,ValueError): raise ContractError("OUT_REF_CONTRACT") from None
+    return MappingProxyType({"state_dir":state,"artifact_store":store,"object_dir":store+"/sha256","out_ref":out_ref,"ref_parent":parent,"lock_path":out_ref+".lock"})
 _DOMAINS={"seed_request":"aosp-harness/seed-request/v1\0","project_source_state":"aosp-harness/project-source-state/v1\0","source_state":"aosp-harness/source-state/v1\0","trace":"aosp-harness/trace/v1\0","command_journal":"aosp-harness/command-journal/v1\0","seed_content":"aosp-harness/seed-content/v1\0","seed_identity":"aosp-harness/seed-identity/v1\0","seed":"aosp-harness/seed-artifact/v1\0","terminal_report":"aosp-harness/terminal-report/v1\0"}
 def _bad(): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
 def _exact(v, keys): _bad() if type(v) is not dict or set(v) != set(keys) else None
