@@ -1,6 +1,6 @@
 import hashlib, json; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
-    def __init__(self, code): self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
+    def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
 def _pairs(pairs):
     if len(result := dict(pairs)) != len(pairs): raise ContractError("DUPLICATE_JSON_KEY")
@@ -18,13 +18,12 @@ def _guard(value):
             _guard(item)
         return
     raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
-def canonical_bytes(*, value):
+def canonical_bytes(*, value: object) -> bytes:
     _guard(value); return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-def domain_digest(*, domain_ascii, value):
-    try: prefix = domain_ascii.encode("ascii")
-    except (AttributeError, UnicodeEncodeError): raise ContractError("ARGUMENT_ERROR") from None
-    return hashlib.sha256(prefix + canonical_bytes(value=value)).hexdigest()
-def load_artifact(*, path, expected_kind):
+def domain_digest(*, domain_ascii: str, value: object) -> str:
+    if type(domain_ascii) is not str or not domain_ascii.isascii(): raise ContractError("ARGUMENT_ERROR")
+    return hashlib.sha256(domain_ascii.encode() + canonical_bytes(value=value)).hexdigest()
+def load_artifact(*, path: str, expected_kind: str) -> dict:
     if type(path) is not str or type(expected_kind) is not str or not path or not expected_kind: raise ContractError("ARGUMENT_ERROR")
     try: raw = open(path, "rb").read()
     except (OSError, TypeError): raise ContractError("DESCRIPTOR_NOT_FOUND") from None
