@@ -23,7 +23,7 @@ def canonical_bytes(*, value: object) -> bytes:
 def domain_digest(*, domain_ascii: str, value: object) -> str:
     if type(domain_ascii) is not str or not domain_ascii.isascii(): raise ContractError("ARGUMENT_ERROR")
     return hashlib.sha256(domain_ascii.encode() + canonical_bytes(value=value)).hexdigest()
-_DOMAINS={"seed_request":"aosp-harness/seed-request/v1\0","project_source_state":"aosp-harness/project-source-state/v1\0","source_state":"aosp-harness/source-state/v1\0","trace":"aosp-harness/trace/v1\0","command_journal":"aosp-harness/command-journal/v1\0","seed_content":"aosp-harness/seed-content/v1\0","seed_identity":"aosp-harness/seed-identity/v1\0","seed":"aosp-harness/seed-artifact/v1\0"}
+_DOMAINS={"seed_request":"aosp-harness/seed-request/v1\0","project_source_state":"aosp-harness/project-source-state/v1\0","source_state":"aosp-harness/source-state/v1\0","trace":"aosp-harness/trace/v1\0","command_journal":"aosp-harness/command-journal/v1\0","seed_content":"aosp-harness/seed-content/v1\0","seed_identity":"aosp-harness/seed-identity/v1\0","seed":"aosp-harness/seed-artifact/v1\0","terminal_report":"aosp-harness/terminal-report/v1\0"}
 def _bad(): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
 def _exact(v, keys): _bad() if type(v) is not dict or set(v) != set(keys) else None
 def _u(v): _bad() if type(v) is not int or not 0 <= v <= _SAFE else None
@@ -108,10 +108,13 @@ def _validate_public_real(payload,evidence):
     try: _validate_artifact(payload)
     except ContractError: return False
     return payload["evidence_class"]=="real_source" and payload["source_scope"]=={"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"} and type(evidence) is dict and set(evidence)=={"source_state_before","source_state_after","trace","command_journal"} and all(type(x) is bool and x for x in evidence.values())
+def _terminal(v):
+    reasons=("SOURCE_ROOT_UNAVAILABLE","REPO_METADATA_UNAVAILABLE","ENVSETUP_UNAVAILABLE","REPO_CLIENT_UNAVAILABLE","WORKTREE_ENUM_UNAVAILABLE","RESOURCE_DISK","RESOURCE_INODE","RESOURCE_MEMORY","RESOURCE_CPU","NETWORK_NAMESPACE_UNAVAILABLE","TRACE_UNAVAILABLE","LUNCH_FAILED","FORBIDDEN_EXECUTION","SOURCE_MUTATION","SOURCE_CHANGED"); _exact(v,("schema_version","kind","request_digest","primary_reason","failed_checks","completed_observation_digests","summary_lines")); _hex(v["request_digest"]); type(v["failed_checks"]) is list and v["failed_checks"] and all(x in reasons for x in v["failed_checks"]) and v["failed_checks"]==sorted(set(v["failed_checks"]),key=reasons.index) and v["primary_reason"]==v["failed_checks"][0] or _bad(); _exact(v["completed_observation_digests"],("source_state","trace","command_journal")); [x is None or _hex(x) for x in v["completed_observation_digests"].values()]; type(v["summary_lines"]) is list and len(v["summary_lines"])<=120 and all(type(x) is str and not re.search(r"(?i)\b(?:timestamp|username|credential|password|token|secret)\b|(?:19|20)\d{2}-[01]\d-[0-3]\d(?:[ T]\d\d:\d\d(?::\d\d)?(?:Z|[+-]\d\d:?\d\d)?)?|\S+@\S+|/(?:\S+/)+\S+",x) for x in v["summary_lines"]) or _bad()
+def _object_bytes(v): return canonical_bytes(value=v)+b"\n"
 def _validate_artifact(v):
-    _guard(v); handlers={"seed_request":_request,"source_state":_state,"trace":_trace,"command_journal":_journal,"seed":_seed}; _bad() if type(v) is not dict or type(v.get("schema_version")) is not int or v["schema_version"] != 1 or type(v.get("kind")) is not str or v["kind"] not in handlers else None; return (handlers[v["kind"]](v),_DOMAINS[v["kind"]])[1]
+    _guard(v); handlers={"seed_request":_request,"source_state":_state,"trace":_trace,"command_journal":_journal,"seed":_seed,"terminal_report":_terminal}; _bad() if type(v) is not dict or type(v.get("schema_version")) is not int or v["schema_version"] != 1 or type(v.get("kind")) is not str or v["kind"] not in handlers else None; return (handlers[v["kind"]](v),_DOMAINS[v["kind"]])[1]
 def load_artifact(*, path: str, expected_kind: str) -> dict:
-    if type(path) is not str or type(expected_kind) is not str or not path or expected_kind not in ("seed_request","source_state","trace","command_journal","seed"): raise ContractError("ARGUMENT_ERROR")
+    if type(path) is not str or type(expected_kind) is not str or not path or expected_kind not in ("seed_request","source_state","trace","command_journal","seed","terminal_report"): raise ContractError("ARGUMENT_ERROR")
     try: raw = open(path, "rb").read()
     except (OSError, TypeError): raise ContractError("DESCRIPTOR_NOT_FOUND") from None
     try: value = json.loads(raw.decode(), object_pairs_hook=_pairs)
