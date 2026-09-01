@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+AssertionError: [b'root:test-a.sh', b'root:test-m.sh', b'root:test-quality-gate.sh', b'root:test-z.sh']
+FAIL  syntax events were not ordered

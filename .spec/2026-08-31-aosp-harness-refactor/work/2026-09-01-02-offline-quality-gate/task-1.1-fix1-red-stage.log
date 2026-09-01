@@ -1,0 +1,4 @@
+Command: bash ./tests/test-quality-gate.sh
+Exit code: 1
+First failure: FAIL  fake bash: expected syntax marker
+Evidence: the pre-fix fixture PATH linked bash directly to host_bash, so its -n invocation did not write SYNTAX_MARKER.

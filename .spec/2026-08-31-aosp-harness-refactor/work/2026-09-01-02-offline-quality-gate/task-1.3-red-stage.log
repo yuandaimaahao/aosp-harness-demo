@@ -1,0 +1,3 @@
+Command: bash ./tests/test-quality-gate.sh
+FAIL  ci shellcheck missing: expected rc=2 before core
+exit=1

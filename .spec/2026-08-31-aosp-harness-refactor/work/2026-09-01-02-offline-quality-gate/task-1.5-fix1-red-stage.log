@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AssertionError: explicit secret failure handling
+FAIL  gitleaks config contract

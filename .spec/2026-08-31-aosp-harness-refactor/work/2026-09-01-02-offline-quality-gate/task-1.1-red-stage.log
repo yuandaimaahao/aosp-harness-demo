@@ -1,0 +1,4 @@
+Command: bash ./tests/test-quality-gate.sh
+Exit code: 1
+First failure: FAIL  cli no-argument: expected rc=2
+Evidence: scripts/check.sh did not exist before this red-stage run.

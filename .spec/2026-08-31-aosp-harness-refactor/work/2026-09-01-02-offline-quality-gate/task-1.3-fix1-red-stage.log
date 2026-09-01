@@ -1,0 +1,7 @@
+Command: bash ./tests/test-quality-gate.sh
+RESULT PASS  offline quality gate contract
+existing-suite-rc=0
+
+Gap: the old suite covered only missing/wrong CI-tool responses. It had no case
+with all three correct responses proving that --ci reaches core and that the
+fixture's invalid bad.sh causes rc 1 before a root test can run.

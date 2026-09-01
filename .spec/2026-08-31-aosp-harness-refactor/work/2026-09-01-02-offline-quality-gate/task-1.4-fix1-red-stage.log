@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AssertionError: [[b'-x', b'--severity=warning', b'candidate\n with space.sh'], [b'-x', b'--severity=warning', b'new.sh'], [b'-x', b'--severity=warning', b'scripts/check.sh']]
+FAIL  baseline static argv contract
+
+RED_RC=1
