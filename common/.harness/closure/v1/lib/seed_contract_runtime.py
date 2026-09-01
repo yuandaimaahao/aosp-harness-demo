@@ -1,4 +1,4 @@
-import base64, hashlib, json, os, re; from types import MappingProxyType; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+import base64, fcntl, hashlib, json, os, re; from types import MappingProxyType; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
     def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
@@ -177,6 +177,66 @@ def load_artifact(*, path: str, expected_kind: str) -> dict:
     if not isinstance(value, dict) or value.get("kind") != expected_kind: raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
     _validate_artifact(value)
     return value
+def _readat(fd,name,mode=None):
+    try: file=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd)
+    except OSError as error: return None if error.errno==2 else False
+    try:
+        stat=os.fstat(file)
+        return b"".join(iter(lambda:os.read(file,65536),b"")) if __import__("stat").S_ISREG(stat.st_mode) and (mode is None or __import__("stat").S_IMODE(stat.st_mode)==mode) else False
+    except OSError: return False
+    finally: os.close(file)
+def _decode(raw):
+    try:
+        value=json.loads(raw.decode(),object_pairs_hook=_pairs); return value if raw==_object_bytes(value) else False
+    except (AttributeError,ContractError,UnicodeError,json.JSONDecodeError,TypeError): return False
+def _closure(seed,values):
+    try:
+        states=(values["before"],values["after"]); manifest=seed["manifest"]
+        for state in states:
+            state["manifest_sha256"]==manifest["locked_xml_sha256"] and {x["path"] for x in state["projects"]}=={x["path"] for x in manifest["projects"]} and all(domain_digest(domain_ascii=_DOMAINS["project_source_state"],value=x)==next(y["source_state_digest"] for y in manifest["projects"] if y["path"]==x["path"]) for x in state["projects"]) or (_ for _ in ()).throw(ValueError())
+        trace,journal=values["trace"],values["journal"]; all(trace["counts"][x]==seed["guard"][x+"_count"] for x in ("external_network","source_mutation","sync_download","module_build","package")) or (_ for _ in ()).throw(ValueError()); sequences={x["sequence"] for x in trace["records"]}; all(x["exit_code"]==0 and x["trace_first_sequence"] in sequences and x["trace_last_sequence"] in sequences for x in journal["records"]) and next(x["exit_code"] for x in journal["records"] if x["stage"]=="envsetup_lunch")==seed["lunch"]["lunch_exit"] or (_ for _ in ()).throw(ValueError())
+        return {"source_state_before":True,"source_state_after":True,"trace":True,"command_journal":True}
+    except (KeyError,StopIteration,ValueError,ContractError): raise ContractError("REF_CORRUPT") from None
+def resolve_ref(*, state_dir: str, ref: str, artifact_store: str, forbidden_roots: tuple[str, ...], require_public_real: bool = False) -> dict:
+    if type(state_dir) is not str or type(ref) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or type(require_public_real) is not bool or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
+    if not os.path.isabs(ref) or ref!=os.path.normpath(ref) or os.path.basename(ref) in ("",".",".."): raise ContractError("OUT_REF_CONTRACT")
+    paths=validate_state_paths(state_dir=state_dir,out_ref=os.path.join(os.path.dirname(ref),".resolver-path-check"),artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; lock=None
+    try:
+        nodes,_=_walk(os.path.dirname(ref)); parent=nodes[-1][0]; name=os.path.basename(ref)+".lock"; made=False
+        try:
+            try: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
+            except FileNotFoundError:
+                try: lock=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent); made=True
+                except FileExistsError: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
+        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
+        try:
+            made and os.fchmod(lock,0o600); stat=os.fstat(lock)
+            __import__("stat").S_ISREG(stat.st_mode) and stat.st_uid==os.geteuid() and __import__("stat").S_IMODE(stat.st_mode)==0o600 or (_ for _ in ()).throw(OSError())
+        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
+        try: fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError: raise ContractError("REF_BUSY") from None
+        raw=_readat(parent,os.path.basename(ref)); raw is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); raw is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); descriptor=_decode(raw); type(descriptor) is dict and set(descriptor)=={"schema_version","kind","digest"} and descriptor.get("schema_version")==1 and descriptor.get("kind") in ("env_pass","terminal_report") and type(descriptor.get("digest")) is str and re.fullmatch("[0-9a-f]{64}",descriptor["digest"]) or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
+        expected={"env_pass":"seed","terminal_report":"terminal_report"}[descriptor["kind"]]; object_nodes,_=_walk(paths["object_dir"]); objectfd=object_nodes[-1][0]
+        try:
+            needs=[("primary",descriptor["digest"],expected)]
+            if expected=="seed": needs += [("before",None,"source_state"),("after",None,"source_state"),("trace",None,"trace"),("journal",None,"command_journal")]
+            values={}; raw={label:_readat(objectfd,digest,0o444) if digest else None for label,digest,kind in needs}
+            raw["primary"] is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); primary=_decode(raw["primary"]); primary is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); needs[0]=("primary",descriptor["digest"],expected)
+            if expected=="seed": needs[1:]=[("before",primary["source_state"]["before_digest"],"source_state"),("after",primary["source_state"]["after_digest"],"source_state"),("trace",primary["guard"]["trace_digest"],"trace"),("journal",primary["guard"]["command_journal_digest"],"command_journal")]; raw.update({label:_readat(objectfd,digest,0o444) for label,digest,kind in needs[1:]})
+            elif expected=="terminal_report": needs += [(key,digest,key) for key,digest in primary.get("completed_observation_digests",{}).items() if digest is not None]; raw.update({label:_readat(objectfd,digest,0o444) for label,digest,kind in needs[1:]})
+            any(x is None for x in raw.values()) and (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING"))
+            for label,digest,kind in needs:
+                value=_decode(raw[label]); value is not False and value is not None and _validate_artifact(value)==_DOMAINS[kind] and hashlib.sha256(_DOMAINS[kind].encode()+_object_bytes(value)[:-1]).hexdigest()==digest or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); values[label]=value
+            evidence=_closure(primary,values) if expected=="seed" else None
+            require_public_real and not _validate_public_real(primary,evidence) and (_ for _ in ()).throw(ContractError("PUBLIC_SCOPE_REQUIRED")); return primary
+        finally: _drop(object_nodes)
+    except ContractError: raise
+    except (OSError,TypeError,ValueError,KeyError): raise ContractError("REF_CORRUPT") from None
+    finally:
+        if lock is not None:
+            try: fcntl.flock(lock,fcntl.LOCK_UN)
+            finally: os.close(lock)
+        _drop(nodes)
 def publish_object(*, state_dir: str, artifact_store: str, object_kind: str, payload: dict, forbidden_roots: tuple[str, ...], fault_point: str | None = None) -> dict:
     if type(state_dir) is not str or type(artifact_store) is not str or type(object_kind) is not str or object_kind not in ("source_state","trace","command_journal") or type(payload) is not dict or type(forbidden_roots) is not tuple or fault_point not in (None,"OBJECT_LINK","OBJECT_DIR_FSYNC") or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
     domain=_validate_artifact(payload); payload["kind"]==object_kind or (_ for _ in ()).throw(ContractError("ARGUMENT_ERROR")); data=_object_bytes(payload); digest=hashlib.sha256(domain.encode()+data[:-1]).hexdigest(); paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; linked=False; fd=None
