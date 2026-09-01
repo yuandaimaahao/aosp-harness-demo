@@ -1,0 +1,73 @@
+03a1 round7 split prototype final execution evidence
+implementation-head=f91f54d3d9832c803097bf171e9628b8d1adedab
+provider-sha=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64 unchanged=yes
+implementation-worktree-status-bytes=0
+foundation-provider-core-test-diff=empty
+
+driver-lines=400 headroom=0
+entrypoint-lines=109 headroom=291
+python-runtime=Python-3.9.25 pycompile=rc0 syntax-grammar-3.8=PASS
+driver-protocol=session-path-race-driver-v1 rc=0 stdout=28 stderr=0 sha=1450a04394ca9693606177f605ab1d0dc6fb8135da7d317e4c2496b9fa1ff57a
+driver-self-test rc=0 stdout=38 stderr=0 cases=37 unique=37 self-disproofs=14
+self-test-family-order=swap9/wrong-euid3/eexist9/mkdir-replace3/mkdir-failure3/post-mkdir3/open-disappear3/final-stat3/eio1
+ordered-37-id-sha=721b3687bda848db7b6481c527f491e6733cf376dbade3dd37b319fce8029bc8 compared=yes
+inventory-order-fixture=create-z-last-then-a-first/canonical-a-first-then-z-last=PASS
+run-matrix-full rc=0 stdout=38 stderr=0 cases=37 unique=37 id-sha=721b3687bda848db7b6481c527f491e6733cf376dbade3dd37b319fce8029bc8
+run-matrix-subset-one=swap-root-safe-dir rc=0 stdout=38 stderr=0 log-only-selected
+run-matrix-subset-reversed-input=real-eio,swap-root-safe-dir rc=0 stdout=38 stderr=0 log-exact-input-order
+self-disproof-scope=self-test-only/run-matrix-subsets-PASS-without-self-disproof
+python39-subset-one=rc0/stdout38/stderr0/log-swap-root-safe-dir
+workspace-path=Path-parsed-absolute/dot-lexical-alias-allowed/dotdot-rejected-by-parent-strict-resolve workspace-mode=700
+case-log-path=Path-parsed-absolute-direct-child/dot-lexical-alias-allowed/dotdot-or-relative-rejected-by-parent-equality case-log-mode=600 log-write=held-fd
+raw-path-relative-workspace=rc1,stdout0,stderr396,no-log
+raw-path-dot-workspace-and-log=rc0,stdout38,stderr0,one-selected-case
+raw-path-dotdot-workspace=rc1,stdout0,stderr396,no-log
+raw-path-dotdot-log=rc1,stdout0,stderr404,no-log
+raw-path-relative-log=rc1,stdout0,stderr404,no-log
+raw-path-contract=as-implemented/no-pre-normpath-allowance-for-dotdot
+
+workspace-log-provider-direct=rc1,stdout0,cases0,no-summary,provider-same
+workspace-log-missing-parent=rc1,stdout0,cases0,no-summary,provider-same
+workspace-log-parent-alias=rc1,stdout0,cases0,no-summary,provider-same
+workspace-log-leaf-alias=rc1,stdout0,cases0,no-summary,provider-same
+workspace-log-existing-regular=rc1,stdout0,cases0,no-summary,provider-same,content-same
+workspace-log-symlink=rc1,stdout0,cases0,no-summary,provider-same
+workspace-log-hardlink-provider=rc1,stdout0,cases0,no-summary,provider-same
+python39-parent-alias=rc1,stdout0,cases0,workspace-absent,provider-same
+isolated-final-provider-hash-order=case-hook1/provider-mutated/rc1/stdout0/no-summary/case-log0B/production-provider-same
+isolated-ordering-self-disproof-counted-in-fixed14=no
+
+entrypoint-dynamic rc=0 stdout=41 stderr=0 cases=37 unique=37 categories=swap9/wrong-euid3/eexist9/mkdir-replace3/mkdir-failure3/post-mkdir3/open-disappear3/final-stat3/eio1
+matrix-order=self-owned-generation-and-validation-after-argv-before-provider-driver-core-inert
+matrix-self-disproof=active-child-provider-absent-plus-duplicate-eio rc1 stdout0 no-summary
+provider-absent-matrix-damaged-default=rc1,stdout0,no-summary
+provider-absent-matrix-damaged-flag=rc1,stdout0,no-summary
+provider-absent-priority-default/flag=rc0,stdout41,stderr0,exact-summary
+driver-absent-default/flag=rc0,stdout41,stderr0,exact-summary
+driver-directory-or-symlink-default/flag=rc1,stdout0,no-summary
+driver-protocol-mismatch-or-syntax-or-exit-default/flag=rc1,stdout0,no-summary
+driver-run-matrix-execution-default=rc1,stdout0,no-summary
+foundation-missing-default/flag=rc0,exact-summary
+core-unavailable-default/flag=rc0,exact-summary
+marker-missing-or-duplicate-x-foundation-missing-or-core-unavailable-x-default-or-flag=8/8-rc1,stdout0,no-summary
+driver-usage/protocol-extra=rc2
+driver-invalid-tsv=rc1,stdout0,no-summary
+
+shfmt-version=v3.14.0 fixed-argv='-d -i 2 -ci -bn' rc=0
+shellcheck-version=0.11.0 fixed-argv='-x -S warning' rc=0
+bash-n=rc0 python-pycompile=rc0
+
+full head=f91f54d3d9832c803097bf171e9628b8d1adedab commits=99 shallow=false
+full-current-tracked=tests/lib/session-path-race-driver.py,tests/test-session-path-races.sh
+full-driver-protocol=rc0/stdout28/stderr0/exact
+full-driver-self-test=rc0/stdout38/stderr0/exact
+full-python39-current-driver-protocol-self-test=rc0/28/0,rc0/38/0
+full-shell-direct=rc0/stdout41/stderr0/exact
+full-offline=rc0/stdout394/stderr0/final-pass
+depth1-clone=real-file-url head=f91f54d3d9832c803097bf171e9628b8d1adedab commits=1 shallow=true shallow-bytes=41
+depth1-current-tracked=tests/lib/session-path-race-driver.py,tests/test-session-path-races.sh
+depth1-driver-protocol=rc0/stdout28/stderr0/exact
+depth1-driver-self-test=rc0/stdout38/stderr0/exact
+depth1-python39-current-driver-protocol-self-test=rc0/28/0,rc0/38/0
+depth1-shell-direct=rc0/stdout41/stderr0/exact
+depth1-offline=rc0/stdout394/stderr0/final-pass

@@ -1,0 +1,34 @@
+round5 shared allowed-delta and ordered-hook prototype evidence
+implementation-head=f91f54d3d9832c803097bf171e9628b8d1adedab
+
+full-default rc=0 stdout=41 exact=0 stderr=0 cases=19 unique=19
+full-flag rc=0 stdout=41 exact=0 stderr=0 cases=0 unique=0
+provider-absent-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-absent-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+
+damaged-missing-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+
+intact-foundation-missing-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-foundation-missing-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-core-unavailable-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-core-unavailable-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+
+shared-schema-fields=paths_added,paths_removed,protected,allowed_changed_paths,predicates
+full-oracle-families=swap,wrong-euid,eexist,mkdir-replace,mkdir-failure,post-mkdir-disappear,open-disappear,final-stat-disappear,real-eio
+ordered-multi-hook=eexist before_mkdir|0|0 -> after_eexist|0|1
+self-disproofs=protected signature,inventory,allowed delta,EEXIST second hook
+self-disproof-count=4 exact-order=yes
+
+bash-n rc=0
+shfmt version=v3.14.0 rc=0 stdout=0 stderr=0
+shellcheck version=0.11.0 rc=0 stdout=0 stderr=0
+provider-sha equal=yes value=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+prototype lines=351 headroom=49 replace-calls=1
+implementation-status-bytes=0

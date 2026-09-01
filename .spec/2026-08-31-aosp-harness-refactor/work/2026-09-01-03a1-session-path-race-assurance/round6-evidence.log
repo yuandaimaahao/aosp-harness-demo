@@ -1,0 +1,43 @@
+03a1 round6 execution-backed sizing evidence
+implementation-head=f91f54d3d9832c803097bf171e9628b8d1adedab
+provider-sha-before-after=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64 equal=yes
+implementation-worktree-status-bytes=0
+
+representative-default rc=0 stdout=41 stderr=0 cases=19 unique=19 exact-summary=yes
+representative-lines=400 headroom=0
+full37-projection rc=0 stdout=41 stderr=0 cases=37 unique=37 exact-summary=yes
+full37-projection-lines=411 excess=11
+
+full-flag rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+provider-absent-default rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+provider-absent-flag rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+intact-foundation-missing-default rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+intact-foundation-missing-flag rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+intact-core-unavailable-default rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+intact-core-unavailable-flag rc=0 stdout=41 stderr=0 cases=0 unique=0 exact=yes
+
+damaged-missing-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+
+active-self-disproof-count=14 exact-order=yes
+active-self-disproofs=protected-signature,inventory,allowed-delta,readlink-target,file-hash,mode,inode,EEXIST-second-hook,marker-count,sentinel,phase,made,catch,case-invocation
+swap-delta=exact-subtree-rekey old-target-descendants-removed target.old-descendants-added target-replaced
+mkdir-replacement-original=hook-recorded-type-dev-ino-mode-uid post-target.old-byte-equal
+only-anchor-replace-calls=1
+
+bash-n-representative=rc0
+bash-n-full37=rc0
+shfmt-version=v3.14.0
+shfmt-fixed-argv=-d -i 2 -ci -bn
+shfmt-representative=rc0 stdout0 stderr0
+shfmt-full37=rc0 stdout0 stderr0
+shellcheck-version=0.11.0
+shellcheck-fixed-argv=-x -S warning
+shellcheck-representative=rc0 stdout0 stderr0
+shellcheck-full37=rc0 stdout0 stderr0

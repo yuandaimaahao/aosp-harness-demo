@@ -1,12 +1,12 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 03a复盘五问完成：无需再改PLAN或补调研；保留worktree追溯；下一片03a1-session-path-race-assurance
-updated: '2026-09-01T23:32:01+08:00'
-current_spec: null
-spec_stage: null
+basis: 门④ autopilot回流：五任务纵切经三轮review修复/裁定闭合；14-site、双仓根、dangling-symlink与全部机械门PASS
+updated: '2026-09-02T02:29:41+08:00'
+current_spec: 2026-09-01-03a1-session-path-race-assurance
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -86,6 +86,12 @@ workflow: requirements-first
 | 2026-09-01T23:18:14+08:00 | spec/execute | spec/accept | 四任务完成且最终review PASS；BASE..HEAD exact2=391/400，manifest连续、固定工具、完整/浅克隆offline与clean门全部通过 |
 | 2026-09-01T23:31:42+08:00 | spec/accept | retro | 03a验收PASS：R1-R7、无SKIPPED、exact2=391/400、四行manifest、full/depth1 offline与收敛门全通过；实现已合入main 2f07821 |
 | 2026-09-01T23:32:01+08:00 | retro | select | 03a复盘五问完成：无需再改PLAN或补调研；保留worktree追溯；下一片03a1-session-path-race-assurance |
+| 2026-09-01T23:32:24+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-01-03a1-session-path-race-assurance |
+| 2026-09-02T00:05:20+08:00 | spec/requirements | spec/design | 门② autopilot：requirements三轮review最终PASS；round4 only-anchor原型280/400、19 case与全部组合态实跑，机械检查全通过 |
+| 2026-09-02T01:04:50+08:00 | spec/design | spec/requirements | design sizing backflow：round6完整单文件411/400 BLOCKED；PLAN v5.6按round7实跑private driver + 109/400 root matrix拆为03a1/03a2，增量review round2 PASS，当前03a1按driver边界重走门②–④ |
+| 2026-09-02T01:17:36+08:00 | spec/requirements | spec/design | 门② autopilot回流：03a1 private driver requirements round1初审2 important已即时修复，最终PASS（0/0/0）；R1-R9、round7拆分原型与check-req/check-criteria/check-analyze/diff-check全通过 |
+| 2026-09-02T01:59:54+08:00 | spec/design | spec/tasks | 门③ autopilot回流：design三轮review的path isolation、subset/self-disproof、order/sort、depth-1、Python3.8、hash-before-log与Path契约均修复/裁定闭合；round7 driver exact400/400、实跑与机械检查全PASS |
+| 2026-09-02T02:29:41+08:00 | spec/tasks | spec/execute | 门④ autopilot回流：tasks三轮review达熔断上限，五任务纵切、代码骨架、真实红因、accepted-HEAD checkout、current diff、14-mutant、双仓根与03a2 fail-closed顺序门全部修复/实跑裁定；机械检查全PASS |
 
 ## SKIPPED 记录
 

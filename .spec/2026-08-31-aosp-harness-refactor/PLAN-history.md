@@ -51,3 +51,7 @@
 ## v5.5 — 2026-09-01
 
 由03a `task-4-fix1-report.md`的执行期实测触发：当前未格式化provider+test为397行，但按仓库pinned shfmt格式化后为527行；只把project/session race拆到03a1仍不足，靠压缩会牺牲可读性或oracle。03a保留完整private provider、source/root/static、非anchor确定性错误分类probe与anchor occurrence/phase位置结构测试；全部root/project/session anchor-driven provider-copy mutation移到已规划的03a1，并继续强制03a1 PASS后才开始任何consumer 03b。两片都必须shfmt-clean且各自不超过400行。
+
+## v5.6 — 2026-09-02
+
+由03a1 `round6-sizing-report.md`与`round7-sizing-report.md`触发：round6将完整37-case、九类完整delta oracle和14项active self-disproof纳入单一shfmt-clean文件后实测411/400，原边界BLOCKED；round7真实拆为不进入默认发现的private Python driver 400/400与root shell matrix 109/400，37/37、14项自反证、物理路径隔离、损坏态、full/depth-1 offline均PASS。保留当前03a1 id拥有driver/self-test，新增03a2拥有37-row默认入口；driver缺席时03a2 inert，存在但损坏则fail closed。03b只在两片验收记录齐全且03a2提供dependency-present 37-case证据后才能启动。

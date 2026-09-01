@@ -1,0 +1,27 @@
+round4 anchor-first prototype evidence
+implementation-head=f91f54d3d9832c803097bf171e9628b8d1adedab
+
+damaged-missing-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-missing-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-foundation-missing-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-default rc=1 stdout=0 stderr=50 cases=0 summary=no
+damaged-duplicate-core-unavailable-flag rc=1 stdout=0 stderr=50 cases=0 summary=no
+
+intact-foundation-missing-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-foundation-missing-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-core-unavailable-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+intact-core-unavailable-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+
+full-default rc=0 stdout=41 exact=0 stderr=0 cases=19 unique=19
+full-flag rc=0 stdout=41 exact=0 stderr=0 cases=0 unique=0
+provider-absent-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-absent-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+bash-n rc=0
+shfmt version=v3.14.0 rc=0 stdout=0 stderr=0
+shellcheck version=0.11.0 rc=0 stdout=0 stderr=0
+provider-sha equal=yes value=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+prototype lines=280 headroom=120 ordinary-replace-calls=1
+implementation-status-bytes=0

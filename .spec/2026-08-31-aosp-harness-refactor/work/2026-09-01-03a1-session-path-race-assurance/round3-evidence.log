@@ -1,0 +1,52 @@
+round3 anchor-only race prototype evidence
+implementation-head=f91f54d3d9832c803097bf171e9628b8d1adedab
+
+dynamic-default rc=0 stdout=41 exact=0 stderr=0 cases=19 unique=19
+full-deps-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-no-foundation-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-no-foundation-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-empty-foundation-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-empty-foundation-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-absent-default rc=0 stdout=41 exact=0 stderr=0 cases=0
+provider-absent-flag rc=0 stdout=41 exact=0 stderr=0 cases=0
+
+bash-n rc=0
+shfmt version=v3.14.0 rc=0 stdout=0 stderr=0
+shellcheck version=0.11.0 rc=0 stdout=0 stderr=0
+provider_sha before=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64 after=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64 equal=yes
+prototype lines=270 headroom=130
+implementation-worktree-status-bytes=0
+
+anchor-missing rc=1 stdout=0 success-summary=no
+anchor-duplicate rc=1 stdout=0 success-summary=no
+option-unknown rc=1 stdout=0 success-summary=no
+option-extra rc=1 stdout=0 success-summary=no
+option-flag-extra rc=1 stdout=0 success-summary=no
+
+01 swap-root-safe-dir
+02 swap-root-link
+03 swap-root-file
+04 swap-project-safe-dir
+05 swap-project-link
+06 swap-project-file
+07 swap-session-safe-dir
+08 swap-session-link
+09 swap-session-file
+10 eexist-root-safe
+11 eexist-project-unsafe
+12 eexist-session-disappear
+13 mkdir-replace-root
+14 wrong-euid-project
+15 mkdir-failure-project
+16 post-mkdir-disappear-session
+17 open-disappear-root
+18 final-stat-disappear-session
+19 real-eio
+
+Representative exact hook signatures asserted by the running driver:
+MANAGED|root|state|before_open|0|0
+MANAGED|root|state|before_mkdir|0|0
+MANAGED|root|state|after_eexist|0|1
+MANAGED|root|state|before_open|1|0
+EXPECTED_EUID|project|project|N/A|0|0
+OS_ERROR|N/A|N/A|N/A|N/A|N/A
