@@ -39,7 +39,7 @@ def _rel(v): _text(v); _bad() if v.startswith("/") or any(x in ("", ".", "..") f
 def _scope(v): _exact(v,("role","public_aosp_baseline","vendor_context","platform_family")); type(v["public_aosp_baseline"]) is type(v["vendor_context"]) is bool or _bad(); _bad() if v not in ({"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"},{"role":"local_lk7k_product","public_aosp_baseline":False,"vendor_context":True,"platform_family":"aosp-17"}) else None
 def _entry(v):
     _exact(v,("path_b64","status_record_b64","entry_kind","mode","content_sha256","symlink_target_sha256")); _b64(v["path_b64"]); _b64(v["status_record_b64"]); _u(v["mode"])
-    {"regular":lambda:(_hex(v["content_sha256"]),v["symlink_target_sha256"] is None or _bad()),"symlink":lambda:(_hex(v["symlink_target_sha256"]),v["content_sha256"] is None or _bad()),"missing":lambda:v["mode"] == 0 and v["content_sha256"] is None and v["symlink_target_sha256"] is None or _bad()}.get(v["entry_kind"],_bad)()
+    _text(v["entry_kind"]); {"regular":lambda:(_hex(v["content_sha256"]),v["symlink_target_sha256"] is None or _bad()),"symlink":lambda:(_hex(v["symlink_target_sha256"]),v["content_sha256"] is None or _bad()),"missing":lambda:v["mode"] == 0 and v["content_sha256"] is None and v["symlink_target_sha256"] is None or _bad()}.get(v["entry_kind"],_bad)()
 def _project(v):
     _exact(v,("path","head","status_sha256","entries")); _rel(v["path"]); _hex(v["head"],(40,64)); _hex(v["status_sha256"])
     type(v["entries"]) is list or _bad(); [_entry(x) for x in v["entries"]]
@@ -70,7 +70,7 @@ def _journal(v):
     if [r["stage"] for r in v["records"]] != list(stages): _bad()
     for r in v["records"]: [_b64(x) for x in r["argv_b64"]] if type(r["argv_b64"]) is list else _bad(); _b64(r["cwd_b64"]); [_u(r[x]) for x in ("exit_code","trace_first_sequence","trace_last_sequence")]; r["trace_first_sequence"] <= r["trace_last_sequence"] or _bad()
 def _validate_artifact(v):
-    return ({"seed_request":_request,"source_state":_state,"trace":_trace,"command_journal":_journal}.get(v.get("kind"),lambda _: _bad())(v),_DOMAINS[v["kind"]])[1]
+    _guard(v); handlers={"seed_request":_request,"source_state":_state,"trace":_trace,"command_journal":_journal}; _bad() if type(v) is not dict or type(v.get("schema_version")) is not int or v["schema_version"] != 1 or type(v.get("kind")) is not str or v["kind"] not in handlers else None; return (handlers[v["kind"]](v),_DOMAINS[v["kind"]])[1]
 def load_artifact(*, path: str, expected_kind: str) -> dict:
     if type(path) is not str or type(expected_kind) is not str or not path or expected_kind not in ("seed_request","source_state","trace","command_journal"): raise ContractError("ARGUMENT_ERROR")
     try: raw = open(path, "rb").read()
