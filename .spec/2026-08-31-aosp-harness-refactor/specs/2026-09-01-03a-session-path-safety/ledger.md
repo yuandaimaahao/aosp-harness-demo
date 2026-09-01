@@ -98,3 +98,13 @@
 - 任务 4: 完成
 - execute final mechanics PASS：default/source/roots/dependency-absent、foundation、offline、pinned ShellCheck/shfmt、syntax均PASS；BASE..HEAD exact2=391/400，foundation diff空，四行manifest连续绑定final HEAD，implementation worktree clean；depth=1浅克隆path/offline均PASS。
 - accept round 1 NEEDS_CHANGES blocker=0 important=1 minor=0 reviewer=review_design_03a_r1：实现/R1–R7/运行门全部PASS；tasks task4文件字段的“验证”前缀不被check-converge解析，形成伪路径欠账。已改为受支持且语义准确的“测试”，不改实现。
+- accept round 2 PASS blocker=0 important=0 minor=0 reviewer=review_design_03a_r1：check-tasks/check-converge/git diff-check均PASS，R1–R7、不变量、无SKIPPED、full/depth1 offline、exact2=391/400、manifest与clean全部闭合。
+- source merge：accepted HEAD `f91f54d3d9832c803097bf171e9628b8d1adedab` 以普通merge `2f07821`合入main，保留四行review manifest中的原始SHA，不做rebase改写。
+
+## Retro
+
+- 原计划是否要调整：否；执行期v5.5回流已在验收前完成，最终391/400与03a1的269行可运行driver继续支持当前拆片。
+- 是否需要补调研：否；问题均由本仓真实diff、固定工具与depth-1 fixture闭合。
+- 是否出现新计划级决定：否；长期回归不得硬编码execution BASE已在03a实现与验收中落实，不改变后续owner/顺序。
+- 下一片：`03a1-session-path-race-assurance`，在任何03b consumer前完成37-case anchor-driven race矩阵。
+- 清理：保留已完成worktree/分支供个人项目追溯，不删除用户现有隔离目录。

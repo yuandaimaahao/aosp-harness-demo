@@ -42,7 +42,7 @@
 | `01-device-safety` | 关闭错设备操作和真实模式假成功的本计划最高风险缺口 | 无 | `./tests/test-device-safety.sh` 输出 `RESULT PASS  device safety` | ✅ 完成 |
 | `02-offline-quality-gate` | 建立根级离线验收和 CI 门禁 | `01-device-safety` | `./scripts/check.sh --offline` 输出统一 PASS | ✅ 已完成 |
 | `03-session-state-safety` | 交付安全名称 API 与私有 fd/root foundation 模块 | `02-offline-quality-gate` | `./tests/test-session-state-foundation.sh` 输出 `RESULT PASS  session state foundation` | ✅ 完成 |
-| `03a-session-path-safety` | 交付 fully-hardened 私有 path 模块及source/root/static/anchor结构验收 | `03-session-state-safety` | `./tests/test-session-path.sh` 输出 `RESULT PASS  session path safety` | ⏳ 进行中 |
+| `03a-session-path-safety` | 交付 fully-hardened 私有 path 模块及source/root/static/anchor结构验收 | `03-session-state-safety` | `./tests/test-session-path.sh` 输出 `RESULT PASS  session path safety` | ✅ 完成 |
 | `03a1-session-path-race-assurance` | 在任何消费者进入前穷举 path 的三层竞态与 mutation oracle | `03a-session-path-safety` | `./tests/test-session-path-races.sh` 输出 `RESULT PASS  session path race assurance` | ⬜ 未开始 |
 | `03b-session-snapshot-safety` | 交付独占的 create-once snapshot write/read 模块 | `03a-session-path-safety`, `03a1-session-path-race-assurance` | `./tests/test-session-snapshot.sh` 输出 `RESULT PASS  session snapshot safety` | ⬜ 未开始 |
 | `03c-session-write-interrupts` | 交付独占的 write child/facade/group signal 模块 | `03b-session-snapshot-safety` | `./tests/test-session-signals.sh` 输出 `RESULT PASS  session write interrupts` | ⬜ 未开始 |
