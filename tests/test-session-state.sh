@@ -53,18 +53,21 @@ assert_api 2 'validate arity extra' '' $'error: invalid feature name\n'
 # touched until an operation is called. Keep an independent inode/content oracle.
 SOURCE_FIXTURE=$(mktemp -d "$TMP_TEST/source-fixture.XXXXXX")
 printf 'sentinel' >"$SOURCE_FIXTURE/sentinel"
-before=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 1 -printf '%f %i %s\n' | LC_ALL=C sort)
+SOURCE_TARGET="$SOURCE_FIXTURE/dangerous-root"
+before=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
 source_out=$(mktemp "$TMP_TEST/source-out.XXXXXX")
 source_err=$(mktemp "$TMP_TEST/source-err.XXXXXX")
 (
-  export HARNESS_STATE_ROOT='relative-dangerous-root'
+  cd "$SOURCE_FIXTURE" || exit 1
+  export HARNESS_STATE_ROOT='./dangerous-root'
   # shellcheck source=/dev/null
   source "$PROVIDER"
 ) >"$source_out" 2>"$source_err"; source_rc=$?
-after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 1 -printf '%f %i %s\n' | LC_ALL=C sort)
+after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
 [[ "$source_rc" == 0 ]] || fail 'source dangerous root: rc'
 [[ ! -s "$source_out" && ! -s "$source_err" ]] || fail 'source dangerous root: output'
 [[ "$before" == "$after" ]] || fail 'source dangerous root: fixture changed'
+[[ ! -e "$SOURCE_TARGET" && ! -L "$SOURCE_TARGET" ]] || fail 'source dangerous root: target appeared'
 
 # The predicate explicitly pins byte-oriented matching to the C locale.
 grep -Fq 'LC_ALL=C' "$PROVIDER" || fail 'validate locale: C locale missing'
