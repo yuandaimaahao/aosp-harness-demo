@@ -66,7 +66,7 @@ def open_managed(parent_fd, name):
             except OSError as exc:
                 raise OperationFailure from exc
         except OSError as exc:
-            path_error(exc)
+            raise OperationFailure from exc
     except OSError as exc:
         path_error(exc)
     _managed_checkpoint("before_open", parent_fd, name, made)
