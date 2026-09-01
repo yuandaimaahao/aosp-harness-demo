@@ -1,4 +1,4 @@
-import base64, hashlib, json, os; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+import base64, hashlib, json, os, re; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
     def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
     code = property(lambda self: self._code)
@@ -36,12 +36,15 @@ def _b64(v):
     except (ValueError,base64.binascii.Error): _bad()
     return base64.b64decode(v)
 def _rel(v): _text(v); _bad() if "\0" in v or v.startswith("/") or any(x in ("", ".", "..") for x in v.split("/")) else None
+def _credential_key(v):
+    parts=tuple(x for x in re.split("[^a-z0-9]+",re.sub(r"(?<=[a-z0-9])(?=[A-Z])","_",v).lower()) if x)
+    return any(x in {"token","secret","credential","signature","password","passwd","auth","authorization","apikey"} for x in parts) or any(parts[x:x+2]==("api","key") for x in range(len(parts)-1))
 def _url(v):
     if v is None: return
     type(v) is str or _bad()
     try: u=urlsplit(v)
     except ValueError: _bad()
-    u.username is None and not {k.lower() for k,_ in parse_qsl(u.query,keep_blank_values=True)} & {"access_token","token","password","passwd","secret","api_key","apikey","authorization"} or _bad()
+    u.username is None and not any(_credential_key(k) for k,_ in parse_qsl(u.query,keep_blank_values=True)) or _bad()
 def _scope(v): _exact(v,("role","public_aosp_baseline","vendor_context","platform_family")); type(v["public_aosp_baseline"]) is type(v["vendor_context"]) is bool or _bad(); _bad() if v not in ({"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"},{"role":"local_lk7k_product","public_aosp_baseline":False,"vendor_context":True,"platform_family":"aosp-17"}) else None
 def _entry(v):
     _exact(v,("path_b64","status_record_b64","entry_kind","mode","content_sha256","symlink_target_sha256")); _b64(v["path_b64"]); _b64(v["status_record_b64"]); _u(v["mode"])
