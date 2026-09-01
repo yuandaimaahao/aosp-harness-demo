@@ -2,7 +2,7 @@
 set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-PROVIDER="$ROOT/common/.harness/lib/session-state.sh"
+PROVIDER=${PROVIDER:-"$ROOT/common/.harness/lib/session-state.sh"}
 TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-state-test.XXXXXX")
 cleanup() { rm -rf "$TMP_TEST"; }
 trap cleanup EXIT
@@ -53,6 +53,8 @@ assert_api 2 'validate arity extra' '' $'error: invalid feature name\n'
 # touched until an operation is called. Keep an independent inode/content oracle.
 SOURCE_FIXTURE=$(mktemp -d "$TMP_TEST/source-fixture.XXXXXX")
 printf 'sentinel' >"$SOURCE_FIXTURE/sentinel"
+SOURCE_SENTINEL_EXPECTED=$(mktemp "$TMP_TEST/source-sentinel.XXXXXX")
+printf 'sentinel' >"$SOURCE_SENTINEL_EXPECTED"
 SOURCE_TARGET="$SOURCE_FIXTURE/dangerous-root"
 before=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
 source_out=$(mktemp "$TMP_TEST/source-out.XXXXXX")
@@ -67,6 +69,7 @@ after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC
 [[ "$source_rc" == 0 ]] || fail 'source dangerous root: rc'
 [[ ! -s "$source_out" && ! -s "$source_err" ]] || fail 'source dangerous root: output'
 [[ "$before" == "$after" ]] || fail 'source dangerous root: fixture changed'
+cmp -s "$SOURCE_FIXTURE/sentinel" "$SOURCE_SENTINEL_EXPECTED" || fail 'source dangerous root: sentinel content changed'
 [[ ! -e "$SOURCE_TARGET" && ! -L "$SOURCE_TARGET" ]] || fail 'source dangerous root: target appeared'
 
 # The predicate explicitly pins byte-oriented matching to the C locale.
