@@ -129,6 +129,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 产出: `supersession/v1` manifest, `supersession-core/v1` closed loader/PLAN validator
 需求: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, R27
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 跑 `python3 .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py self-test`，确认红阶段rc nonzero/Python cannot-open-file/无PASS，并逐字记录`.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-red.txt`。
 - [ ] 步骤 2: 创建canonical `supersession.json`，写process base、ordered replacements、R1–R27 owners、exact budgets和design中bytewise-sorted六路径。
@@ -146,6 +147,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 产出: `pre-commit-mode/v1` linear ancestry/prospective scope gate
 需求: R24
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 从manifest读取`base_sha`后跑 `python3 "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py" pre-commit --project-root "$PWD" --base-commit "$base_sha" --manifest "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json"`，确认红阶段exit1/empty stdout/exact stderr `RESULT FAIL supersession CAPABILITY_UNAVAILABLE`并记录evidence。
 - [ ] 步骤 2: 创建`modes/pre_commit.py`的`run(args,context)`，要求base=manifest、HEAD为base的linear no-merge descendant、base→prospective index paths为六路径子集、tracked/untracked common为空；`--require-complete`要求六路径全集和cumulative numstat≤800。
@@ -160,6 +162,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 产出: `accept-mode/v1` exact ledger/two-parent merge/revert gate
 需求: R24, R25
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 从manifest读取`base_sha`后跑 `python3 "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py" accept --project-root "$PWD" --base-commit "$base_sha" --manifest "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json" --merge-commit 0000000000000000000000000000000000000000 --ledger "$PWD/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/ledger.md"`，确认module缺席红阶段exact `CAPABILITY_UNAVAILABLE`并记录evidence。
 - [ ] 步骤 2: 创建`modes/accept.py` exact-line ledger parser，要求四条task anchors与一条merge anchor唯一、lower-hex且SHA/parent/tip一致；missing/duplicate/malformed/wrong分别固定ledger codes。
@@ -176,6 +179,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 产出: `supersession-validator/v1` complete mutation oracle and final six-path gate
 需求: R24
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 跑dispatcher `self-test`，确认module缺席红阶段exact `CAPABILITY_UNAVAILABLE`并记录evidence。
 - [ ] 步骤 2: 创建table-driven manifest/document mutations，独立覆盖duplicate/missing/unknown/type/order、replacement/DAG、owner、budget、path、PLAN、DECISIONS、sizing，每例断言rc1/empty stdout/exact design code stderr。

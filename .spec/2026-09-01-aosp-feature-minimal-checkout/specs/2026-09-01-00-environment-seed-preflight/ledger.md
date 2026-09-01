@@ -71,4 +71,68 @@
 
 裁定: execute报告/红证据/review统一使用skill强制的`.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/`，不使用tasks旧版`spec/evidence`路径；实现尚未开始，补充process baseline后重建worktree。若判断错，代价是`check-task-report.py`找不到canonical report或ledger链接失效。
 
+## execute
+
+- 00:18 dispatch task=1 model=gpt-5.6-sol/high base=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-brief.md worktree=/tmp/aosp-minimal-terminal.VCkxxc
+- 00:28 report task=1 status=DONE_WITH_CONCERNS commits=[f81b2d8d531d3989509610c6af01b2a25ce9aad3] tests=core+11-manifest+5-dispatcher red=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-red.txt concern=actual358/projected793-of-800
+- 00:28 review-dispatch task=1 round=1 reviewer=gpt-5.6-sol/high base=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 head=f81b2d8d531d3989509610c6af01b2a25ce9aad3
+- 00:34 review task=1 round=1 result=FAIL blocker=1 important=0 minor=0 finding=float-schema-version-accepted budget=actual358/projected793-allowed
+- 00:34 fix-dispatch task=1 round=1 model=gpt-5.6-sol/high action=reject-float-version+amend+full-retest
+- 00:36 fix-report task=1 round=1 status=DONE_WITH_CONCERNS commits=[5ab105e8909e893a055e6e834abceb9192e0b133] tests=core+13-manifest+5-dispatcher concern=actual358/projected793-of-800
+- 00:36 review-dispatch task=1 round=2 reviewer=gpt-5.6-sol/high base=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 head=5ab105e8909e893a055e6e834abceb9192e0b133
+- 00:42 review task=1 round=2 result=PASS blocker=0 important=0 minor=0 budget=actual358/projected793-of-800
+- 任务 1: 完成 commits=[5ab105e8909e893a055e6e834abceb9192e0b133] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-1-7b46dfba287f-5ab105e8909e.md
+- 00:42 dispatch task=2 model=gpt-5.6-terra/high base=5ab105e8909e893a055e6e834abceb9192e0b133 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-2-brief.md worktree=/tmp/aosp-minimal-terminal.VCkxxc
+- 00:50 report task=2 status=DONE commits=[806fb63b782c45c0aa98939024e5a0a143d6e1fc] tests=red+subset+scope+common+whitespace report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-2-report.md budget=cumulative435-of-800
+- 00:50 review-dispatch task=2 round=1 reviewer=gpt-5.6-terra/high base=5ab105e8909e893a055e6e834abceb9192e0b133 head=806fb63b782c45c0aa98939024e5a0a143d6e1fc
+- 00:55 review task=2 round=1 result=PASS blocker=0 important=0 minor=0 budget=cumulative435-of-800
+- 任务 2: 完成 commits=[806fb63b782c45c0aa98939024e5a0a143d6e1fc] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-2-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-2-5ab105e8909e-806fb63b782c.md
+- 00:56 dispatch task=3 model=gpt-5.6-terra/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-3-brief.md worktree=/tmp/aosp-minimal-terminal.VCkxxc
+- 01:01 report task=3 status=DONE_WITH_CONCERNS commits=[85daade36a7e1506d397dc2f803308a821b386ea] tests=red+self-test+subset+legacy+scope+whitespace report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-3-report.md concern=task4-budget-remaining167
+- 01:01 review-dispatch task=3 round=1 reviewer=gpt-5.6-sol/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc head=85daade36a7e1506d397dc2f803308a821b386ea
+- 01:05 review task=3 round=1 result=FAIL blocker=4 important=2 minor=0 findings=artifact-existence+HEAD-binding+dirty-worktree+budget+negative-fixtures+cleanup
+- 01:05 fix-dispatch task=3 round=1 model=gpt-5.6-terra/high action=close-six-findings+amend+full-retest
+- 01:10 fix-report task=3 round=1 status=DONE_WITH_CONCERNS commits=[281573c524d812c5ce5ca4a98b972d8963f53d2b] tests=self-test+subset+legacy+report+scope+whitespace concern=cumulative715-of-800-task4-remaining85
+- 01:10 review-dispatch task=3 round=2 reviewer=gpt-5.6-sol/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc head=281573c524d812c5ce5ca4a98b972d8963f53d2b
+- 01:15 review task=3 round=2 result=FAIL blocker=1 important=2 minor=0 findings=public-exact-channel-negative+dirty-state-matrix+partial-registration-cleanup
+- 01:15 fix-dispatch task=3 round=2 model=gpt-5.6-terra/high action=close-three-findings+amend+full-retest
+- 01:18 fix-report task=3 round=2 status=BLOCKED commits=[281573c524d812c5ce5ca4a98b972d8963f53d2b] blocker=required-fixtures-and-cleanup-fault-injection-exceed-remaining85 no-change=true
+- 裁定: task3第三轮换fresh gpt-5.6-sol/high重构accept.py，在不削弱round1/2 finding下去重并以cumulative<=640为目标，为task4保留其160行估算下界；依据=fix_loop第3轮升档规则+R24硬上限；如果判断错了，代价是第三轮仍不收敛并必须回PLAN进一步拆分，但不会接受超800实现。
+- 01:18 fix-dispatch task=3 round=3 model=gpt-5.6-sol/high action=refactor-close-findings+shrink-cumulative-to-640+amend+full-retest
+- 01:25 fix-report task=3 round=3 status=DONE commits=[3cc6f8fd54bdfe8efb7557409de9989890da7d41] tests=self-test+public-negatives+dirty-matrix+cleanup-faults+subset+legacy+scope+whitespace budget=cumulative618-of-800
+- 01:25 review-dispatch task=3 round=3 reviewer=gpt-5.6-sol/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc head=3cc6f8fd54bdfe8efb7557409de9989890da7d41
+- 01:27 review task=3 round=3 result=PASS blocker=0 important=0 minor=0 spec=PASS quality=PASS budget=cumulative618-of-800
+- 任务 3: 完成 commits=[453ac7b9cbe57149658e277e7426ffa42f657394] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-3-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-3-806fb63b782c-453ac7b9cbe5.md
+- 01:28 dispatch task=4 model=gpt-5.6-sol/high base=3cc6f8fd54bdfe8efb7557409de9989890da7d41 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-4-brief.md worktree=/tmp/aosp-minimal-terminal.VCkxxc budget_remaining=182
+- 01:35 report task=4 status=DONE commits=[4f0051b70b3e1d6f83a749289bfd2f2997bc8fd0] tests=mutation-self-test+accept-self-test+complete-precommit+legacy report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-4-report.md budget=task117-cumulative735-of-800
+- 01:35 review-dispatch task=4 round=1 reviewer=gpt-5.6-sol/high base=3cc6f8fd54bdfe8efb7557409de9989890da7d41 head=4f0051b70b3e1d6f83a749289bfd2f2997bc8fd0
+- 01:39 review task=4 round=1 result=PASS blocker=0 important=0 minor=3 spec=PASS quality=PASS budget=cumulative735-of-800
+- minor挂账 task=4: R-owner mutation依赖当前列表位置；验收不修，因closed manifest顺序另有独立校验且mutation仍穿过公开入口；如果判断错了，代价是owners排序重构后该负例需同步更新。
+- minor挂账 task=4: self-test failure诊断只给case name与actual tuple；验收不修，因exact channel与失败定位已足够且非产品ABI；如果判断错了，代价是后续定位fixture偏差需要额外人工展开。
+- minor挂账 task=4: `_pre_fixture()`返回的base未消费；验收不修，因不影响测试oracle或产品路径；如果判断错了，代价是轻微维护噪音，不影响回滚。
+- 任务 4: 完成 commits=[55884d4b4819cb2fbda1e4468a25164dc7157b40] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-4-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-4-453ac7b9cbe5-55884d4b4819.md
+- 01:41 final-gate result=PASS base=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 tip=4f0051b70b3e1d6f83a749289bfd2f2997bc8fd0 commits=4 paths=6 lines=735 self-test=exact-pass pre-commit-complete=exact-pass
+- merge-attempt: 失败 commits=[052ecb9d95f39e825b46ec07639250ed483df81f] parent1=[7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7] parent2=[4f0051b70b3e1d6f83a749289bfd2f2997bc8fd0] reason=accept-clean-pathspec-overbroad
+- 01:43 acceptance result=FAIL merge=052ecb9d95f39e825b46ec07639250ed483df81f stderr=RESULT_FAIL_supersession_COMMIT_SCOPE_MISMATCH action=diagnose-before-mutation
+- 01:47 diagnosis result=CODE_DEFECT gate=accept._clean observed=tracked-ledger+tracked-tasks+generated-pycache cause=owned-path-parent-expansion merge-shape=PASS exact-six-path-status=clean
+- 裁定: 保留failed merge 052ecb9d与旧task branch，从task2创建隔离recovery branch，task3只修exact tracked/index path与untracked sibling/pycache分类，再原样replay task4并分别fresh review；不reset main、不覆盖其他spec dirty changes；如果判断错了，代价是recovery merge仍会被acceptance拒绝，但失败merge与旧tip均保留可审计和回退。
+- 01:47 recovery-fix-dispatch task=3 model=gpt-5.6-sol/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc old-head=3cc6f8fd54bdfe8efb7557409de9989890da7d41 branch=spec/aosp-minimal-terminal-recovery-052ecb9d
+- 01:47 recovery-fix-report task=3 status=DONE commits=[453ac7b9cbe57149658e277e7426ffa42f657394] replayed-task4=[55884d4b4819cb2fbda1e4468a25164dc7157b40] tests=accept-self-test+dispatcher-self-test+complete-precommit+legacy+scope+whitespace budget=cumulative744-of-800
+- 01:47 recovery-review-dispatch task=3 reviewer=gpt-5.6-sol/high base=806fb63b782c45c0aa98939024e5a0a143d6e1fc head=453ac7b9cbe57149658e277e7426ffa42f657394
+- 01:50 recovery-review task=3 result=PASS blocker=0 important=0 minor=1 spec=PASS quality=PASS budget=cumulative744-of-800
+- minor挂账 recovery-task3: pycache fixture使用固定pyc名称文本模拟；验收不修，因真实final acceptance会覆盖实际解释器生成路径且生产分类只允许__pycache__/*.pyc；如果判断错了，代价是不同解释器pyc命名的测试真实性不足并需补真实生成fixture。
+- 01:51 recovery-report task=4 status=DONE commits=[55884d4b4819cb2fbda1e4468a25164dc7157b40] parent=453ac7b9cbe57149658e277e7426ffa42f657394 replay-diff-sha256=2e3220d21155b3888855f5f146b03643207781ade91187d6a054a48891b6d336 budget=cumulative744-of-800
+- 01:51 recovery-review-dispatch task=4 reviewer=gpt-5.6-sol/high base=453ac7b9cbe57149658e277e7426ffa42f657394 head=55884d4b4819cb2fbda1e4468a25164dc7157b40
+- 01:53 recovery-review task=4 result=PASS blocker=0 important=0 minor=0 spec=PASS quality=PASS diff-sha256=2e3220d21155b3888855f5f146b03643207781ade91187d6a054a48891b6d336 budget=cumulative744-of-800
+- 01:54 recovery-final-gate result=PASS base=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 tip=55884d4b4819cb2fbda1e4468a25164dc7157b40 commits=4 paths=6 lines=744 self-test=exact-pass pre-commit-complete=exact-pass
+- merge: 完成 commits=[a79edb650066bf47d6908fe00ec22c0d6749ef14] parent1=[7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7] parent2=[55884d4b4819cb2fbda1e4468a25164dc7157b40]
+- 01:57 isolated-pre-accept result=PASS merge=a79edb650066bf47d6908fe00ec22c0d6749ef14 evidence=canonical-assets-copied-to-recovery-worktree rollback=revert-m1 regressions=3-pass
+- 裁定: main切换前保留failed merge安全分支，并仅在old/new tree差异与现有dirty路径不相交时使用git reset --keep；依据=隔离accept已PASS且--keep遇重叠会中止；如果判断错了，代价是main ref需要从安全分支恢复，但未提交用户内容仍由--keep保护。
+- 01:58 main-switch result=PASS old=052ecb9d95f39e825b46ec07639250ed483df81f safety=spec/aosp-minimal-failed-merge-052ecb9d new=a79edb650066bf47d6908fe00ec22c0d6749ef14 tree-diff=accept.py-only dirty-status=byte-identical
+- 01:59 acceptance result=PASS merge=a79edb650066bf47d6908fe00ec22c0d6749ef14 rollback=revert-m1 regressions=3-pass exact-channel=PASS
+- 裁定: `check-converge.py`默认repo-root模式无条件过滤`.spec/`并把design文件清单中的00a/00b后继路径算成本片，原始调用exit1；门⑤用当前tasks的临时spec-root相对投影、真实base/head和同一checker重跑exit0，同时独立确认manifest六路径等于base..merge六路径。若判断错，代价是通用checker仍不能直接覆盖`.spec`内产品路径，后续同类terminal需修复skill而不能复用默认调用。
+- 02:04 check-converge result=PASS mode=spec-root-relative actual-base-head=true paths=6 original-root-mode=CAPABILITY_UNAVAILABLE
+- 自动通过: 门⑤ — 本轮重跑self-test/pre-commit-complete/main-accept均exact PASS；merge a79edb65为two-parent、四任务、六路径、common增量0、744/800，27/27 owner与summary上限通过；同一check-converge以真实base/head的spec-root相对模式exit0；全部裁定/挂账/SKIPPED已写acceptance.md，进入large retro。
+- retro五问: 1否，terminal确认而未推翻00a/00b前提；2否，accept pathspec与converge适配均为本片闭环而非新增产品spec；3否，00a/00b高位730/630仍满足P1-P5与800行上限；4否，00b继续依赖00a；5否，没有当前证据无法回答的新问题。结论=PLAN无变更，选择00a。
+
 ---
