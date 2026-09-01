@@ -1,0 +1,26 @@
+name: Quality
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned quality tools
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/aosp-harness-quality"; bin="$root/bin"
+          mkdir -p "$root/downloads" "$bin"
+          curl -fsSL -o "$root/downloads/shellcheck.tar.xz" https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          printf '%s  %s\n' 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198 "$root/downloads/shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf "$root/downloads/shellcheck.tar.xz" -C "$root"
+          install -m 0755 "$root/shellcheck-v0.11.0/shellcheck" "$bin/shellcheck"
+          curl -fsSL -o "$root/downloads/shfmt" https://github.com/mvdan/sh/releases/download/v3.14.0/shfmt_v3.14.0_linux_amd64
+          printf '%s  %s\n' fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66 "$root/downloads/shfmt" | sha256sum -c -
+          install -m 0755 "$root/downloads/shfmt" "$bin/shfmt"
+          curl -fsSL -o "$root/downloads/gitleaks.tar.gz" https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          printf '%s  %s\n' 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb "$root/downloads/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$root/downloads/gitleaks.tar.gz" -C "$root"
+          install -m 0755 "$root/gitleaks" "$bin/gitleaks"
+          printf '%s\n' "$bin" >>"$GITHUB_PATH"
+      - name: Quality gate
+        run: ./scripts/check.sh --ci

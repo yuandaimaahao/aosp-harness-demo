@@ -109,6 +109,36 @@ for mutation in config-bytes config-digest empty-rules global-allowlist; do rese
 reset_secrets; for canary_rc in 0 2; do run_static '' "$canary_rc"; [[ "$static_rc" -eq 2 && "$(grep -ao 'GITLEAKS_CONFIG=unset' "$static_logs/gitleaks" | wc -l)" -eq 1 ]] && no_total_pass || fail "canary rc $canary_rc: expected protocol failure without total pass"; done
 mkdir "$static_fixture/in-repo-tmp"; run_static '' 1 0 "$static_fixture/in-repo-tmp"; [[ "$static_rc" -eq 2 && ! -s "$static_logs/gitleaks" ]] && no_total_pass || fail 'in-repo TMPDIR: expected zero gitleaks calls without total pass'
 run_static '' 1 7; [[ "$static_rc" -eq 1 ]] && assert_gitleaks && no_total_pass || fail 'worktree gitleaks failure: expected rc=1 without total pass'
+quality_docs_oracle() { "$host_python" - "$1" "$2" <<'PY'
+import os,re,sys
+from pathlib import Path
+w='\n'.join(x for x in Path(sys.argv[1]).read_text().splitlines() if not x.lstrip().startswith('#'))
+assert 'on: [push, pull_request, workflow_dispatch]' in w and 'runs-on: ubuntu-24.04' in w
+assert 'root="$RUNNER_TEMP/aosp-harness-quality"; bin="$root/bin"' in w
+maps=(
+('curl -fsSL -o "$root/downloads/shellcheck.tar.xz" https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz','8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198','tar -xJf "$root/downloads/shellcheck.tar.xz" -C "$root"','install -m 0755 "$root/shellcheck-v0.11.0/shellcheck" "$bin/shellcheck"'),
+('curl -fsSL -o "$root/downloads/shfmt" https://github.com/mvdan/sh/releases/download/v3.14.0/shfmt_v3.14.0_linux_amd64','fe42021c7272ef2d67ea36cbc3031683c625d0badec733ef3a57b567246a0b66','install -m 0755 "$root/downloads/shfmt" "$bin/shfmt"'),
+('curl -fsSL -o "$root/downloads/gitleaks.tar.gz" https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz','551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb','tar -xzf "$root/downloads/gitleaks.tar.gz" -C "$root"','install -m 0755 "$root/gitleaks" "$bin/gitleaks"'))
+install_positions=[]
+for mapping in maps:
+ positions=[w.index(value) for value in mapping]; assert positions==sorted(positions),mapping
+ install_positions.append(positions[-1])
+path_at=w.index('printf \'%s\\n\' "$bin" >>"$GITHUB_PATH"'); assert max(install_positions)<path_at
+assert w.count('./scripts/check.sh --ci')==1
+assert re.search(r'- name: Quality gate\n\s+run: \./scripts/check\.sh --ci',w)
+c=Path(sys.argv[2]).read_text(); rows=[]
+assert '| Test | Specs/requirements | Protected behavior | Offline boundary | Status |' in c
+for line in c.splitlines():
+ cells=[cell.strip() for cell in line.strip().strip('|').split('|')]
+ if not line.startswith('|') or cells[0] in ('Test','---'): continue
+ assert len(cells)==5 and all(cells) and cells[4]=='active',cells
+ match=re.fullmatch(r'`(tests/test-[^`]+\.sh)`',cells[0]); assert match; rows.append(match.group(1))
+expected={'tests/'+entry.name for entry in os.scandir('tests') if entry.is_file(follow_symlinks=False) and entry.name.startswith('test-') and entry.name.endswith('.sh')}
+assert len(rows)==len(set(rows)) and set(rows)==expected,(rows,expected)
+assert not re.search(r'(行|分支|line|branch|覆盖率|coverage)[^|\n]{0,20}\d+(?:\.\d+)?%?',c,re.I)
+PY
+}
+quality_docs_oracle "$repo_root/.github/workflows/quality.yml" "$repo_root/tests/COVERAGE.md" || fail 'workflow quality contract'
 poison_log="$fixture/poison"; for name in shellcheck shfmt gitleaks adb cvd curl wget ssh repo ninja claude codex; do printf '#!%s\nprintf %s >>%q\nexit 88\n' "$host_bash" "$name" "$poison_log" >"$case_bin/$name"; chmod +x "$case_bin/$name"; done
 before="$("$host_git" hash-object claude-code/CURRENT_FEATURE codex/CURRENT_FEATURE common/CURRENT_FEATURE)"; PATH="$case_bin:$PATH" HOST_BASH="$host_bash" SYNTAX_MARKER="$syntax_marker" ROOT_LOG="$root_log" BODY_LOG="$body_log" GIT_ALLOW_PROTOCOL=file "$host_python" - "$repo_root" "$host_bash" <<'PY'
 import os,subprocess,sys
