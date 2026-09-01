@@ -61,11 +61,17 @@ def seed():
         changed=copy.deepcopy(seed); get(changed,q[:-1])[q[-1]]=z; bad(lambda changed=changed:runtime._validate_artifact(changed),"DESCRIPTOR_SCHEMA_INVALID")
     excluded=((('resources','measured','available_bytes'),2),(('execution','kernel_release'),"new"),(('lunch','out_dir_relative'),"tmp/preflight/new"),(('lunch','lunch_exit'),2),(('guard','trace_digest'),"1"*64)); content,identity=parts[1],parts[2]
     for q,z in excluded:
-        changed=copy.deepcopy(seed); get(changed,q[:-1])[q[-1]]=z; assert runtime._seed_parts(changed)[1:]==(content,identity)
-    evidence={"source_state_before":True,"source_state_after":True,"trace":True,"command_journal":True}; assert not runtime._validate_public_real(seed,evidence)
-    public=finish(copy.deepcopy(seed)); public.update(evidence_class="real_source",source_scope={"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"}); public=finish(public); assert runtime._validate_public_real(public,evidence) and not runtime._validate_public_real(public,{**evidence,"trace":False}); vendor=copy.deepcopy(public); vendor["source_scope"]["vendor_context"]=True; assert not runtime._validate_public_real(vendor,evidence)
+        changed=copy.deepcopy(seed); get(changed,q[:-1])[q[-1]]=z; assert runtime._seed_parts(changed)[1:]==(content,identity) and domain_digest(domain_ascii="aosp-harness/seed-artifact/v1\0",value=changed)!=domain_digest(domain_ascii="aosp-harness/seed-artifact/v1\0",value=seed)
+    for state,proof,count,good in (("clean",True,0,True),("clean",False,0,False),("clean",True,1,False),("dirty",False,1,True),("dirty",False,0,False),("dirty",True,1,False),("dirty",False,2,False)):
+        changed=copy.deepcopy(seed); changed["source_state"].update(state=state,clean_source_proof=proof,affected_project_count=count); finish(changed); (runtime._validate_artifact(changed) if good else bad(lambda changed=changed:runtime._validate_artifact(changed),"DESCRIPTOR_SCHEMA_INVALID"))
+    for path,value in ((('execution','container_digest'),"1"*64),(('manifest','remotes'),[{"name":"r","fetch_url":"https://alice:secret@example/repo","review_url":None,"mirror_url":None}])):
+        changed=copy.deepcopy(seed); get(changed,path[:-1])[path[-1]]=value; finish(changed); bad(lambda changed=changed:runtime._validate_artifact(changed),"DESCRIPTOR_SCHEMA_INVALID")
+    container=copy.deepcopy(seed); container["execution"].update(kind="container",container_digest="1"*64); finish(container); assert runtime._validate_artifact(container)=="aosp-harness/seed-artifact/v1\0"
+    evidence={"source_state_before":True,"source_state_after":True,"trace":True,"command_journal":True}; vendor=finish(copy.deepcopy(seed)); vendor["evidence_class"]="real_source"; vendor=finish(vendor); assert runtime._validate_artifact(vendor)=="aosp-harness/seed-artifact/v1\0" and not runtime._validate_public_real(seed,evidence) and not runtime._validate_public_real(vendor,evidence)
+    public=finish(copy.deepcopy(seed)); public.update(evidence_class="real_source",source_scope={"role":"public_aosp17_cuttlefish","public_aosp_baseline":True,"vendor_context":False,"platform_family":"aosp-17"}); public=finish(public); assert runtime._validate_public_real(public,evidence) and not runtime._validate_public_real(public,{**evidence,"trace":False})
+    for key,value in (("schema_version",2),("kind","not-seed")): changed=copy.deepcopy(public); changed[key]=value; assert not runtime._validate_public_real(changed,evidence)
     with tempfile.TemporaryDirectory() as d:
-        p=Path(d)/"seed.json"; p.write_text(__import__("json").dumps(seed)); assert load_artifact(path=str(p),expected_kind="seed")==seed
+        p=Path(d)/"seed.json"; p.write_text(__import__("json").dumps(seed)); link=Path(d)/"repo"; link.symlink_to(p); launcher=copy.deepcopy(seed); launcher["tools"]["repo_launcher_path"]=str(link); finish(launcher); assert load_artifact(path=str(p),expected_kind="seed")==seed and runtime._validate_artifact(launcher)=="aosp-harness/seed-artifact/v1\0"
 if __name__ == "__main__":
     cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed}
     try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
