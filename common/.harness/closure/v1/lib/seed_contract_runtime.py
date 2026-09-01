@@ -1,11 +1,8 @@
-"""Canonical JSON primitives for the seed-contract runtime."""
-import hashlib, json
-RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+import hashlib, json; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
 class ContractError(Exception):
     __slots__ = ("_code",)
     def __init__(self, code): self._code = code; super().__init__(code)
-    @property
-    def code(self): return self._code
+    code = property(lambda self: self._code)
 def _pairs(pairs):
     result = {}
     for key, value in pairs:
@@ -16,16 +13,17 @@ def _guard(value):
     if value is None or isinstance(value, bool): return
     if isinstance(value, int) and -_SAFE <= value <= _SAFE: return
     if isinstance(value, str) and not any(0xd800 <= ord(c) <= 0xdfff for c in value): return
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list):
         for item in value: _guard(item)
         return
     if isinstance(value, dict):
-        for key, item in value.items(): _guard(key); _guard(item)
+        for key, item in value.items():
+            if not isinstance(key, str): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
+            _guard(key); _guard(item)
         return
     raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
 def canonical_bytes(*, value):
-    _guard(value)
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    _guard(value); return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
 def domain_digest(*, domain_ascii, value):
     try: prefix = domain_ascii.encode("ascii")
     except (AttributeError, UnicodeEncodeError): raise ContractError("ARGUMENT_ERROR") from None
