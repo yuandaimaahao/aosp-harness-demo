@@ -36,7 +36,7 @@
 | id | 目标（一句话） | 依赖 | 独立判据 | 状态 |
 |---|---|---|---|---|
 | `01-device-safety` | 关闭错设备操作和真实模式假成功的本计划最高风险缺口 | 无 | `./tests/test-device-safety.sh` 输出 `RESULT PASS  device safety` | ✅ 完成 |
-| `02-offline-quality-gate` | 建立根级离线验收和 CI 门禁 | `01-device-safety` | `./scripts/check.sh --offline` 输出统一 PASS | ⏳ 进行中 |
+| `02-offline-quality-gate` | 建立根级离线验收和 CI 门禁 | `01-device-safety` | `./scripts/check.sh --offline` 输出统一 PASS | ✅ 已完成 |
 | `03-session-state-safety` | 用攻击/并发探针收敛 feature 输入和 session 状态未知风险 | `02-offline-quality-gate` | `./tests/test-session-state.sh` 输出 `RESULT PASS  session state` | ⬜ 未开始 |
 | `04-runtime-resource-leases` | 为源码、build、device、CVD 提供跨会话独占租约 | `02-offline-quality-gate` | `./tests/test-resource-leases.sh` 输出 `RESULT PASS  resource leases` | ⬜ 未开始 |
 | `05-verifier-contract` | 对齐三套 verifier 的断言和 PASS/FAIL/SKIP 契约 | `02-offline-quality-gate` | `./tests/test-verifier-contract.sh` 输出 `RESULT PASS  verifier contract` | ⬜ 未开始 |

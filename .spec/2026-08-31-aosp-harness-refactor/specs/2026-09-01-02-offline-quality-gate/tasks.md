@@ -9,6 +9,7 @@
 产出: scripts/check.sh --offline —— 仅接受唯一 mode 参数；CLI 或十个 core 命令预检失败时在 syntax/root-test 前退出 2，空 fixture 成功时末行精确为总 PASS
 需求: R1, R2, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 创建可清理的临时 Git fixture、断言 rc/末行/marker 的 helper 与 `QUALITY_GATE_NESTED=1` 防递归分支；污染 PATH 前保存并验证 `host_bash="$(command -v bash)"` 为绝对可执行路径，再用它启动每个 gate。表驱动覆盖无参数、`--unknown`、`--offline extra` 以及逐个隐藏 `bash git python3 rg find sort awk sed grep sha256sum`；缺 bash case 也必须由 `"$host_bash" fixture/scripts/check.sh --offline` 启动且传入的 PATH 中没有 bash。每个失败 case 都放入非法 `.sh` 和会写 marker 的根测试，并断言 rc `2`、stderr 含 usage 或 gate 自己输出的 `missing required command: <name>`、两个 marker 均为 `0`、无总 PASS。
 
@@ -53,6 +54,7 @@
 产出: scripts/check.sh --offline —— 预检后以 LC_ALL=C、NUL 边界发现全部受管 Shell，先 bash -n 再按序 fail-fast 执行 tests/test-*.sh，成功末行精确为总 PASS
 需求: R1, R3, R4, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 扩展同一 fixture：加入 gate 自身、无扩展名 Bash、空格路径、实际 LF 路径、非法 `.sh`、`.git/.spec` 下脚本和指向仓库外非法脚本的 symlink；PATH 中 fake `bash` 对每个 `-n` 目标以 NUL 记录后委托保存的绝对 `host_bash`，fake `sort` 断言 `LC_ALL=C`。精确断言 gate/无扩展名/空格/LF/非法 `.sh` 各被 `-n` 一次，symlink 与 `.git/.spec` 路径零次，且全部 `-n` 记录先于首个 root marker；fixture 的 `tests/test-quality-gate.sh` 仅在 `QUALITY_GATE_NESTED=1` 时写唯一 child marker，否则写 body marker，断言普通 gate 调用只写一次 child、body 为零。另以非字典序创建三个根测试，断言语法失败时测试零调用、成功时 C 序各一次、中间失败的 stdout/stderr marker 各原样一次且后续 marker 为零。
 
@@ -106,6 +108,7 @@
 产出: scripts/check.sh --ci —— 在 core 之前要求 ShellCheck 0.11.0、shfmt 3.14.0、Gitleaks 8.30.1，缺失或错版本返回 2 且 syntax/root-test 零调用
 需求: R5, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 为三个 fake 工具各写正确版本响应，再表驱动构造“缺失”和“错版本”六个 case；每个 fixture 同时放非法 Shell 与 root marker，断言 rc `2`、stderr 同时含工具名和期望版本、syntax/root-test marker 均为 `0`、无总 PASS。
 
@@ -145,6 +148,7 @@
 产出: scripts/shell-quality-baseline.tsv —— 30 行 C 序 path<TAB>git-blob canonical 文件且 SHA-256 为 62211b0b05c8ada6e48e408696244a655e1b0cb728c3a5406b601fc0af074a5f、scripts/check.sh --ci —— exact pair 命中才豁免，否则运行固定 ShellCheck/shfmt argv
 需求: R6, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 从锚点 `b143821925e279401334d09a788ba9a969df5c7c` 的 Git tree 按受管规则生成 30 行 canonical TSV；断言行数、严格 C 序、path/blob 唯一、40 位小写 blob 和文件 SHA-256 精确匹配 requirements，禁止从当前工作树自授权扩增。
 
@@ -201,6 +205,7 @@
 产出: scripts/check.sh --offline|--ci —— 成功时退出 0 且 stdout 末行为 RESULT PASS  aosp-harness offline quality gate；参数/依赖/工具预检错误返回 2，语法/测试/静态/秘密检查失败返回 1，失败时不得输出该成功末行、.gitleaks.toml —— 字节精确为 [extend]\nuseDefault = true\n 且固定摘要
 需求: R6, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 创建精确两行 config；扩展 fake Gitleaks 记录 NUL argv/env/target，并断言 gate 清除两个配置环境变量、先扫描 repo 外 canary 后扫描 repo、两次固定 options/config 完全相同且只有 target 不同、canary 文件由 `AKIA` 与 `ABCDEFGHIJKLMNOP` 运行时拼成并在第二次调用前已清理。
 
@@ -256,6 +261,7 @@
 产出: CI workflow —— push/pull_request/workflow_dispatch 在 ubuntu-24.04 安装三份固定摘要工具并唯一一次调用 ./scripts/check.sh --ci、tests/COVERAGE.md —— 每个根 tests/test-*.sh 在五列表中唯一映射为 active、tests/test-quality-gate.sh —— 无参数且成功时 exit-0/末行为 RESULT PASS  offline quality gate contract
 需求: R7, R8, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 在 contract 增加静态 oracle：workflow 必须含三个 trigger、`ubuntu-24.04`、三个官方 tag/资产/摘要、RUNNER_TEMP 绝对 bin、三种 artifact-to-executable 映射、`install -m 0755`、最后才写 GITHUB_PATH，且独立 quality step 唯一一次出现 `./scripts/check.sh --ci`。
 
