@@ -4,13 +4,33 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 FOUNDATION="$ROOT/common/.harness/lib/session-state-foundation.sh"
 PROVIDER="$ROOT/common/.harness/lib/session-state-path.sh"
 TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-path-test.XXXXXX")
-trap 'rm -rf "$TMP_TEST"' EXIT
+cleanup() {
+  [[ -z ${DEFAULT_PROJECT_PATH:-} ]] || rmdir "$DEFAULT_PROJECT_PATH/s" "$DEFAULT_PROJECT_PATH" 2>/dev/null || :
+  [[ ${DEFAULT_ROOT_CREATED:-0} != 1 ]] || rmdir "$DEFAULT_ROOT" 2>/dev/null || :
+  rm -rf "$TMP_TEST"
+}
+trap cleanup EXIT
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
-[[ ${1:-} == --case && $# == 2 ]] || fail 'option: expected --case name'
-GROUP=$2
-[[ $GROUP == source-validate || $GROUP == roots-static || $GROUP == mutations ]] || fail "option: unsupported case $GROUP"
+SUMMARY='RESULT PASS  session path safety'
+pass() { printf '%s\n' "$SUMMARY"; }
+case ${1:-all} in
+  --case) [[ $# == 2 ]] || fail 'option: expected --case name'; GROUP=$2
+    [[ $GROUP == source-validate || $GROUP == roots-static || $GROUP == mutations ]] || fail "option: unsupported case $GROUP" ;;
+  --dependency-absent) [[ $# == 1 ]] || fail 'option: --dependency-absent takes no value'; GROUP=dependency-absent ;;
+  all) (( $# <= 1 )) || fail 'option: all takes no value'; GROUP=all ;;
+  *) fail "option: ${1:-empty} unsupported" ;;
+esac
 [[ -f "$FOUNDATION" ]] || fail 'source present: foundation missing'
 [[ -f "$PROVIDER" ]] || fail 'source present: provider missing'
+if [[ $GROUP == all ]]; then
+  for child in source-validate roots-static mutations dependency-absent; do
+    args=(--case "$child"); [[ $child != dependency-absent ]] || args=(--dependency-absent)
+    bash "${BASH_SOURCE[0]}" "${args[@]}" >"$TMP_TEST/child-out" 2>"$TMP_TEST/child-err"; child_rc=$?
+    [[ $child_rc == 0 && $(<"$TMP_TEST/child-out") == "$SUMMARY" && ! -s "$TMP_TEST/child-err" ]] || fail "default $child: streams or rc"
+  done
+  git -C "$ROOT" diff --quiet d68911bde93f72d1e42dc85fba6271159e945170 HEAD -- common/.harness/lib/session-state-foundation.sh tests/test-session-state-foundation.sh || fail 'foundation files changed'
+  pass; exit 0
+fi
 if [[ $GROUP == roots-static || $GROUP == mutations ]]; then
   capture() { : >"$TMP_TEST/out"; : >"$TMP_TEST/err"; "$@" >"$TMP_TEST/out" 2>"$TMP_TEST/err"; RC=$?; }
   invoke() {
@@ -98,7 +118,7 @@ PY
   done
   for phase in before_mkdir after_eexist before_open; do [[ $(grep -Fo "_managed_checkpoint(\"$phase\"" "$PROVIDER" | wc -l) == 1 ]] || fail "phase $phase count"; done
   ! grep -q fchmod "$PROVIDER" || fail 'forbidden fchmod'
-  printf 'RESULT PASS  session path safety\n'; exit 0
+  pass; exit 0
 fi
 if [[ $GROUP == roots-static ]]; then
   mkdir "$TMP_TEST/harness" "$TMP_TEST/xdg" "$TMP_TEST/tmp" "$TMP_TEST/physical"
@@ -113,10 +133,9 @@ if [[ $GROUP == roots-static ]]; then
   expect 'root XDG' 0 "$TMP_TEST/xdg/aosp-harness-$(id -u)/p/s"$'\n' ''; [[ $tmp_before == "$(find "$TMP_TEST/tmp" -printf '%P|%y|%m|%s\n' | LC_ALL=C sort)" ]] || fail 'root XDG: lower priority changed'
   invoke tmp p s -u HARNESS_STATE_ROOT -u XDG_RUNTIME_DIR TMPDIR="$TMP_TEST/tmp"
   expect 'root TMP' 0 "$TMP_TEST/tmp/aosp-harness-$(id -u)/p/s"$'\n' ''
-  default_project="path-default-$$"
+  default_project="path-default-$$"; DEFAULT_ROOT="/tmp/aosp-harness-$(id -u)"; DEFAULT_PROJECT_PATH="$DEFAULT_ROOT/$default_project"; [[ -e $DEFAULT_ROOT || -L $DEFAULT_ROOT ]] && DEFAULT_ROOT_CREATED=0 || DEFAULT_ROOT_CREATED=1
   invoke default "$default_project" s -u HARNESS_STATE_ROOT -u XDG_RUNTIME_DIR -u TMPDIR
-  expect 'root default' 0 "/tmp/aosp-harness-$(id -u)/$default_project/s"$'\n' ''
-  rmdir "/tmp/aosp-harness-$(id -u)/$default_project/s" "/tmp/aosp-harness-$(id -u)/$default_project"
+  expect 'root default' 0 "$DEFAULT_PROJECT_PATH/s"$'\n' ''
   invoke physical p s HARNESS_STATE_ROOT="$TMP_TEST/logical/state"
   expect 'root physical' 0 "$TMP_TEST/physical/state/p/s"$'\n' ''
   mkdir "$TMP_TEST/fault" "$TMP_TEST/post-mkdir"
@@ -164,10 +183,10 @@ if [[ $GROUP == roots-static ]]; then
     [[ $before == "$(find "$base" -printf '%P|%y|%l|%D|%i|%m|%s\n' | LC_ALL=C sort)" ]] || fail "static $kind/$layer: inventory changed"
     [[ $kind != link || $victim_before == "$(stat -c '%D|%i|%a' "$base/victim")" && $victim_hash == "$(sha256sum "$base/victim/sentinel")" ]] || fail "static link/$layer: victim changed"
   done; done
-  printf 'RESULT PASS  session path safety\n'
+  pass
   exit 0
 fi
-if [[ ${HARNESS_TEST_SELF_CHECK:-0} == 0 ]]; then
+if [[ $GROUP == source-validate && ${HARNESS_TEST_SELF_CHECK:-0} == 0 ]]; then
   HARNESS_TEST_SELF_CHECK=1 HARNESS_TEST_FORCE_SOURCE_FAIL=none \
     bash "${BASH_SOURCE[0]}" --case source-validate >"$TMP_TEST/self-out" 2>"$TMP_TEST/self-err"
   self_rc=$?
@@ -180,8 +199,12 @@ source_case() {
   MISSING=$missing EXPECTED=$expected FOUNDATION=$FOUNDATION PROVIDER=$PROVIDER AUDIT=$audit WATCH=$watch bash <<'SH'
 set -u
 fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
-source "$FOUNDATION"
-[[ $MISSING == none ]] || unset -f "$MISSING"
+if [[ $MISSING == all ]]; then
+  unset -f _harness_component_is_safe harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run 2>/dev/null || :
+else
+  source "$FOUNDATION"
+  [[ $MISSING == none ]] || unset -f "$MISSING"
+fi
 unset HARNESS_SESSION_STATE_PROVIDER_VERSION
 unset -f _harness_session_path_core harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove 2>/dev/null || :
 export HARNESS_STATE_ROOT="$WATCH/bad-harness" XDG_RUNTIME_DIR="$WATCH/bad-xdg" TMPDIR="$WATCH/bad-tmp"
@@ -215,6 +238,10 @@ fi
 [[ ${HARNESS_TEST_FORCE_SOURCE_FAIL:-} != "$MISSING" ]] || fail 'injected source fixture failure'
 SH
 }
+if [[ $GROUP == dependency-absent ]]; then
+  source_case all absent all-missing || exit $?
+  pass; exit 0
+fi
 for spec in 'none present present' 'harness_validate_feature_name absent missing-validate' '_harness_session_state_foundation_path absent missing-path' '_harness_session_state_run absent missing-run'; do
   read -r missing expected label <<<"$spec"; source_case "$missing" "$expected" "$label" || exit $?
 done
@@ -253,4 +280,4 @@ after=$(find "$TMP_TEST/core-watch" -mindepth 1 -printf '%P|%y|%i|%m|%s\n' | LC_
 cmp -s "$VALIDATE_LOG" <(printf 'project-ok\nsession-ok\n') || fail 'core validate: call order'
 [[ ! -s "$PYTHON_LOG" ]] || fail 'core validate: python invoked'
 [[ $before == "$after" ]] || fail 'core validate: fixture changed'
-printf 'RESULT PASS  session path safety\n'
+pass
