@@ -1,12 +1,12 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 03 foundation复盘五问均否：PLAN v5.3无需调整；下一片为03a-session-path-safety
-updated: '2026-09-01T19:04:06+08:00'
-current_spec: null
-spec_stage: null
+basis: 门④ autopilot：03a tasks三轮独立review最终PASS；四任务唯一红首错、逐任务review串行、最终HEAD exact2/400与manifest/clean门闭合
+updated: '2026-09-01T20:27:43+08:00'
+current_spec: 2026-09-01-03a-session-path-safety
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -75,6 +75,10 @@ workflow: requirements-first
 | 2026-09-01T19:00:12+08:00 | spec/execute | spec/accept | 任务1.1-1.3均有红阶段证据、普通提交和独立review最终PASS；六列manifest连续绑定execution BASE到最终HEAD，exact 2 files/400 lines，foundation与offline门禁PASS |
 | 2026-09-01T19:03:20+08:00 | spec/accept | retro | 03 foundation验收通过：R1-R6、三条不变量、exact2/400、连续review manifest与收敛检查全PASS；source已快进合入main，PLAN/DECISIONS已更新 |
 | 2026-09-01T19:04:06+08:00 | retro | select | 03 foundation复盘五问均否：PLAN v5.3无需调整；下一片为03a-session-path-safety |
+| 2026-09-01T19:05:19+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-01-03a-session-path-safety |
+| 2026-09-01T19:27:15+08:00 | spec/requirements | spec/design | 门② autopilot：03a requirements三轮独立review最终PASS；R1-R7、逐层竞态/攻击oracle、inert回滚、exact2/400与manifest闭合，机械检查全PASS |
+| 2026-09-01T20:12:15+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v5.4与03a1拆片增量review PASS；03a requirements backflow和design round3最终PASS，40-case runnable sizing 311/400与全部机械检查PASS |
+| 2026-09-01T20:27:43+08:00 | spec/tasks | spec/execute | 门④ autopilot：03a tasks三轮独立review最终PASS；四任务唯一红首错、逐任务review串行、最终HEAD exact2/400与manifest/clean门闭合 |
 
 ## SKIPPED 记录
 

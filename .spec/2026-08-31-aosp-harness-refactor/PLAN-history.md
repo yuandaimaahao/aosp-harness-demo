@@ -39,3 +39,11 @@
 ## v5.3 — 2026-09-01
 
 由 v5.2 增量 PLAN review 的 P5 阻断触发：1400 行聚合包即使逐任务 review，也没有“全部产出一小时内审完”的证据。初版按安全完成边界拆为 foundation、fully-hardened path、snapshot write/read、write interrupts、remove/prune、Claude lifecycle 六片；两轮独立 v5.3 review 又指出连续规格若叠改同一provider/test、共改02的coverage或不处理上游回滚后的自动测试，会破坏P2并让消费者观测partial provider。最终每片独占foundation/path/snapshot/signals/remove模块与测试，03d独占aggregator/集成测试/coverage fragment；每条私有边写死签名和present/absent inert契约，aggregator只有五模块私有接口完整时才设置marker并发布五API，03e/08对每种missing-module状态都回退legacy。每片仍执行默认400行门，controller用六列首尾绑定review manifest机械证明提交链无未审缺口。
+
+## v5.3.1 — 2026-09-01
+
+由 `reviews/design-03a-round-1.md` important 2 触发：03a 的 fail-fast 设计实际需要调用 foundation 已公开的 `harness_validate_feature_name <name>`，但 v5.3 的说明曾把依赖概括成“两 private path exports”，使 source guard 和调用证据无法从边契约机械推出。本版把这个既存 public 签名连同两个 private export 一并写入原 `03 -> 03a` 边；不新增边，不改变顺序、文件 owner、返回协议、400 行门或回滚拓扑。
+
+## v5.4 — 2026-09-01
+
+由 `reviews/design-03a-round-2.md` blocker 触发：311行可执行原型只实际运行一条fresh路径，其余51条只是case inventory，无法证明复杂三层mutation fixture能进入剩余89行，重现foundation执行期才发现sizing失真的风险。03a保留完整private provider与source/root/static/代表性root race验收；新增仅拥有`test-session-path-races.sh`的03a1穷举三层mutation，且03b必须等待03a与03a1均PASS。provider在03a1前没有消费者或public capability；03a1缺席不改变运行时，03a回滚时03a1走inert PASS。每片继续执行400行门。
