@@ -1,0 +1,3 @@
+command: bash ./tests/test-session-state.sh
+rc: 1
+first error: FAIL public surface: harness_session_state_path must be absent

@@ -1,0 +1,9 @@
+mutant: provider source creates XDG_RUNTIME_DIR when it is nonempty
+
+old-oracle command: PROVIDER=/tmp/task-1.3-source-mutant.sh bash ./tests/test-session-state-foundation.sh
+old-oracle rc: 0
+old-oracle output: RESULT PASS  session state foundation
+
+new-oracle command: PROVIDER=/tmp/task-1.3-source-mutant.sh bash ./tests/test-session-state-foundation.sh
+new-oracle rc: 1
+new-oracle first error: FAIL source dangerous roots: fixture changed

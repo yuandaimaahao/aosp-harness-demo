@@ -1,0 +1,7 @@
+provider-copy mutation: source subprocess mkdir ./dangerous-root
+old_oracle_result=PASS (fixture was unrelated to the relative target)
+fixed_oracle_result=FAIL source dangerous root: fixture changed / target appeared
+
+The source subprocess now changes into the independent fixture and points
+HARNESS_STATE_ROOT at `./dangerous-root`; manifest, inode/content, target
+absence, return code, and both streams are checked after sourcing.

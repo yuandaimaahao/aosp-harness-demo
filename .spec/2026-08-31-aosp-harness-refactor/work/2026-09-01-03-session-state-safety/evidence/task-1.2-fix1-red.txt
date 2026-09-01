@@ -1,0 +1,7 @@
+=== preexisting default root deletion ===
+preexisting inode=74505
+RESULT PASS  session state
+FAIL cleanup preexisting default root: root removed
+=== precedence side-effect mutation ===
+api rc=0 stdout=/tmp/session-state-fix1-red.Silgpr/h-parent/root/project/session stderr-bytes=0
+FAIL path HARNESS precedence side effects: XDG candidate created

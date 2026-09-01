@@ -1,0 +1,9 @@
+mutant: collapse harness-two-* to harness-* and session-two-* to session-* in _dispatch_path
+
+old-oracle command: PROVIDER=/tmp/task-1.3-isolation-mutant.sh bash ./tests/test-session-state-foundation.sh
+old-oracle rc: 0
+old-oracle output: RESULT PASS  session state foundation
+
+enhanced-oracle command: PROVIDER=/tmp/task-1.3-isolation-mutant.sh bash ./tests/test-session-state-foundation.sh
+enhanced-oracle rc: 1
+enhanced-oracle first error: FAIL path HARNESS isolation: stdout mismatch

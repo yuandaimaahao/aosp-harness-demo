@@ -1,0 +1,8 @@
+mutation: command substitution strips final LF
+actual_bytes=2
+captured_bytes=1
+old_string_oracle=PASS (false positive)
+
+The original string-based capture (`got=$(<file)` followed by `[[ "$got" == expected ]]`)
+accepted the mutation because command substitution removed the final LF. The fixed test
+keeps actual output files and compares them byte-for-byte with `cmp -s`.
