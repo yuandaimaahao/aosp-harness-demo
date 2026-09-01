@@ -85,11 +85,12 @@ v5.5回流说明：本任务的root动态测试仅作为执行期拆片证据保
 
 ### 任务 4: 闭合回滚入口、公共surface与最终门禁
 
-文件: 修改 `tests/test-session-path.sh` / 验证 `common/.harness/lib/session-state-path.sh`
+文件: 修改 `tests/test-session-path.sh` / 测试 `common/.harness/lib/session-state-path.sh`
 消费: path-core-race-v1 —— `_harness_session_path_core <project-id> <session-id>` plus `HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN`三phase plus `HARNESS_TEST_MARKER_EXPECTED_EUID` plus `HARNESS_TEST_MARKER_OS_ERROR`
 产出: session-path-delivery-v1 —— _harness_session_path_core <project-id> <session-id>成功path+LF/0或OS错1或安全协议错2 plus三个生产文本唯一anchor plus tests/test-session-path.sh固定PASS摘要
 需求: R1, R2, R5, R6, R7
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 以现有task4 review三项红证据为起点：真实foundation缺席default不能在global require提前失败；stdout必须保留摘要末尾LF；pinned shfmt/ShellCheck必须真实执行而非只报告。再删除完整`--case mutations` selector、default child和执行体，确认source-validate、roots-static及确定性post-mkdir分类probe仍存在；结构检查必须提取`open_managed`函数体，并证明三个anchor各一次、三个phase在全文件和该函数体内各一次。
 - [ ] 步骤 2: 精确验证`shfmt --version`输出`v3.14.0`且`shellcheck --version`的version字段为`0.11.0`；在临时副本先运行该shfmt的`-w -i 2 -ci -bn`，把格式化结果一次性应用到正式`tests/test-session-path.sh`。随后对exact两文件运行`shfmt -d -i 2 -ci -bn`与`shellcheck -x --severity=warning`，两者必须为0且无诊断；BASE..HEAD exact2 numstat必须`<=400`，否则不得删R1–R7 oracle并直接回PLAN。

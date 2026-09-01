@@ -89,3 +89,12 @@
 - design/tasks v5.5 round 2 NEEDS_CHANGES blocker=0 important=0 minor=1 reviewer=review_design_03a_r1：tasks首段残留388/400；已改为round2权威392/400、余量8行并派极小复审。
 - design/tasks v5.5 round 3 PASS blocker=0 important=0 minor=0 reviewer=review_design_03a_r1：392/400、余量8行与PLAN/design/sizing一致，无新冲突。
 - 自动通过: execute backflow门。依据：PLAN/requirements round2 PASS，design/tasks round3 PASS；round2 runnable sizing、全部机械检查与git diff-check均PASS。
+- task4 v5.5 dispatch implementer=review_plan_v5_2 base=fad7bf384d9d8807f1f268649bc8ed19e10cf4b0 brief=task-4-v5.5-brief.md
+- task4 v5.5 report DONE commit=3fd9053d504a2bf48f59e450099ccdabeaf6b22d tests='six exact path streams+foundation+offline+pinned tools PASS' cumulative='exact2 392/400' worktree=clean
+- task4 v5.5 full review round=1 NEEDS_CHANGES blocker=1 important=0 minor=1 reviewer=review_plan_v5_3_1：长期测试硬编码execution BASE导致depth=1浅克隆path/offline失败；invoke首参无效。
+- task4 v5.5 fix1 dispatch implementer=review_plan_v5_2 base=3fd9053d504a2bf48f59e450099ccdabeaf6b22d brief=task-4-v5.5-fix1-brief.md
+- task4 v5.5 fix1 report DONE commit=f91f54d3d9832c803097bf171e9628b8d1adedab tests='depth1 shallow path/offline+all prior gates PASS' cumulative='exact2 391/400' provider=unchanged worktree=clean
+- task4 v5.5 fix1 full review PASS blocker=0 important=0 minor=0 reviewer=review_plan_v5_3_1 head=f91f54d3d9832c803097bf171e9628b8d1adedab
+- 任务 4: 完成
+- execute final mechanics PASS：default/source/roots/dependency-absent、foundation、offline、pinned ShellCheck/shfmt、syntax均PASS；BASE..HEAD exact2=391/400，foundation diff空，四行manifest连续绑定final HEAD，implementation worktree clean；depth=1浅克隆path/offline均PASS。
+- accept round 1 NEEDS_CHANGES blocker=0 important=1 minor=0 reviewer=review_design_03a_r1：实现/R1–R7/运行门全部PASS；tasks task4文件字段的“验证”前缀不被check-converge解析，形成伪路径欠账。已改为受支持且语义准确的“测试”，不改实现。
