@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 if declare -F harness_validate_feature_name >/dev/null \
   && declare -F _harness_session_state_foundation_path >/dev/null \
   && declare -F _harness_session_state_run >/dev/null; then
@@ -21,61 +20,51 @@ def checked_path(value, reject_root=False):
             or any(part in (".", "..") for part in value.split("/"))):
         raise UnsafeState
     value = os.path.normpath(value)
-    if reject_root and value == "/":
-        raise UnsafeState
+    if reject_root and value == "/": raise UnsafeState
     return value
 def path_error(exc):
-    if isinstance(exc, (FileNotFoundError, NotADirectoryError)) or getattr(exc, "errno", None) == errno.ELOOP:
-        raise UnsafeState from exc
+    if isinstance(exc, (FileNotFoundError, NotADirectoryError)) or getattr(exc, "errno", None) == errno.ELOOP: raise UnsafeState from exc
     raise OperationFailure from exc
 def managed_open_error(exc):
-    if getattr(exc, "errno", None) in (errno.ELOOP, errno.ENOTDIR):
-        raise UnsafeState from exc
+    if getattr(exc, "errno", None) in (errno.ELOOP, errno.ENOTDIR): raise UnsafeState from exc
     raise OperationFailure from exc
 def physical_dir(value):
     try:
         value = str(pathlib.Path(value).resolve(strict=True)); info = os.stat(value, follow_symlinks=False)
-    except RuntimeError as exc:
-        raise UnsafeState from exc
+    except RuntimeError as exc: raise UnsafeState from exc
     except OSError as exc:
         path_error(exc)
-    if not stat.S_ISDIR(info.st_mode):
-        raise UnsafeState
+    if not stat.S_ISDIR(info.st_mode): raise UnsafeState
     return value
 def select_root():
     if "HARNESS_STATE_ROOT" in os.environ:
         root = checked_path(os.environ["HARNESS_STATE_ROOT"], True); parent, leaf = os.path.split(root)
         return physical_dir(parent), leaf
-    if "XDG_RUNTIME_DIR" in os.environ:
-        base = checked_path(os.environ["XDG_RUNTIME_DIR"])
-    else:
-        base = checked_path(os.environ.get("TMPDIR") or "/tmp")
-    return physical_dir(base), f"aosp-harness-{os.geteuid()}"
-def identity(info):
-    return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode)
+    base = os.environ["XDG_RUNTIME_DIR"] if "XDG_RUNTIME_DIR" in os.environ else os.environ.get("TMPDIR") or "/tmp"
+    return physical_dir(checked_path(base)), f"aosp-harness-{os.geteuid()}"
+def identity(info): return info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode)
 def open_managed(parent_fd, name):
     try:
         before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
     except FileNotFoundError:
         try:
-            os.mkdir(name, 0o700, dir_fd=parent_fd); before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            os.mkdir(name, 0o700, dir_fd=parent_fd)
         except FileExistsError:
-            try:
-                before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
-            except OSError as exc:
-                raise OperationFailure from exc
+            pass
         except OSError as exc:
             path_error(exc)
+        try:
+            before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+        except OSError as exc:
+            raise OperationFailure from exc
     except OSError as exc:
         path_error(exc)
-    if not stat.S_ISDIR(before.st_mode):
-        raise UnsafeState
+    if not stat.S_ISDIR(before.st_mode): raise UnsafeState
     child_fd = None
     try:
         child_fd = os.open(name, OPEN_DIR, dir_fd=parent_fd); current = os.fstat(child_fd)
     except OSError as exc:
-        if child_fd is not None:
-            os.close(child_fd)
+        if child_fd is not None: os.close(child_fd)
         managed_open_error(exc)
     if (identity(before) != identity(current) or current.st_uid != os.geteuid()
             or stat.S_IMODE(current.st_mode) != 0o700):
@@ -84,8 +73,7 @@ def open_managed(parent_fd, name):
         after = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
     except OSError as exc:
         os.close(child_fd); raise OperationFailure from exc
-    if identity(after) != identity(current):
-        os.close(child_fd); raise UnsafeState
+    if identity(after) != identity(current): os.close(child_fd); raise UnsafeState
     return child_fd
 def dispatch(project, session):
     parent, root = select_root()
@@ -99,8 +87,7 @@ def dispatch(project, session):
             fds.append(open_managed(fds[-1], name))
         return os.path.join(parent, root, project, session)
     finally:
-        for child_fd in reversed(fds):
-            os.close(child_fd)
+        for child_fd in reversed(fds): os.close(child_fd)
 try:
     print(dispatch(sys.argv[1], sys.argv[2]))
 except UnsafeState:
