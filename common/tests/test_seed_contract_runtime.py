@@ -110,21 +110,28 @@ def state_paths():
         blocked.chmod(0o700); blocked.chmod(0o300); assert runtime.validate_state_paths(state_dir=str(blocked),out_ref=None,artifact_store=str(blocked/"artifacts/v1"),forbidden_roots=())["state_dir"]==str(blocked); blocked.chmod(0o700)
 def store_object():
     runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"publish_object"),"object publisher missing"
-    payload={"schema_version":1,"kind":"source_state","manifest_sha256":"0"*64,"projects":[]}
+    S=__import__("stat"); payload={"schema_version":1,"kind":"source_state","manifest_sha256":"0"*64,"projects":[]}; digest=domain_digest(domain_ascii=runtime._DOMAINS["source_state"],value=payload)
     with tempfile.TemporaryDirectory() as d:
-        root=Path(d); state=root/"state"; state.mkdir(); store=state/"artifacts/v1"; outside=root/"sentinel"; outside.write_bytes(b"fixed")
-        result=runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
-        object_path=Path(result["object_path"]); assert set(result)=={"digest","object_path"} and object_path.read_bytes()==canonical_bytes(value=payload)+b"\n" and object_path.stat().st_mode&0o777==0o444
-        assert result==runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
-        stale=object_path.parent/".old.tmp.1.1"; stale.write_bytes(b"stale"); stale.chmod(0o600); before=outside.read_bytes(); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="seed",payload=payload,forbidden_roots=()),"ARGUMENT_ERROR"); assert outside.read_bytes()==before and stale.read_bytes()==b"stale"
-        object_path.chmod(0o600); object_path.write_bytes(b"collision"); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=()),"DIGEST_COLLISION"); object_path.unlink()
-        calls=[]; old=runtime.os.fsync; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),old(fd))[1]
+        root=Path(d); state=root/"state"; state.mkdir(); store=state/"artifacts/v1"; outside=root/"sentinel"; outside.write_bytes(b"fixed"); temps=lambda p:[x for x in p.iterdir() if ".tmp." in x.name]; tree=lambda:tuple(sorted(str(x.relative_to(root)) for x in root.rglob("*")))
+        calls=[]; modes=[]; oldf,oldl=runtime.os.fsync,runtime.os.link; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),oldf(fd))[1]; runtime.os.link=lambda s,t,**kw:(modes.append(os.stat(s,dir_fd=kw["src_dir_fd"],follow_symlinks=False).st_mode&0o777),oldl(s,t,**kw))[1]
         try:
             result=runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
-            altered={**payload,"manifest_sha256":"1"*64}; bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=altered,forbidden_roots=(),fault_point="OBJECT_LINK"),"PUBLISH_PRECOMMIT_FAILED")
-            orphan={**payload,"manifest_sha256":"2"*64}; bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=(),fault_point="OBJECT_DIR_FSYNC"),"PUBLISH_OBJECT_ORPHANED")
-        finally: runtime.os.fsync=old
-        assert len(calls)>=3 and Path(result["object_path"]).stat().st_mode&0o777==0o444 and not [x for x in object_path.parent.iterdir() if x.name != stale.name and ".tmp." in x.name] and outside.read_bytes()==before
+        finally: runtime.os.fsync,runtime.os.link=oldf,oldl
+        object_path=Path(result["object_path"]); assert result=={"digest":digest,"object_path":str(object_path)} and object_path.name==digest and object_path.read_bytes()==canonical_bytes(value=payload)+b"\n" and object_path.stat().st_mode&0o777==0o444 and modes==[0o600] and [S.S_ISREG(x) for x in calls[:2]]==[True,True] and S.S_ISDIR(calls[2]) and not temps(object_path.parent)
+        inode=object_path.stat().st_ino; calls=[]; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),oldf(fd))[1]
+        try: assert result==runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
+        finally: runtime.os.fsync=oldf
+        assert object_path.stat().st_ino==inode and [S.S_ISREG(x) for x in calls]==[True,False] and S.S_ISDIR(calls[-1])
+        stale=object_path.parent/".old.tmp.1.1"; stale.write_bytes(b"stale"); stale.chmod(0o600); before=tree(); bad(lambda:runtime.publish_object(state_dir=1,artifact_store=str(store),object_kind="source_state",payload={},forbidden_roots=[]),"ARGUMENT_ERROR"); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload={},forbidden_roots=()),"DESCRIPTOR_SCHEMA_INVALID"); assert tree()==before and outside.read_bytes()==b"fixed" and stale.read_bytes()==b"stale"
+        object_path.chmod(0o600); before=tree(); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=()),"DIGEST_COLLISION"); assert tree()==before; object_path.unlink()
+        altered={**payload,"manifest_sha256":"1"*64}; absent=object_path.parent/domain_digest(domain_ascii=runtime._DOMAINS["source_state"],value=altered); before=tree(); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=altered,forbidden_roots=(),fault_point="OBJECT_LINK"),"PUBLISH_PRECOMMIT_FAILED"); assert not absent.exists() and tree()==before and temps(object_path.parent)==[stale]
+        orphan={**payload,"manifest_sha256":"2"*64}; orphan_path=object_path.parent/domain_digest(domain_ascii=runtime._DOMAINS["source_state"],value=orphan); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=(),fault_point="OBJECT_DIR_FSYNC"),"PUBLISH_OBJECT_ORPHANED"); assert orphan_path.is_file() and orphan_path.stat().st_mode&0o777==0o444 and temps(object_path.parent)==[stale]
+        calls=[]; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),oldf(fd))[1]
+        try: runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=())
+        finally: runtime.os.fsync=oldf
+        clean=root/"clean"; clean.mkdir()
+        with ThreadPoolExecutor(max_workers=16) as pool: results=list(pool.map(lambda _:runtime.publish_object(state_dir=str(clean),artifact_store=str(clean/"artifacts/v1"),object_kind="source_state",payload=payload,forbidden_roots=()),range(16)))
+        assert [S.S_ISREG(x) for x in calls]==[True,False] and S.S_ISDIR(calls[-1]) and len(set(x["object_path"] for x in results))==1 and not temps(clean/"artifacts/v1/sha256") and outside.read_bytes()==b"fixed"
 if __name__ == "__main__":
     cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths,"store-object":store_object}
     try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
