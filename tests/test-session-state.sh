@@ -3,14 +3,49 @@ set -u
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 PROVIDER=${PROVIDER:-"$ROOT/common/.harness/lib/session-state.sh"}
+DEFAULT_ROOT="/tmp/aosp-harness-$EUID"
+
+# Make the preexisting-empty-root case deterministic. The outer invocation owns
+# only the inode it creates; the inner full test must preserve that inode.
+if [[ ${HARNESS_TEST_DEFAULT_CHILD:-0} == 0 && ! -e "$DEFAULT_ROOT" && ! -L "$DEFAULT_ROOT" ]]; then
+  mkdir -m 700 "$DEFAULT_ROOT"
+  wrapper_inode=$(stat -c '%i' "$DEFAULT_ROOT")
+  HARNESS_TEST_DEFAULT_CHILD=1 bash "${BASH_SOURCE[0]}"
+  wrapper_rc=$?
+  wrapper_error=
+  if [[ ! -d "$DEFAULT_ROOT" || -L "$DEFAULT_ROOT" ]]; then
+    wrapper_error='preexisting default root missing after test'
+  elif [[ $(stat -c '%i' "$DEFAULT_ROOT") != "$wrapper_inode" ]]; then
+    wrapper_error='preexisting default root inode changed after test'
+  elif [[ -n $(find "$DEFAULT_ROOT" -mindepth 1 -print -quit) ]]; then
+    wrapper_error='preexisting default root not empty after test'
+  else
+    rmdir "$DEFAULT_ROOT"
+  fi
+  (( wrapper_rc == 0 )) || exit "$wrapper_rc"
+  [[ -z "$wrapper_error" ]] || { printf 'FAIL %s\n' "$wrapper_error" >&2; exit 1; }
+  exit 0
+fi
+
 TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-state-test.XXXXXX")
-DEFAULT_PROJECTS=()
+NAME_SEED=$(mktemp -d "$TMP_TEST/names.XXXXXX")
+NAME_SUFFIX=${NAME_SEED##*.}
+rmdir "$NAME_SEED"
+DEFAULT_ROOT_EXISTED=0
+DEFAULT_ROOT_ORIGINAL_INODE=
+if [[ -e "$DEFAULT_ROOT" || -L "$DEFAULT_ROOT" ]]; then
+  DEFAULT_ROOT_EXISTED=1
+  DEFAULT_ROOT_ORIGINAL_INODE=$(stat -c '%i' "$DEFAULT_ROOT")
+fi
+DEFAULT_PATHS=()
 cleanup() {
-  local project root="/tmp/aosp-harness-$EUID"
-  for project in "${DEFAULT_PROJECTS[@]}"; do
-    rmdir "$root/$project/session" "$root/$project" 2>/dev/null || :
+  local relative
+  for relative in "${DEFAULT_PATHS[@]}"; do
+    rmdir "$DEFAULT_ROOT/$relative" "$DEFAULT_ROOT/${relative%/*}" 2>/dev/null || :
   done
-  rmdir "$root" 2>/dev/null || :
+  if (( DEFAULT_ROOT_EXISTED == 0 )); then
+    rmdir "$DEFAULT_ROOT" 2>/dev/null || :
+  fi
   rm -rf "$TMP_TEST"
 }
 trap cleanup EXIT
@@ -88,76 +123,133 @@ declare -F harness_session_state_path >/dev/null || fail 'path HARNESS precedenc
 call_path_env() (
   local harness_set=$1 harness_value=$2 xdg_set=$3 xdg_value=$4 tmp_set=$5 tmp_value=$6
   shift 6
-  cd "$TMP_TEST" || exit 1
+  cd "$CALL_CWD" || exit 1
   unset HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR
   [[ "$harness_set" == set ]] && export HARNESS_STATE_ROOT=$harness_value
   [[ "$xdg_set" == set ]] && export XDG_RUNTIME_DIR=$xdg_value
   [[ "$tmp_set" == set ]] && export TMPDIR=$tmp_value
   harness_session_state_path "$@"
 )
-assert_path_mode() {
-  [[ -d "$1" ]] || fail "$2: directory missing"
+object_state() {
+  if [[ -e "$1" || -L "$1" ]]; then
+    stat -c '%F|%d|%i|%a|%u' -- "$1"
+  else
+    printf '%s\n' ABSENT
+  fi
+}
+fixture_inventory() {
+  {
+    find "$PATH_FIXTURE" -mindepth 1 -printf 'fixture/%P|%y|%D|%i|%m|%U\n'
+    find "$DEFAULT_ROOT" -mindepth 1 -printf 'default/%P|%y|%D|%i|%m|%U\n'
+  } | LC_ALL=C sort
+}
+assert_fresh_dir() {
+  [[ ! -L "$1" ]] || fail "$2: directory is a link"
+  [[ $(stat -c '%F' "$1") == directory ]] || fail "$2: stat type is not directory"
+  [[ $(stat -c '%u' "$1") == "$EUID" ]] || fail "$2: owner is not EUID"
   [[ $(stat -c '%a' "$1") == 700 ]] || fail "$2: mode is not 0700"
 }
-assert_unsafe_path() {
-  local label=$1 absent=$2
+assert_unsafe_call() {
+  local label=$1 target=$2 before_fixture before_target after_fixture after_target
   shift 2
-  capture_api call_path_env "$@" project session
+  before_fixture=$(fixture_inventory)
+  before_target=$(object_state "$target")
+  capture_api "$@"
   assert_api 2 "$label" '' $'error: unsafe session state\n'
-  [[ ! -e "$absent" && ! -L "$absent" ]] || fail "$label: created state"
+  after_fixture=$(fixture_inventory)
+  after_target=$(object_state "$target")
+  [[ "$after_fixture" == "$before_fixture" ]] || fail "$label: fixture changed"
+  [[ "$after_target" == "$before_target" ]] || fail "$label: target changed"
+}
+assert_unsafe_path() {
+  local label=$1 target=$2
+  shift 2
+  assert_unsafe_call "$label" "$target" call_path_env "$@" "$UNSAFE_PROJECT" "$UNSAFE_SESSION"
 }
 
 PATH_FIXTURE="$TMP_TEST/path-fixture"
-mkdir -p "$PATH_FIXTURE/h-physical" "$PATH_FIXTURE/xdg" "$PATH_FIXTURE/tmp"
+CALL_CWD="$PATH_FIXTURE/cwd"
+mkdir -p "$PATH_FIXTURE/h-physical" "$PATH_FIXTURE/xdg" "$PATH_FIXTURE/tmp" "$CALL_CWD"
 ln -s h-physical "$PATH_FIXTURE/h-parent"
 HARNESS_ROOT="$PATH_FIXTURE/h-parent/root"
 HARNESS_PHYSICAL="$PATH_FIXTURE/h-physical/root"
-capture_api call_path_env set "$HARNESS_ROOT" set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" project session; assert_api 0 'path HARNESS precedence' "$HARNESS_PHYSICAL/project/session"$'\n' ''
-for path in "$HARNESS_PHYSICAL" "$HARNESS_PHYSICAL/project" "$HARNESS_PHYSICAL/project/session"; do assert_path_mode "$path" 'path HARNESS fresh'; done
+HARNESS_PROJECT="harness-$NAME_SUFFIX"
+HARNESS_SESSION="session-$NAME_SUFFIX"
+XDG_CANDIDATE="$PATH_FIXTURE/xdg/aosp-harness-$EUID"
+TMP_CANDIDATE="$PATH_FIXTURE/tmp/aosp-harness-$EUID"
+xdg_before=$(object_state "$XDG_CANDIDATE")
+tmp_before=$(object_state "$TMP_CANDIDATE")
+capture_api call_path_env set "$HARNESS_ROOT" set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$HARNESS_PROJECT" "$HARNESS_SESSION"
+assert_api 0 'path HARNESS precedence' "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"$'\n' ''
+[[ $(object_state "$XDG_CANDIDATE") == "$xdg_before" ]] || fail 'path HARNESS precedence: XDG candidate changed'
+[[ $(object_state "$TMP_CANDIDATE") == "$tmp_before" ]] || fail 'path HARNESS precedence: TMP candidate changed'
+for path in "$HARNESS_PHYSICAL" "$HARNESS_PHYSICAL/$HARNESS_PROJECT" "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"; do
+  assert_fresh_dir "$path" 'path HARNESS fresh'
+done
 
-XDG_PROJECT=xdg-project
+XDG_PROJECT="xdg-$NAME_SUFFIX"
+XDG_SESSION="session-$NAME_SUFFIX"
 XDG_ROOT=$(cd "$PATH_FIXTURE/xdg" && pwd -P)/aosp-harness-$EUID
-capture_api call_path_env unset '' set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$XDG_PROJECT" session; assert_api 0 'path XDG selection' "$XDG_ROOT/$XDG_PROJECT/session"$'\n' ''
+tmp_before=$(object_state "$TMP_CANDIDATE")
+capture_api call_path_env unset '' set "$PATH_FIXTURE/xdg" set "$PATH_FIXTURE/tmp" "$XDG_PROJECT" "$XDG_SESSION"
+assert_api 0 'path XDG selection' "$XDG_ROOT/$XDG_PROJECT/$XDG_SESSION"$'\n' ''
+[[ $(object_state "$TMP_CANDIDATE") == "$tmp_before" ]] || fail 'path XDG selection: TMP candidate changed'
 
-TMP_PROJECT=tmp-project
+TMP_PROJECT="tmp-$NAME_SUFFIX"
+TMP_SESSION="session-$NAME_SUFFIX"
 TMP_ROOT=$(cd "$PATH_FIXTURE/tmp" && pwd -P)/aosp-harness-$EUID
-capture_api call_path_env unset '' unset '' set "$PATH_FIXTURE/tmp" "$TMP_PROJECT" session; assert_api 0 'path TMP selection' "$TMP_ROOT/$TMP_PROJECT/session"$'\n' ''
+capture_api call_path_env unset '' unset '' set "$PATH_FIXTURE/tmp" "$TMP_PROJECT" "$TMP_SESSION"
+assert_api 0 'path TMP selection' "$TMP_ROOT/$TMP_PROJECT/$TMP_SESSION"$'\n' ''
 
-DEFAULT_PROJECT="default-project-$$"
-DEFAULT_PROJECTS+=("$DEFAULT_PROJECT")
-capture_api call_path_env unset '' unset '' unset '' "$DEFAULT_PROJECT" session; assert_api 0 'path default selection' "/tmp/aosp-harness-$EUID/$DEFAULT_PROJECT/session"$'\n' ''
-EMPTY_TMP_PROJECT="empty-tmp-project-$$"
-DEFAULT_PROJECTS+=("$EMPTY_TMP_PROJECT")
-capture_api call_path_env unset '' unset '' set '' "$EMPTY_TMP_PROJECT" session; assert_api 0 'path empty TMP selection' "/tmp/aosp-harness-$EUID/$EMPTY_TMP_PROJECT/session"$'\n' ''
+if (( DEFAULT_ROOT_EXISTED == 0 )); then
+  mkdir -m 700 "$DEFAULT_ROOT"
+fi
+DEFAULT_FIXTURE_INODE=$(stat -c '%i' "$DEFAULT_ROOT")
+DEFAULT_PROJECT="default-$NAME_SUFFIX"
+DEFAULT_SESSION="session-$NAME_SUFFIX"
+EMPTY_TMP_PROJECT="empty-tmp-$NAME_SUFFIX"
+EMPTY_TMP_SESSION="session-$NAME_SUFFIX"
+DEFAULT_PATHS+=("$DEFAULT_PROJECT/$DEFAULT_SESSION" "$EMPTY_TMP_PROJECT/$EMPTY_TMP_SESSION")
+capture_api call_path_env unset '' unset '' unset '' "$DEFAULT_PROJECT" "$DEFAULT_SESSION"
+assert_api 0 'path default selection' "$DEFAULT_ROOT/$DEFAULT_PROJECT/$DEFAULT_SESSION"$'\n' ''
+capture_api call_path_env unset '' unset '' set '' "$EMPTY_TMP_PROJECT" "$EMPTY_TMP_SESSION"
+assert_api 0 'path empty TMP selection' "$DEFAULT_ROOT/$EMPTY_TMP_PROJECT/$EMPTY_TMP_SESSION"$'\n' ''
+[[ $(stat -c '%i' "$DEFAULT_ROOT") == "$DEFAULT_FIXTURE_INODE" ]] || fail 'path default selection: preexisting root inode changed'
 
 INVALID_ROOT="$PATH_FIXTURE/invalid-root"
-capture_api call_path_env set "$INVALID_ROOT" unset '' unset ''; assert_api 2 'path arity zero' '' $'error: unsafe session state\n'
-capture_api call_path_env set "$INVALID_ROOT" unset '' unset '' project session extra; assert_api 2 'path arity extra' '' $'error: unsafe session state\n'
+UNSAFE_PROJECT="unsafe-$NAME_SUFFIX"
+UNSAFE_SESSION="session-$NAME_SUFFIX"
+assert_unsafe_call 'path arity zero' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset ''
+assert_unsafe_call 'path arity extra' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset '' "$UNSAFE_PROJECT" "$UNSAFE_SESSION" extra
 for ids in '. session' 'project ..' '-project session' 'project bad/session' 'project bad\\session' 'project bad session'; do
   read -r project session extra <<<"$ids"
   [[ -z "${extra:-}" ]] || session="$session $extra"
-  capture_api call_path_env set "$INVALID_ROOT" unset '' unset '' "$project" "$session"
-  assert_api 2 'path invalid id' '' $'error: unsafe session state\n'
+  assert_unsafe_call 'path invalid id' "$INVALID_ROOT" call_path_env set "$INVALID_ROOT" unset '' unset '' "$project" "$session"
 done
-[[ ! -e "$INVALID_ROOT" ]] || fail 'path invalid id: created state'
 
 mkdir "$PATH_FIXTURE/dot-parent"
 assert_unsafe_path 'path HARNESS empty' "$PATH_FIXTURE/unused" set '' unset '' unset ''
-assert_unsafe_path 'path HARNESS relative' "$TMP_TEST/relative" set relative unset '' unset ''
+assert_unsafe_path 'path HARNESS relative' "$CALL_CWD/relative" set relative unset '' unset ''
 assert_unsafe_path 'path HARNESS dot component' "$PATH_FIXTURE/dot-root" set "$PATH_FIXTURE/dot-parent/../dot-root" unset '' unset ''
 assert_unsafe_path 'path HARNESS control' "$PATH_FIXTURE/newline" set "$PATH_FIXTURE/"$'new\nline' unset '' unset ''
 assert_unsafe_path 'path HARNESS missing parent' "$PATH_FIXTURE/missing/root" set "$PATH_FIXTURE/missing/root" unset '' unset ''
-assert_unsafe_path 'path HARNESS slash' /project set / unset '' unset ''
+assert_unsafe_path 'path HARNESS slash' "/$UNSAFE_PROJECT" set / unset '' unset ''
 
 assert_unsafe_path 'path XDG empty' "$PATH_FIXTURE/aosp-harness-$EUID" unset '' set '' unset ''
-assert_unsafe_path 'path XDG relative' "$TMP_TEST/relative/aosp-harness-$EUID" unset '' set relative unset ''
+assert_unsafe_path 'path XDG relative' "$CALL_CWD/relative/aosp-harness-$EUID" unset '' set relative unset ''
 assert_unsafe_path 'path XDG dot component' "$PATH_FIXTURE/dot-root/aosp-harness-$EUID" unset '' set "$PATH_FIXTURE/dot-parent/../dot-root" unset ''
 assert_unsafe_path 'path XDG control' "$PATH_FIXTURE/newline/aosp-harness-$EUID" unset '' set "$PATH_FIXTURE/"$'new\nline' unset ''
 assert_unsafe_path 'path XDG missing base' "$PATH_FIXTURE/missing-xdg/aosp-harness-$EUID" unset '' set "$PATH_FIXTURE/missing-xdg" unset ''
 
-assert_unsafe_path 'path TMP relative' "$TMP_TEST/relative/aosp-harness-$EUID" unset '' unset '' set relative
+assert_unsafe_path 'path TMP relative' "$CALL_CWD/relative/aosp-harness-$EUID" unset '' unset '' set relative
 assert_unsafe_path 'path TMP dot component' "$PATH_FIXTURE/dot-root/aosp-harness-$EUID" unset '' unset '' set "$PATH_FIXTURE/dot-parent/../dot-root"
 assert_unsafe_path 'path TMP control' "$PATH_FIXTURE/newline/aosp-harness-$EUID" unset '' unset '' set "$PATH_FIXTURE/"$'new\nline'
 assert_unsafe_path 'path TMP missing base' "$PATH_FIXTURE/missing-tmp/aosp-harness-$EUID" unset '' unset '' set "$PATH_FIXTURE/missing-tmp"
+
+[[ -d "$DEFAULT_ROOT" && ! -L "$DEFAULT_ROOT" ]] || fail 'path default selection: preexisting root missing'
+[[ $(stat -c '%i' "$DEFAULT_ROOT") == "$DEFAULT_FIXTURE_INODE" ]] || fail 'path default selection: preexisting root replaced'
+if (( DEFAULT_ROOT_EXISTED == 1 )); then
+  [[ $(stat -c '%i' "$DEFAULT_ROOT") == "$DEFAULT_ROOT_ORIGINAL_INODE" ]] || fail 'path default selection: original root inode changed'
+fi
 
 printf 'RESULT PASS  session state\n'
