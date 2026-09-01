@@ -69,4 +69,6 @@
 
 裁定: process baseline的`git diff --check`排除`research/raw/**`，因为两份raw evidence保留Markdown hard-break与命令转录尾空白；其余process文件和后续六个implementation paths仍严格检查。若判断错，代价是raw evidence格式被误当产品源码质量问题；implementation whitespace仍由task gate覆盖。
 
+裁定: execute报告/红证据/review统一使用skill强制的`.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/`，不使用tasks旧版`spec/evidence`路径；实现尚未开始，补充process baseline后重建worktree。若判断错，代价是`check-task-report.py`找不到canonical report或ledger链接失效。
+
 ---

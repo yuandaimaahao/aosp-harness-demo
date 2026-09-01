@@ -78,7 +78,7 @@ commit_task() {
 }
 ```
 
-每个candidate由fresh independent reviewer审`task_parent..task_sha`；FAIL时只改当前owned paths、重跑该任务全部oracle和上块、amend、重新生成`<=160`行report并派fresh reviewer。PASS后controller运行`mark-task-done.py`并用`apply_patch`追加唯一`- 任务 N: 完成 commits=[40-lower-hex] report=evidence/task-N-report.md review=work/review-task-N-PARENT12-SHA12.md`，再用`sync-ledger.py`只读核对。
+每个candidate由fresh independent reviewer审`task_parent..task_sha`；FAIL时只改当前owned paths、重跑该任务全部oracle和上块、amend、重新生成`<=160`行report并派fresh reviewer。PASS后controller运行`mark-task-done.py`并用`apply_patch`追加唯一`- 任务 N: 完成 commits=[40-lower-hex] report=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-N-report.md review=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-N-PARENT12-SHA12.md`，再用`sync-ledger.py`只读核对。
 
 四任务PASS后，final gate以`pre-commit --require-complete`验证base→tip六路径/≤800，再要求main HEAD仍等于base；main执行`git merge --no-ff "$task_branch" -m 'merge(spec): environment seed supersession validator'`。controller向working ledger追加唯一`- merge: 完成 commits=[MERGE_SHA] parent1=[BASE_SHA] parent2=[TIP_SHA]`，逐字检查四task/merge anchors及report files，然后运行accept。若main漂移则fail closed为`BASE_HEAD_MISMATCH`：保留旧branch证据，从新main重复baseline→四task replay/review，不amend/reparent旧commits。成功accept与retro落盘后，controller执行`git worktree remove "$task_worktree"`和`git branch -d "$task_branch"`；失败时保留该唯一owned worktree，不创建同名重试。
 
@@ -108,12 +108,12 @@ for index in 0 1 2 3; do
   task_id=$((index + 1))
   sha=${task_shas[$index]}
   parent=${task_parents[$index]}
-  report="evidence/task-$task_id-report.md"
-  review="work/review-task-$task_id-${parent:0:12}-${sha:0:12}.md"
+  report=".spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-$task_id-report.md"
+  review=".spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/review-task-$task_id-${parent:0:12}-${sha:0:12}.md"
   line="- 任务 $task_id: 完成 commits=[$sha] report=$report review=$review"
   test "$(grep -Fxc -- "$line" "$spec/ledger.md")" -eq 1
-  test -f "$spec/$report"
-  test -f "$spec/$review"
+  test -f "$PWD/$report"
+  test -f "$PWD/$review"
 done
 merge_line="- merge: 完成 commits=[$merge_sha] parent1=[$base_sha] parent2=[$tip_sha]"
 test "$(grep -Fxc -- "$merge_line" "$spec/ledger.md")" -eq 1
@@ -124,13 +124,13 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 ### 任务 1: 固化 manifest、closed core 与 dispatcher
 
 文件: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/supersession.json`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/supersession_lib.py`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py`
-验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-1-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-1-report.md`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-report.md`
 消费: 无
 产出: `supersession/v1` manifest, `supersession-core/v1` closed loader/PLAN validator
 需求: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, R27
 必需: 是
 
-- [ ] 步骤 1: 跑 `python3 .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py self-test`，确认红阶段rc nonzero/Python cannot-open-file/无PASS，并逐字记录`evidence/task-1-red.txt`。
+- [ ] 步骤 1: 跑 `python3 .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/verify-supersession.py self-test`，确认红阶段rc nonzero/Python cannot-open-file/无PASS，并逐字记录`.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-1-red.txt`。
 - [ ] 步骤 2: 创建canonical `supersession.json`，写process base、ordered replacements、R1–R27 owners、exact budgets和design中bytewise-sorted六路径。
 - [ ] 步骤 3: 创建`supersession_lib.py`的`ContractError`与duplicate-aware JSON loader，拒绝missing/unknown/duplicate keys、array order/duplicate、bool/negative、owner/DAG/budget/base/path错误并映射design exact codes。
 - [ ] 步骤 4: 在`supersession_lib.py`实现`validate_plan`，独立校验PLAN v6、DECISIONS merge裁定、sizing exact values及`check-plan.py` exit0。
@@ -141,7 +141,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 ### 任务 2: 实现 base-relative pre-commit mode
 
 文件: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/pre_commit.py`
-验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-2-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-2-report.md`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-2-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-2-report.md`
 消费: `supersession-core/v1` closed loader/PLAN validator
 产出: `pre-commit-mode/v1` linear ancestry/prospective scope gate
 需求: R24
@@ -155,7 +155,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 ### 任务 3: 实现 merge acceptance 与 isolated rollback
 
 文件: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/accept.py`
-验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-3-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-3-report.md` / 验证 `common/tests/test-harness.sh`, `common/.harness/bin/check-parity.sh`, `common/.harness/features/dev-sidebar/verify-sidebar.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-3-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-3-report.md` / 验证 `common/tests/test-harness.sh`, `common/.harness/bin/check-parity.sh`, `common/.harness/features/dev-sidebar/verify-sidebar.sh`
 消费: `supersession-core/v1` closed loader/PLAN validator
 产出: `accept-mode/v1` exact ledger/two-parent merge/revert gate
 需求: R24, R25
@@ -171,7 +171,7 @@ run_exact 'RESULT PASS environment-seed-preflight-supersession-acceptance' pytho
 ### 任务 4: 实现完整 mutation self-test 与 cumulative gate
 
 文件: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/work/modes/self_test.py`
-验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-4-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00-environment-seed-preflight/evidence/task-4-report.md`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-4-red.txt`, `.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00-environment-seed-preflight/task-4-report.md`
 消费: `supersession-core/v1` closed loader/PLAN validator, `pre-commit-mode/v1` linear ancestry/prospective scope gate, `accept-mode/v1` exact ledger/two-parent merge/revert gate
 产出: `supersession-validator/v1` complete mutation oracle and final six-path gate
 需求: R24
