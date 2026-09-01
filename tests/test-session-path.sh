@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+FOUNDATION="$ROOT/common/.harness/lib/session-state-foundation.sh"
+PROVIDER="$ROOT/common/.harness/lib/session-state-path.sh"
+TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-path-test.XXXXXX")
+trap 'rm -rf "$TMP_TEST"' EXIT
+
+fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
+[[ ${1:-} == --case && ${2:-} == source-validate && $# == 2 ]] || fail 'option: expected --case source-validate'
+[[ -f "$FOUNDATION" ]] || fail 'source present: foundation missing'
+[[ -f "$PROVIDER" ]] || fail 'source present: provider missing'
+
+source_case() {
+  local missing=$1 expected=$2 label=$3 audit="$TMP_TEST/$3-audit" watch="$TMP_TEST/$3-watch"
+  mkdir "$audit" "$watch"
+  printf sentinel >"$watch/sentinel"
+  MISSING=$missing EXPECTED=$expected FOUNDATION=$FOUNDATION PROVIDER=$PROVIDER AUDIT=$audit WATCH=$watch bash <<'SH'
+set -u
+fail() { printf 'FAIL %s\n' "$1" >&2; exit 1; }
+source "$FOUNDATION"
+[[ $MISSING == none ]] || unset -f "$MISSING"
+export HARNESS_STATE_ROOT="$WATCH/bad-harness" XDG_RUNTIME_DIR="$WATCH/bad-xdg" TMPDIR="$WATCH/bad-tmp"
+declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$AUDIT/env-before"
+for name in harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
+  declare -F "$name" >/dev/null && declare -f "$name"
+done >"$AUDIT/functions-before"
+declare -F | awk '{print $3}' | LC_ALL=C sort >"$AUDIT/names-before"
+before=$(find "$WATCH" -mindepth 1 -printf '%P|%y|%D|%i|%m|%U|%s\n' | LC_ALL=C sort)
+source "$PROVIDER" >"$AUDIT/out" 2>"$AUDIT/err"
+rc=$?
+after=$(find "$WATCH" -mindepth 1 -printf '%P|%y|%D|%i|%m|%U|%s\n' | LC_ALL=C sort)
+declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$AUDIT/env-after"
+for name in harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run; do
+  declare -F "$name" >/dev/null && declare -f "$name"
+done >"$AUDIT/functions-after"
+declare -F | awk '{print $3}' | LC_ALL=C sort >"$AUDIT/names-after"
+[[ $rc == 0 && ! -s "$AUDIT/out" && ! -s "$AUDIT/err" ]] || fail 'source streams or rc'
+cmp -s "$AUDIT/env-before" "$AUDIT/env-after" || fail 'source changed root declarations'
+cmp -s "$AUDIT/functions-before" "$AUDIT/functions-after" || fail 'source changed foundation functions'
+[[ $before == "$after" && $(<"$WATCH/sentinel") == sentinel ]] || fail 'source changed fixture'
+[[ ! -v HARNESS_SESSION_STATE_PROVIDER_VERSION ]] || fail 'source set provider marker'
+for name in harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove; do
+  ! declare -F "$name" >/dev/null || fail "source defined public $name"
+done
+if [[ $EXPECTED == present ]]; then
+  declare -F _harness_session_path_core >/dev/null || fail 'source did not define core'
+  comm -13 "$AUDIT/names-before" "$AUDIT/names-after" >"$AUDIT/added"
+  [[ $(<"$AUDIT/added") == _harness_session_path_core ]] || fail 'source defined unexpected functions'
+else
+  ! declare -F _harness_session_path_core >/dev/null || fail 'source defined core without dependency'
+  cmp -s "$AUDIT/names-before" "$AUDIT/names-after" || fail 'inert source changed function surface'
+fi
+SH
+}
+
+source_case none present present
+source_case harness_validate_feature_name absent missing-validate
+source_case _harness_session_state_foundation_path absent missing-path
+source_case _harness_session_state_run absent missing-run
+
+# shellcheck source=/dev/null
+source "$FOUNDATION"
+VALIDATE_LOG="$TMP_TEST/validate.log"
+PYTHON_LOG="$TMP_TEST/python.log"
+FAKE_BIN="$TMP_TEST/bin"
+mkdir "$FAKE_BIN" "$TMP_TEST/core-watch"
+printf '#!/usr/bin/env bash\nprintf called >>"$PYTHON_LOG"\n' >"$FAKE_BIN/python3"
+chmod +x "$FAKE_BIN/python3"
+harness_validate_feature_name() {
+  printf '%s\n' "${1-}" >>"$VALIDATE_LOG"
+  [[ $# == 1 && $1 != session-ok ]] || { printf 'validation detail must be discarded\n' >&2; return 77; }
+}
+# shellcheck source=/dev/null
+source "$PROVIDER"
+capture_core() {
+  : >"$TMP_TEST/out"; : >"$TMP_TEST/err"
+  PATH="$FAKE_BIN:$PATH" PYTHON_LOG=$PYTHON_LOG HARNESS_STATE_ROOT="$TMP_TEST/core-watch/root" \
+    _harness_session_path_core "$@" >"$TMP_TEST/out" 2>"$TMP_TEST/err"
+  CORE_RC=$?
+}
+assert_core() {
+  capture_core "$@"
+  [[ $CORE_RC == 2 && ! -s "$TMP_TEST/out" ]] || fail 'core validate: rc or stdout'
+  cmp -s "$TMP_TEST/err" <(printf 'error: unsafe session state\n') || fail 'core validate: stderr'
+}
+assert_core
+assert_core only-one
+assert_core one two three
+: >"$VALIDATE_LOG"
+before=$(find "$TMP_TEST/core-watch" -mindepth 1 -printf '%P|%y|%i|%m|%s\n' | LC_ALL=C sort)
+assert_core project-ok session-ok
+after=$(find "$TMP_TEST/core-watch" -mindepth 1 -printf '%P|%y|%i|%m|%s\n' | LC_ALL=C sort)
+cmp -s "$VALIDATE_LOG" <(printf 'project-ok\nsession-ok\n') || fail 'core validate: call order'
+[[ ! -s "$PYTHON_LOG" ]] || fail 'core validate: python invoked'
+[[ $before == "$after" ]] || fail 'core validate: fixture changed'
+
+printf 'RESULT PASS  session path safety\n'
