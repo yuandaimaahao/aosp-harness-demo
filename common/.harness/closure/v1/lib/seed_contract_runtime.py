@@ -179,43 +179,37 @@ def load_artifact(*, path: str, expected_kind: str) -> dict:
     return value
 def publish_object(*, state_dir: str, artifact_store: str, object_kind: str, payload: dict, forbidden_roots: tuple[str, ...], fault_point: str | None = None) -> dict:
     if type(state_dir) is not str or type(artifact_store) is not str or type(object_kind) is not str or object_kind not in ("source_state","trace","command_journal") or type(payload) is not dict or type(forbidden_roots) is not tuple or fault_point not in (None,"OBJECT_LINK","OBJECT_DIR_FSYNC") or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
-    domain=_validate_artifact(payload); data=_object_bytes(payload); digest=hashlib.sha256(domain.encode()+data[:-1]).hexdigest(); paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; temp=None; linked=False; fd=None
+    domain=_validate_artifact(payload); payload["kind"]==object_kind or (_ for _ in ()).throw(ContractError("ARGUMENT_ERROR")); data=_object_bytes(payload); digest=hashlib.sha256(domain.encode()+data[:-1]).hexdigest(); paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; linked=False; fd=None
     try:
         nodes,_=_walk(paths["object_dir"]); fd=os.open(".",os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=nodes[-1][0])
         def read(name):
-            try: file=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd)
+            try: probe=os.open(name,os.O_PATH|os.O_NOFOLLOW,dir_fd=fd)
             except FileNotFoundError: return None
+            try: stat=os.fstat(probe)
+            finally: os.close(probe)
+            if not __import__("stat").S_ISREG(stat.st_mode) or __import__("stat").S_IMODE(stat.st_mode)!=0o444: raise ContractError("DIGEST_COLLISION")
+            file=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd)
             try:
-                if not __import__("stat").S_ISREG(os.fstat(file).st_mode) or b"".join(iter(lambda:os.read(file,65536),b"")) != data: raise ContractError("DIGEST_COLLISION")
-                if os.fstat(file).st_mode&0o777 != 0o444: return False
+                if not __import__("stat").S_ISREG(os.fstat(file).st_mode) or __import__("stat").S_IMODE(os.fstat(file).st_mode)!=0o444 or b"".join(iter(lambda:os.read(file,65536),b"")) != data: raise ContractError("DIGEST_COLLISION")
                 os.fsync(file); return True
             finally: os.close(file)
-        def observed():
-            item=read(digest)
-            for _ in range(1000):
-                if item is not False: return item
-                os.sched_yield(); item=read(digest)
-            raise ContractError("DIGEST_COLLISION")
-        old=observed()
+        old=read(digest)
         if old is not None:
             os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
-        temp="."+digest+".tmp."+str(os.getpid())+"."+os.urandom(8).hex(); file=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=fd)
+        file=os.open(".",os.O_RDWR|os.O_TMPFILE,0o600,dir_fd=fd)
         try:
             os.fchmod(file,0o600); view=memoryview(data)
             while view: view=view[os.write(file,view):]
-            os.fsync(file)
+            os.fsync(file); os.fchmod(file,0o444); os.fsync(file)
             if fault_point == "OBJECT_LINK": raise ContractError("PUBLISH_PRECOMMIT_FAILED")
-            try: os.link(temp,digest,src_dir_fd=fd,dst_dir_fd=fd,follow_symlinks=False); linked=True; os.unlink(temp,dir_fd=fd); temp=None; os.fchmod(file,0o444); os.fsync(file)
-            except FileExistsError:
-                observed() is not None or (_ for _ in ()).throw(OSError()); os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+            c=__import__("ctypes"); link=c.CDLL(None,use_errno=True).linkat; result=link(file,b"",fd,digest.encode(),0x1000); result and c.get_errno()==2 and (result:=link(-100,f"/proc/self/fd/{file}".encode(),fd,digest.encode(),0x400)); result==0 or (_ for _ in ()).throw(OSError(c.get_errno(),"linkat")); linked=True
             if fault_point == "OBJECT_DIR_FSYNC": raise ContractError("PUBLISH_OBJECT_ORPHANED")
             os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
         finally: os.close(file)
     except ContractError: raise
-    except OSError: raise ContractError("PUBLISH_OBJECT_ORPHANED" if linked else "PUBLISH_PRECOMMIT_FAILED") from None
+    except OSError as error:
+        if error.errno==17 and read(digest): os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+        raise ContractError("PUBLISH_OBJECT_ORPHANED" if linked else "PUBLISH_PRECOMMIT_FAILED") from None
     finally:
-        if temp is not None:
-            try: os.unlink(temp,dir_fd=nodes[-1][0])
-            except OSError: pass
         if fd is not None: os.close(fd)
         _drop(nodes)
