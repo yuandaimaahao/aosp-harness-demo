@@ -23,40 +23,52 @@ def canonical_bytes(*, value: object) -> bytes:
 def domain_digest(*, domain_ascii: str, value: object) -> str:
     if type(domain_ascii) is not str or not domain_ascii.isascii(): raise ContractError("ARGUMENT_ERROR")
     return hashlib.sha256(domain_ascii.encode() + canonical_bytes(value=value)).hexdigest()
-def _open_dirs(path, make=False):
-    fd=os.open("/",os.O_RDONLY|os.O_DIRECTORY)
+_P=os.O_PATH|os.O_DIRECTORY|os.O_NOFOLLOW
+def _same(fd,path):
+    other=os.open(path,_P)
+    try: return os.fstat(fd).st_dev==os.fstat(other).st_dev and os.fstat(fd).st_ino==os.fstat(other).st_ino
+    finally: os.close(other)
+def _drop(nodes):
+    for fd,_ in nodes: os.close(fd)
+def _clean(made):
+    for fd,name in reversed(made):
+        try: os.rmdir(name,dir_fd=fd)
+        except OSError: pass
+def _walk(path,make=False):
+    nodes=[]; made=[]
     try:
-        for part in path.split("/")[1:]:
-            try: nxt=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+        nodes=[(os.open("/",_P),"/")]
+        for name in path.split("/")[1:]:
+            parent,base=nodes[-1]; _same(parent,base) or (_ for _ in ()).throw(OSError()) ; child_path=base.rstrip("/")+"/"+name
+            try: child=os.open(name,_P,dir_fd=parent)
             except FileNotFoundError:
                 if not make: raise
-                os.mkdir(part,0o700,dir_fd=fd); nxt=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
-            os.close(fd); fd=nxt
-        return fd
-    except BaseException: os.close(fd); raise
+                os.mkdir(name,0o700,dir_fd=parent); made.append((parent,name)); child=os.open(name,_P,dir_fd=parent)
+            nodes.append((child,child_path)); (_same(parent,base) and _same(child,child_path)) or (_ for _ in ()).throw(OSError())
+        return nodes,made
+    except BaseException: _clean(made); _drop(nodes); raise
 def _contained(path, root): return root=="/" or path==root or path.startswith(root+"/")
 def validate_state_paths(*, state_dir: str, out_ref: str | None, artifact_store: str, forbidden_roots: tuple[str, ...]):
-    if type(state_dir) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or out_ref is not None and type(out_ref) is not str: raise ContractError("ARGUMENT_ERROR")
-    state=state_dir; store=os.path.join(state,"artifacts/v1")
+    if type(state_dir) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or out_ref is not None and type(out_ref) is not str or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
+    state=state_dir; store=os.path.join(state,"artifacts/v1"); sd=od=rd=[]; made=[]
     try:
         if not os.path.isabs(state) or state.startswith("~") or state!=os.path.normpath(state) or state!=os.path.realpath(state) or artifact_store!=store or not os.access(state,os.W_OK|os.X_OK): raise OSError
-        fd=_open_dirs(state); os.close(fd)
-        roots=tuple(os.path.realpath(x) for x in forbidden_roots)
-        if any(_contained(state,x) or _contained(store,x) for x in roots): raise OSError
-        fd=_open_dirs(os.path.join(store,"sha256"),True); os.close(fd)
-    except (OSError,TypeError,ValueError): raise ContractError("STATE_DIR_CONTRACT") from None
-    if out_ref is None: return MappingProxyType({"state_dir":state,"artifact_store":store,"object_dir":store+"/sha256","out_ref":None,"ref_parent":None,"lock_path":None})
+        if any(_contained(state,x) or _contained(store,x) for x in forbidden_roots): raise OSError
+        sd,_=_walk(state); od,made=_walk(store+"/sha256",True)
+        if not all(_same(fd,path) for fd,path in sd+od): raise OSError
+    except (OSError,TypeError,ValueError): _clean(made); _drop(od); _drop(sd); raise ContractError("STATE_DIR_CONTRACT") from None
+    if out_ref is None: _drop(od); _drop(sd); return MappingProxyType({"state_dir":state,"artifact_store":store,"object_dir":store+"/sha256","out_ref":None,"ref_parent":None,"lock_path":None})
     try:
-        if not os.path.isabs(out_ref) or out_ref!=os.path.normpath(out_ref) or not _contained(out_ref,state) or out_ref==state or any(_contained(out_ref,x) for x in roots): raise OSError
+        if not os.path.isabs(out_ref) or out_ref!=os.path.normpath(out_ref) or not _contained(out_ref,state) or out_ref==state or any(_contained(out_ref,x) for x in forbidden_roots): raise OSError
         parent,leaf=os.path.dirname(out_ref),os.path.basename(out_ref)
         if not leaf or leaf in (".",".."): raise OSError
-        fd=_open_dirs(parent,True)
-        try:
-            leaf_fd=os.open(leaf,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd); stat=os.fstat(leaf_fd); os.close(leaf_fd)
-            if not __import__("stat").S_ISREG(stat.st_mode): raise OSError
-        except FileNotFoundError: pass
-        finally: os.close(fd)
-    except (OSError,TypeError,ValueError): raise ContractError("OUT_REF_CONTRACT") from None
+        rd,rmade=_walk(parent,True); made+=rmade
+        try: mode=os.stat(leaf,dir_fd=rd[-1][0],follow_symlinks=False).st_mode
+        except FileNotFoundError: mode=0
+        if mode and not __import__("stat").S_ISREG(mode) or not all(_same(fd,path) for fd,path in sd+od+rd): raise OSError
+    except ContractError: _clean(made); _drop(rd); _drop(od); _drop(sd); raise
+    except (OSError,TypeError,ValueError): changed=not all(_same(fd,path) for fd,path in sd+od); _clean(made); _drop(rd); _drop(od); _drop(sd); raise ContractError("STATE_DIR_CONTRACT" if changed else "OUT_REF_CONTRACT") from None
+    _drop(rd); _drop(od); _drop(sd)
     return MappingProxyType({"state_dir":state,"artifact_store":store,"object_dir":store+"/sha256","out_ref":out_ref,"ref_parent":parent,"lock_path":out_ref+".lock"})
 _DOMAINS={"seed_request":"aosp-harness/seed-request/v1\0","project_source_state":"aosp-harness/project-source-state/v1\0","source_state":"aosp-harness/source-state/v1\0","trace":"aosp-harness/trace/v1\0","command_journal":"aosp-harness/command-journal/v1\0","seed_content":"aosp-harness/seed-content/v1\0","seed_identity":"aosp-harness/seed-identity/v1\0","seed":"aosp-harness/seed-artifact/v1\0","terminal_report":"aosp-harness/terminal-report/v1\0"}
 def _bad(): raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
