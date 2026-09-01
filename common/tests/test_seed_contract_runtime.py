@@ -108,7 +108,24 @@ def state_paths():
         bads += ((str(blocked),str(blocked/"artifacts/v1"),None,(),"STATE_DIR_CONTRACT"),)
         for sd,st,rf,roots,code in bads: before=entries(root); bad(lambda sd=sd,st=st,rf=rf,roots=roots:runtime.validate_state_paths(state_dir=sd,out_ref=rf,artifact_store=st,forbidden_roots=roots),code); assert entries(root)==before
         blocked.chmod(0o700); blocked.chmod(0o300); assert runtime.validate_state_paths(state_dir=str(blocked),out_ref=None,artifact_store=str(blocked/"artifacts/v1"),forbidden_roots=())["state_dir"]==str(blocked); blocked.chmod(0o700)
+def store_object():
+    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"publish_object"),"object publisher missing"
+    payload={"schema_version":1,"kind":"source_state","manifest_sha256":"0"*64,"projects":[]}
+    with tempfile.TemporaryDirectory() as d:
+        root=Path(d); state=root/"state"; state.mkdir(); store=state/"artifacts/v1"; outside=root/"sentinel"; outside.write_bytes(b"fixed")
+        result=runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
+        object_path=Path(result["object_path"]); assert set(result)=={"digest","object_path"} and object_path.read_bytes()==canonical_bytes(value=payload)+b"\n" and object_path.stat().st_mode&0o777==0o444
+        assert result==runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
+        stale=object_path.parent/".old.tmp.1.1"; stale.write_bytes(b"stale"); stale.chmod(0o600); before=outside.read_bytes(); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="seed",payload=payload,forbidden_roots=()),"ARGUMENT_ERROR"); assert outside.read_bytes()==before and stale.read_bytes()==b"stale"
+        object_path.chmod(0o600); object_path.write_bytes(b"collision"); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=()),"DIGEST_COLLISION"); object_path.unlink()
+        calls=[]; old=runtime.os.fsync; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),old(fd))[1]
+        try:
+            result=runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=payload,forbidden_roots=())
+            altered={**payload,"manifest_sha256":"1"*64}; bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=altered,forbidden_roots=(),fault_point="OBJECT_LINK"),"PUBLISH_PRECOMMIT_FAILED")
+            orphan={**payload,"manifest_sha256":"2"*64}; bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=(),fault_point="OBJECT_DIR_FSYNC"),"PUBLISH_OBJECT_ORPHANED")
+        finally: runtime.os.fsync=old
+        assert len(calls)>=3 and Path(result["object_path"]).stat().st_mode&0o777==0o444 and not [x for x in object_path.parent.iterdir() if x.name != stale.name and ".tmp." in x.name] and outside.read_bytes()==before
 if __name__ == "__main__":
-    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths}
+    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths,"store-object":store_object}
     try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
     except (IndexError, KeyError): raise SystemExit("usage: canonical-core|concurrent-core") from None

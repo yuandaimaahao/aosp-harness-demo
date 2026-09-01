@@ -174,3 +174,39 @@ def load_artifact(*, path: str, expected_kind: str) -> dict:
     if not isinstance(value, dict) or value.get("kind") != expected_kind: raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
     _validate_artifact(value)
     return value
+def publish_object(*, state_dir: str, artifact_store: str, object_kind: str, payload: dict, forbidden_roots: tuple[str, ...], fault_point: str | None = None) -> dict:
+    if type(object_kind) is not str or object_kind not in ("source_state","trace","command_journal") or type(payload) is not dict or payload.get("kind") != object_kind or fault_point not in (None,"OBJECT_LINK","OBJECT_DIR_FSYNC"): raise ContractError("ARGUMENT_ERROR")
+    domain=_validate_artifact(payload); data=_object_bytes(payload); digest=hashlib.sha256(domain.encode()+data[:-1]).hexdigest(); paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; temp=None; linked=False; fd=None
+    try:
+        nodes,_=_walk(paths["object_dir"]); fd=os.open(".",os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=nodes[-1][0])
+        def read(name):
+            try: file=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd)
+            except FileNotFoundError: return None
+            try:
+                if not __import__("stat").S_ISREG(os.fstat(file).st_mode): raise OSError
+                return b"".join(iter(lambda:os.read(file,65536),b""))
+            finally: os.close(file)
+        old=read(digest)
+        if old is not None:
+            if old != data: raise ContractError("DIGEST_COLLISION")
+            return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+        temp="."+digest+".tmp."+str(os.getpid())+"."+os.urandom(8).hex(); file=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=fd)
+        try:
+            os.fchmod(file,0o600); view=memoryview(data)
+            while view: view=view[os.write(file,view):]
+            os.fsync(file); os.fchmod(file,0o444)
+        finally: os.close(file)
+        if fault_point == "OBJECT_LINK": raise ContractError("PUBLISH_PRECOMMIT_FAILED")
+        try: os.link(temp,digest,src_dir_fd=fd,dst_dir_fd=fd,follow_symlinks=False); linked=True
+        except FileExistsError:
+            if read(digest) != data: raise ContractError("DIGEST_COLLISION")
+        if fault_point == "OBJECT_DIR_FSYNC": raise ContractError("PUBLISH_OBJECT_ORPHANED")
+        os.fsync(fd); return {"digest":digest,"object_path":paths["object_dir"]+"/"+digest}
+    except ContractError: raise
+    except OSError: raise ContractError("PUBLISH_OBJECT_ORPHANED" if linked else "PUBLISH_PRECOMMIT_FAILED") from None
+    finally:
+        if temp is not None:
+            try: os.unlink(temp,dir_fd=nodes[-1][0])
+            except OSError: pass
+        if fd is not None: os.close(fd)
+        _drop(nodes)
