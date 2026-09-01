@@ -19,3 +19,23 @@
 ## v4 — 2026-08-31
 
 由 `reviews/plan-round-3.md` I1/I2/M1 触发：Android instance 别名可绕过 device/CVD 互斥，`09 -> 06` 缺 session/wait 参数来源，回滚矩阵误列 `06` 消费 `05`。熔断裁定见 `DECISIONS.md`：真实 Android 操作强制显式 instance ID，verifier CLI 显式接收 session/wait/instance ID，并删除错误依赖。
+
+## v4.1 — 2026-09-01
+
+由 `03-session-state-safety` requirements 首轮独立 review 阻断项 I2 触发：原 `03 -> 08` 只公开 feature 校验和状态路径，未公开安全快照读、写、删除，`08` 无法在不复制原子/owner/link 检查的前提下实现薄适配。保持 spec 拆分、顺序和验收判据不变，只把 03 的稳定 provider 契约补全为 validate/path/write/read/remove 五个 API；行为细节见 03 requirements 与 `DECISIONS.md`。
+
+## v5 — 2026-09-01
+
+由 `03-session-state-safety` ledger 的 Design round 1 B3 与 round 2 B2（`specs/2026-09-01-03-session-state-safety/ledger.md`）触发：五 API 的 fd 安全内核、确定性攻击/信号 oracle、Claude 三类 hook 与 demo 生命周期接入无法在 8 文件/400 行内同时给出可信实现和测试。沿已经闭合的五 API 稳定接口拆为 `03-session-state-safety`（provider + API/攻击测试）和 `03b-claude-session-lifecycle`（Claude hook/settings/demo + 生命周期测试），两片串行且各有独立判据、回滚和 provider-present/absent 路径；`03b` 独占 Claude hook，`08` 只改 wrapper/Codex hook，不形成叠改依赖。
+
+## v5.1 — 2026-09-01
+
+由收窄版 `03-session-state-safety` requirements review round 3 I2 触发：原 PLAN/API 常规返回只列 `0/1/2/3`，未定义 write 被信号中断的可观察结果，可能出现清理成功却 rc `0` 的假成功。保持 v5 拆片、顺序、判据和文件边界不变，只把 HUP/INT/TERM 的 shell 惯例退出码 `129/130/143` 加入 03 provider 契约；熔断裁定与错判代价见 03 ledger/DECISIONS。
+
+## v5.2 — 2026-09-01
+
+由 `03-session-state-safety` task 1.1/1.2 的真实实现和独立 diff review 触发：仅 validate、根选择、fresh fd 链及其可反证测试已占 373 行，原 sizing prototype 声称完整五 API 只需 359 行已被证伪。拆出 path foundation 会让主线短暂暴露未完成 existing-object hardening 的 public API，因此不改变五 API 内聚边界；03 改为 design 目标 1200、3 文件/1400 行硬门，并以 16 个小任务、每任务独立 review 维持审查粒度。其他 spec 仍用默认 8 文件/400 行。
+
+## v5.3 — 2026-09-01
+
+由 v5.2 增量 PLAN review 的 P5 阻断触发：1400 行聚合包即使逐任务 review，也没有“全部产出一小时内审完”的证据。初版按安全完成边界拆为 foundation、fully-hardened path、snapshot write/read、write interrupts、remove/prune、Claude lifecycle 六片；两轮独立 v5.3 review 又指出连续规格若叠改同一provider/test、共改02的coverage或不处理上游回滚后的自动测试，会破坏P2并让消费者观测partial provider。最终每片独占foundation/path/snapshot/signals/remove模块与测试，03d独占aggregator/集成测试/coverage fragment；每条私有边写死签名和present/absent inert契约，aggregator只有五模块私有接口完整时才设置marker并发布五API，03e/08对每种missing-module状态都回退legacy。每片仍执行默认400行门，controller用六列首尾绑定review manifest机械证明提交链无未审缺口。

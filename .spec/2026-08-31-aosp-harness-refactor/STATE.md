@@ -3,8 +3,8 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: select
 phase_status: in_progress
-basis: 02 复盘五问均否：不改 PLAN、不补调研，下一片仍为 03-session-state-safety
-updated: '2026-09-01T11:03:08+08:00'
+basis: 03 foundation复盘五问均否：PLAN v5.3无需调整；下一片为03a-session-path-safety
+updated: '2026-09-01T19:04:06+08:00'
 current_spec: null
 spec_stage: null
 mode: standard
@@ -63,6 +63,18 @@ workflow: requirements-first
 | 2026-09-01T10:59:08+08:00 | spec/execute | spec/accept | 六个串行任务全部 DONE：每任务均有红阶段证据、实现报告、普通 Conventional Commit 与全新上下文独立 diff review；所有阻断/重要 findings 已修复并 re-review PASS，sync-ledger 通过，隔离 worktree clean |
 | 2026-09-01T11:02:41+08:00 | spec/accept | retro | 02-offline-quality-gate 验收通过：R1-R9/三条不变量/六文件289行/两个固定摘要/收敛检查均通过；source 已快进合入 main，work 证据已单独提交，PLAN/DECISIONS 已更新 |
 | 2026-09-01T11:03:08+08:00 | retro | select | 02 复盘五问均否：不改 PLAN、不补调研，下一片仍为 03-session-state-safety |
+| 2026-09-01T11:04:46+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-01-03-session-state-safety |
+| 2026-09-01T11:40:15+08:00 | spec/requirements | spec/design | 门② autopilot：三轮独立 requirements review 已达上限并逐项裁定；R1-R9、五 API 与攻击/生命周期边界闭合，机械检查全通过 |
+| 2026-09-01T15:35:55+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v5.1 收窄 design 三轮独立 review 最终 PASS，R1-R9、算法边界、六 marker 与 3 文件/359 行 sizing 闭合，机械检查全通过 |
+| 2026-09-01T16:14:21+08:00 | spec/tasks | spec/execute | 门④ autopilot：三轮全新上下文 tasks review 达熔断上限并融合全部承重 finding；16 个串行任务覆盖 R1-R9、六 marker、BASE 证据和 3文件/400行硬门，check-plan/check-tasks/check-req/check-criteria/check-analyze/git diff --check 全通过 |
+| 2026-09-01T17:10:08+08:00 | spec/execute | spec/accept | 执行中 sizing 证据触发验收回流：task1.1/1.2 已独立 review 完成，但 validate+fresh-path 已373/400，剩余承重功能无法在原硬门内实现 |
+| 2026-09-01T17:10:08+08:00 | spec/accept | spec/requirements | accept backflow：保留五API内聚与三文件边界，基于真实diff重定1200设计目标/1400硬门并重走 requirements、design、tasks review |
+| 2026-09-01T18:07:04+08:00 | spec/requirements | spec/design | 门② autopilot：foundation requirements 三轮独立审查已熔断并采纳全部承重 finding；R1-R6、双 private export、根真值表、source/public surface、六列 manifest 与 2文件/400行门闭合，机械检查全通过 |
+| 2026-09-01T18:15:45+08:00 | spec/design | spec/tasks | 门③ autopilot：foundation design 三轮全新上下文独立审查最终 PASS；八节、R1-R6、双 private 接口、root/fd 算法、测试、manifest、373+27/400 和发布边界闭合，机械检查全通过 |
+| 2026-09-01T18:32:03+08:00 | spec/tasks | spec/execute | 门④ autopilot：foundation tasks 三轮独立审查已熔断并采纳全部承重 finding；task1.3 393行 sizing、确定性 red、双 private 矩阵、绝对路径 pre/post/final 门和 manifest 边界闭合，机械检查全通过 |
+| 2026-09-01T19:00:12+08:00 | spec/execute | spec/accept | 任务1.1-1.3均有红阶段证据、普通提交和独立review最终PASS；六列manifest连续绑定execution BASE到最终HEAD，exact 2 files/400 lines，foundation与offline门禁PASS |
+| 2026-09-01T19:03:20+08:00 | spec/accept | retro | 03 foundation验收通过：R1-R6、三条不变量、exact2/400、连续review manifest与收敛检查全PASS；source已快进合入main，PLAN/DECISIONS已更新 |
+| 2026-09-01T19:04:06+08:00 | retro | select | 03 foundation复盘五问均否：PLAN v5.3无需调整；下一片为03a-session-path-safety |
 
 ## SKIPPED 记录
 
