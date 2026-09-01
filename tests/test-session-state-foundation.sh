@@ -74,15 +74,36 @@ assert_call() {
   assert_api "$expected_rc" "$label" "$expected_out" "$expected_err"
 }
 [[ -f "$PROVIDER" ]] || fail 'validate valid: provider missing'
-unset HARNESS_SESSION_STATE_PROVIDER_VERSION
-export HARNESS_STATE_ROOT='./source-harness-sentinel' XDG_RUNTIME_DIR='./source-xdg-sentinel' TMPDIR='./source-tmp-sentinel'
-source_sentinel_before=$(declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR)
+# Sourcing is definition-only: all candidate roots remain untouched, exported
+# sentinels are byte-identical, and no capability marker appears.
+SOURCE_FIXTURE=$(mktemp -d "$TMP_TEST/source-fixture.XXXXXX")
+printf 'sentinel' >"$SOURCE_FIXTURE/sentinel"
+SOURCE_TARGETS=("$SOURCE_FIXTURE/harness-target" "$SOURCE_FIXTURE/xdg-target" "$SOURCE_FIXTURE/tmp-target")
+before=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
+(
+  cd "$SOURCE_FIXTURE" || exit 1
+  unset HARNESS_SESSION_STATE_PROVIDER_VERSION
+  export HARNESS_STATE_ROOT="${SOURCE_TARGETS[0]}" XDG_RUNTIME_DIR="${SOURCE_TARGETS[1]}" TMPDIR="${SOURCE_TARGETS[2]}"
+  declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$TMP_TEST/source-before"
+  # shellcheck source=/dev/null
+  source "$PROVIDER" >"$TMP_TEST/source-out" 2>"$TMP_TEST/source-err"
+  printf '%s\n' "$?" >"$TMP_TEST/source-rc"
+  declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR >"$TMP_TEST/source-after"
+  [[ ! -v HARNESS_SESSION_STATE_PROVIDER_VERSION ]] || : >"$TMP_TEST/source-marker"
+  declare -f _harness_component_is_safe harness_validate_feature_name _harness_session_state_foundation_path _harness_session_state_run >"$TMP_TEST/source-functions"
+)
+after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
+[[ $(<"$TMP_TEST/source-rc") == 0 ]] || fail 'source dangerous roots: rc'
+[[ ! -s "$TMP_TEST/source-out" && ! -s "$TMP_TEST/source-err" ]] || fail 'source dangerous roots: output'
+cmp -s "$TMP_TEST/source-before" "$TMP_TEST/source-after" || fail 'source sentinel: declarations changed'
+[[ ! -e "$TMP_TEST/source-marker" ]] || fail 'public surface: provider marker must be absent'
+[[ "$before" == "$after" ]] || fail 'source dangerous roots: fixture changed'
+cmp -s "$SOURCE_FIXTURE/sentinel" <(printf 'sentinel') || fail 'source dangerous roots: sentinel content changed'
+for source_target in "${SOURCE_TARGETS[@]}"; do
+  [[ ! -e "$source_target" && ! -L "$source_target" ]] || fail 'source dangerous roots: target appeared'
+done
 # shellcheck source=/dev/null
-source "$PROVIDER" || fail 'validate valid: source failed'
-source_sentinel_after=$(declare -p HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR)
-[[ "$source_sentinel_after" == "$source_sentinel_before" ]] || fail 'source sentinel: declarations changed'
-unset HARNESS_STATE_ROOT XDG_RUNTIME_DIR TMPDIR
-
+source "$TMP_TEST/source-functions"
 for public_name in harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove; do
   if declare -F "$public_name" >/dev/null; then
     fail "public surface: $public_name must be absent"
@@ -105,28 +126,6 @@ done
 
 assert_call 2 'validate arity zero' '' $'error: invalid feature name\n' harness_validate_feature_name
 assert_call 2 'validate arity extra' '' $'error: invalid feature name\n' harness_validate_feature_name a b
-# Sourcing is definition-only: even a dangerous root must not be parsed or
-# touched until an operation is called. Keep an independent inode/content oracle.
-SOURCE_FIXTURE=$(mktemp -d "$TMP_TEST/source-fixture.XXXXXX")
-printf 'sentinel' >"$SOURCE_FIXTURE/sentinel"
-SOURCE_SENTINEL_EXPECTED=$(mktemp "$TMP_TEST/source-sentinel.XXXXXX")
-printf 'sentinel' >"$SOURCE_SENTINEL_EXPECTED"
-SOURCE_TARGET="$SOURCE_FIXTURE/dangerous-root"
-before=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
-source_out=$(mktemp "$TMP_TEST/source-out.XXXXXX")
-source_err=$(mktemp "$TMP_TEST/source-err.XXXXXX")
-(
-  cd "$SOURCE_FIXTURE" || exit 1
-  export HARNESS_STATE_ROOT='./dangerous-root'
-  # shellcheck source=/dev/null
-  source "$PROVIDER"
-) >"$source_out" 2>"$source_err"; source_rc=$?
-after=$(find "$SOURCE_FIXTURE" -mindepth 1 -maxdepth 2 -printf '%P %i %s\n' | LC_ALL=C sort)
-[[ "$source_rc" == 0 ]] || fail 'source dangerous root: rc'
-[[ ! -s "$source_out" && ! -s "$source_err" ]] || fail 'source dangerous root: output'
-[[ "$before" == "$after" ]] || fail 'source dangerous root: fixture changed'
-cmp -s "$SOURCE_FIXTURE/sentinel" "$SOURCE_SENTINEL_EXPECTED" || fail 'source dangerous root: sentinel content changed'
-[[ ! -e "$SOURCE_TARGET" && ! -L "$SOURCE_TARGET" ]] || fail 'source dangerous root: target appeared'
 # The predicate explicitly pins byte-oriented matching to the C locale.
 grep -Fq 'LC_ALL=C' "$PROVIDER" || fail 'validate locale: C locale missing'
 
@@ -202,7 +201,7 @@ done
 HARNESS_STATE_ROOT=$HARNESS_ROOT assert_call 0 'dispatcher success' "$HARNESS_PHYSICAL/$HARNESS_PROJECT/$HARNESS_SESSION"$'\n' '' _harness_session_state_run path "$HARNESS_PROJECT" "$HARNESS_SESSION"
 FAULT_PROVIDER="$TMP_TEST/session-state-fault.sh"
 FAULT_ROOT="$PATH_FIXTURE/fault-root"
-sed 's/os.mkdir(name, 0o700, dir_fd=parent_fd)/raise OperationFailure/' "$PROVIDER" >"$FAULT_PROVIDER"
+sed 's/os.mkdir(name, 0o700, dir_fd=parent_fd)/raise OSError(errno.EIO, "injected")/' "$PROVIDER" >"$FAULT_PROVIDER"
 for private_name in _harness_session_state_foundation_path _harness_session_state_run; do
   private_args=("$HARNESS_PROJECT" "$HARNESS_SESSION")
   [[ "$private_name" == _harness_session_state_run ]] && private_args=(path "$HARNESS_PROJECT" "$HARNESS_SESSION")
