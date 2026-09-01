@@ -27,5 +27,16 @@ quality_run_core() {
   while IFS= read -r -d '' path; do root_tests+=("${path#./}"); done < <(find ./tests -maxdepth 1 -type f -name 'test-*.sh' -print0 | LC_ALL=C sort -z)
   for path in "${root_tests[@]}"; do QUALITY_GATE_NESTED=1 bash "$path" || return 1; done
 }
+if [[ "$mode" == --ci ]]; then
+  for tool_spec in shellcheck:0.11.0 shfmt:3.14.0 gitleaks:8.30.1; do
+    tool="${tool_spec%%:*}"; expected="${tool_spec#*:}"
+    command -v "$tool" >/dev/null 2>&1 || quality_protocol_error "missing $tool $expected"
+    case "$tool" in
+      shellcheck) [[ "$(shellcheck --version | awk '/^version:/ {print $2}')" == 0.11.0 ]] || quality_protocol_error 'expected shellcheck 0.11.0' ;;
+      shfmt) [[ "$(shfmt --version)" == v3.14.0 ]] || quality_protocol_error 'expected shfmt 3.14.0' ;;
+      gitleaks) [[ "$(gitleaks version)" == 8.30.1 ]] || quality_protocol_error 'expected gitleaks 8.30.1' ;;
+    esac
+  done
+fi
 quality_run_core || exit 1
 printf 'RESULT PASS  aosp-harness offline quality gate\n'
