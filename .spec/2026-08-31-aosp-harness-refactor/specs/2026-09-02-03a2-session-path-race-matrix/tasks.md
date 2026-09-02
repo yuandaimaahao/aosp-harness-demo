@@ -9,6 +9,7 @@
 产出: matrix-gate-v1
 需求: R1, R2, R3, R4
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: controller在派发前从implementation worktree只读记录`BASE_SHA=$(git rev-parse HEAD)`，验证为40位commit并把同一immutable值显式传入每个任务brief/report与最终controller命令；同时记录tracked foundation/provider/driver的SHA-256及目标文件物理缺席。运行`bash tests/test-session-path-races.sh`，红阶段必须因文件缺席而非临时同名源码失败，stdout不含`RESULT PASS`。
 - [ ] 步骤 2: 只提取prototype的root/temp/argv、`write_matrix`、`check_matrix`、`inert_surface`与provider-absent分支。matrix顺序固定为swap9、wrong-euid3、eexist9、mkdir-replace3、mkdir-failure3、post-mkdir-disappear3、open-disappear3、final-stat-disappear3、real-eio1；在读取任何dependency前校验37行、37唯一ID及`9/3/9/3/3/3/3/3/1`。
@@ -34,6 +35,7 @@
 产出: dependency-classifier-v1
 需求: R4, R5, R7
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 在真实dependency-present repo运行`bash tests/test-session-path-races.sh`，确认当前红阶段精确因`dependency classifier incomplete`而rc1、stdout0/no-PASS；记录driver未被调用与provider/driver SHA不变。
 - [ ] 步骤 2: 按设计固定顺序实现：provider缺席inert → provider存在则三anchor各exact1 → driver缺席inert/symlink或nonregular fail → `python3 DRIVER protocol`精确rc0/stdout28B/stderr0 → flag/foundation缺席/core不可用inert。protocol必须用分离临时文件捕获stdout/stderr与rc，不得用丢失末LF的command substitution判等。
@@ -72,6 +74,7 @@
 产出: session-path-race-matrix-v1
 需求: R1, R2, R3, R5, R6, R7, R8, R9, R10
 必需: 是
+状态: 完成
 验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/acceptance/accepted-default.out` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/acceptance/fake-driver.argv` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/acceptance/matrix.tsv` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/acceptance/case-log.expected` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/acceptance/acceptance-report.md` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/review-manifest.tsv`
 
 - [ ] 步骤 1: 在真实dependency-present repo运行`bash tests/test-session-path-races.sh`，确认当前红阶段精确因`race adapter incomplete`而rc1、stdout0/no-PASS；controller同时独立确认driver `protocol`与`self-test FOUNDATION PROVIDER`均绿，证明红因只在入口adapter。

@@ -1,0 +1,21 @@
+03a2 Task 2 red evidence
+
+TASK_BASE=8ef44f1b59e67c02dacc695b2eef0c2b6fc87a9a
+command=bash tests/test-session-path-races.sh
+rc=1
+stdout_bytes=0
+stderr_bytes=38
+stderr_exact=FAIL dependency classifier incomplete\n
+pass_summary_present=no
+fake_driver_argv_log=physically absent
+driver_calls=0
+
+dependency_sha256_before:
+07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64  common/.harness/lib/session-state-path.sh
+cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0  tests/lib/session-path-race-driver.py
+
+dependency_sha256_after:
+07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64  common/.harness/lib/session-state-path.sh
+cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0  tests/lib/session-path-race-driver.py
+
+The dependency-present entrypoint failed only at the intended Task 1 transition seam and did not invoke the driver.

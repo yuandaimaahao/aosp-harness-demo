@@ -1,0 +1,2 @@
+protocol
+run-matrix	/tmp/03a2-task3-fake.ru2Ze0/common/.harness/lib/session-state-foundation.sh	/tmp/03a2-task3-fake.ru2Ze0/common/.harness/lib/session-state-path.sh	/tmp/session-path-races-03a2.spAsCN/driver	/tmp/session-path-races-03a2.spAsCN/cases.tsv	/tmp/session-path-races-03a2.spAsCN/driver/cases.log

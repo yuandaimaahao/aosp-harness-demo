@@ -1,0 +1,30 @@
+03a2 Task 3 red evidence
+
+TASK_BASE=723bb71ecbfc075acd667fb0b0b7de8e78b026fd
+
+entry_command=bash tests/test-session-path-races.sh
+entry_rc=1
+entry_stdout_bytes=0
+entry_stderr_bytes=29
+entry_stderr_exact=FAIL race adapter incomplete\n
+entry_pass_summary_present=no
+
+controller_protocol_command=python3 tests/lib/session-path-race-driver.py protocol
+controller_protocol_rc=0
+controller_protocol_stdout_bytes=28
+controller_protocol_stderr_bytes=0
+controller_protocol_stdout_exact=session-path-race-driver-v1\n
+controller_selftest_command=python3 tests/lib/session-path-race-driver.py self-test common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh
+controller_selftest_rc=0
+controller_selftest_stdout_bytes=38
+controller_selftest_stderr_bytes=0
+controller_selftest_stdout_exact=RESULT PASS  session path race driver\n
+dependency_sha256_before:
+07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64  common/.harness/lib/session-state-path.sh
+cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0  tests/lib/session-path-race-driver.py
+
+dependency_sha256_after:
+07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64  common/.harness/lib/session-state-path.sh
+cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0  tests/lib/session-path-race-driver.py
+
+The independently green driver protocol/self-test prove that the only remaining entrypoint red is the intended Task 3 adapter seam.

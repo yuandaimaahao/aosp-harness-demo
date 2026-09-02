@@ -1,0 +1,12 @@
+03a2 Task 1 deterministic red evidence
+TASK_BASE=6f26119e0f49891f033c1f63183a27344cf60bb5
+command=bash tests/test-session-path-races.sh
+target_physical_absent=yes
+rc=127
+stdout_bytes=0
+stderr_bytes=66
+stdout_pass_count=0
+stderr=bash: tests/test-session-path-races.sh: No such file or directory
+foundation_sha256=d3113933e57e59c7d942c60d48d69299bcef64da1c94ff464ea58b0f89767552
+provider_sha256=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+driver_sha256=cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0

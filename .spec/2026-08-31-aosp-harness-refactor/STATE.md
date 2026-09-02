@@ -3,10 +3,10 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门④ autopilot：03a2 tasks round3独立review PASS；三任务纵切、唯一红因、fake调用证据、双仓accepted门、exact1/400与03b fail-closed顺序门闭合
-updated: '2026-09-02T09:58:58+08:00'
+basis: 03a2三任务均DONE且独立review PASS；accepted HEAD b9582e51的37/37、九类、exact1/141、manifest 3/3、offline与03b缺席最终controller门PASS
+updated: '2026-09-02T10:59:09+08:00'
 current_spec: 2026-09-02-03a2-session-path-race-matrix
-spec_stage: execute
+spec_stage: accept
 mode: standard
 workflow: requirements-first
 ---
@@ -99,6 +99,7 @@ workflow: requirements-first
 | 2026-09-02T09:15:22+08:00 | spec/requirements | spec/design | 门② autopilot：03a2 requirements round2独立review PASS；R1-R10、优先级、rollback、固定工具、full/depth与顺序门闭合，机械检查全PASS |
 | 2026-09-02T09:37:08+08:00 | spec/design | spec/tasks | 门③ autopilot：03a2 design round2独立review PASS（0/0/0）；概览与时序仅保留matrix duplicate递归自证，其余损坏由controller隔离夹具验收，137/400扩展原型与机械检查全PASS |
 | 2026-09-02T09:58:58+08:00 | spec/tasks | spec/execute | 门④ autopilot：03a2 tasks三轮独立review最终PASS；三任务纵切、可执行Bash骨架、fake零/精确调用、显式BASE、双仓accepted/full/depth-1/rollback、三行manifest与03b fail-closed顺序门闭合，机械检查全PASS |
+| 2026-09-02T10:59:09+08:00 | spec/execute | spec/accept | 三任务均有真实red、普通提交和独立diff review最终PASS；manifest连续绑定6f26119至b9582e5，dependency-present 37/37、九类、exact1/141、full/depth-1/rollback、pinned tools、offline、clean及03b全缺席的controller终门PASS |
 
 ## SKIPPED 记录
 
