@@ -1,0 +1,157 @@
+# review 包 770fc1ff..d90d6199
+
+## commit 列表
+
+```
+d90d619 fix: harden locked ref resolution
+a599496 feat: add locked seed ref resolver
+```
+
+## diff --stat
+
+```
+ .../closure/v1/lib/seed_contract_runtime.py        | 62 +++++++++++++++++++++-
+ common/tests/test_seed_contract_runtime.py         | 20 ++++++-
+ 2 files changed, 80 insertions(+), 2 deletions(-)
+```
+
+## diff
+
+```diff
+diff --git a/common/.harness/closure/v1/lib/seed_contract_runtime.py b/common/.harness/closure/v1/lib/seed_contract_runtime.py
+index 5d4e797..6cc192f 100644
+--- a/common/.harness/closure/v1/lib/seed_contract_runtime.py
++++ b/common/.harness/closure/v1/lib/seed_contract_runtime.py
+@@ -1,11 +1,11 @@
+-import base64, hashlib, json, os, re; from types import MappingProxyType; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
++import base64, fcntl, hashlib, json, os, re; from types import MappingProxyType; from urllib.parse import parse_qsl,urlsplit; RUNTIME_ABI, _SAFE = "seed-contract-runtime/v1", 2**53-1
+ class ContractError(Exception):
+     def __init__(self, code: str) -> None: self._code = code if isinstance(code, str) else "ARGUMENT_ERROR"; super().__init__(self._code)
+     code = property(lambda self: self._code)
+ def _pairs(pairs):
+     if len(result := dict(pairs)) != len(pairs): raise ContractError("DUPLICATE_JSON_KEY")
+     return result
+ def _guard(value):
+     if value is None or isinstance(value, bool): return
+     if isinstance(value, int) and -_SAFE <= value <= _SAFE: return
+     if isinstance(value, str) and not any(0xd800 <= ord(c) <= 0xdfff for c in value): return
+@@ -170,20 +170,80 @@ def load_artifact(*, path: str, expected_kind: str) -> dict:
+     except (OSError, TypeError): raise ContractError("DESCRIPTOR_NOT_FOUND") from None
+     try: value = json.loads(raw.decode(), object_pairs_hook=_pairs)
+     except UnicodeDecodeError: raise ContractError("DESCRIPTOR_INVALID_UTF8") from None
+     except json.JSONDecodeError: raise ContractError("DESCRIPTOR_SCHEMA_INVALID") from None
+     if type(value) is not dict or type(value.get("schema_version")) is not int: _bad()
+     if value["schema_version"] != 1: raise ContractError("UNSUPPORTED_SCHEMA_VERSION")
+     _guard(value)
+     if not isinstance(value, dict) or value.get("kind") != expected_kind: raise ContractError("DESCRIPTOR_SCHEMA_INVALID")
+     _validate_artifact(value)
+     return value
++def _readat(fd,name,mode=None):
++    try: probe=os.open(name,os.O_PATH|os.O_NOFOLLOW,dir_fd=fd)
++    except OSError as error: return None if error.errno==2 else False
++    try:
++        stat=os.fstat(probe)
++        if not __import__("stat").S_ISREG(stat.st_mode) or mode is not None and __import__("stat").S_IMODE(stat.st_mode)!=mode: return False
++        file=os.open(name,os.O_RDONLY|os.O_NONBLOCK|os.O_NOFOLLOW,dir_fd=fd)
++        try: fresh=os.fstat(file); return b"".join(iter(lambda:os.read(file,65536),b"")) if (fresh.st_dev,fresh.st_ino)==(stat.st_dev,stat.st_ino) else False
++        finally: os.close(file)
++    except OSError: return False
++    finally: os.close(probe)
++def _decode(raw):
++    try:
++        value=json.loads(raw.decode(),object_pairs_hook=_pairs); return value if raw==_object_bytes(value) else False
++    except (AttributeError,ContractError,UnicodeError,json.JSONDecodeError,TypeError): return False
++def _artifact(raw,digest,kind):
++    try:
++        value=_decode(raw); return value if value is not False and _validate_artifact(value)==_DOMAINS[kind] and hashlib.sha256(_DOMAINS[kind].encode()+_object_bytes(value)[:-1]).hexdigest()==digest else False
++    except ContractError: return False
++def _closure(seed,values):
++    try:
++        states=(values["before"],values["after"]); manifest=seed["manifest"]
++        for state in states:
++            state["manifest_sha256"]==manifest["locked_xml_sha256"] and {x["path"] for x in state["projects"]}=={x["path"] for x in manifest["projects"]} and all(domain_digest(domain_ascii=_DOMAINS["project_source_state"],value=x)==next(y["source_state_digest"] for y in manifest["projects"] if y["path"]==x["path"]) for x in state["projects"]) or (_ for _ in ()).throw(ValueError())
++        trace,journal=values["trace"],values["journal"]; all(trace["counts"][x]==seed["guard"][x+"_count"] for x in ("external_network","source_mutation","sync_download","module_build","package")) or (_ for _ in ()).throw(ValueError()); sequences={x["sequence"] for x in trace["records"]}; all(x["exit_code"]==0 and x["trace_first_sequence"] in sequences and x["trace_last_sequence"] in sequences for x in journal["records"]) and next(x["exit_code"] for x in journal["records"] if x["stage"]=="envsetup_lunch")==seed["lunch"]["lunch_exit"] or (_ for _ in ()).throw(ValueError())
++        return {"source_state_before":True,"source_state_after":True,"trace":True,"command_journal":True}
++    except (KeyError,StopIteration,ValueError,ContractError): raise ContractError("REF_CORRUPT") from None
++def resolve_ref(*, state_dir: str, ref: str, artifact_store: str, forbidden_roots: tuple[str, ...], require_public_real: bool = False) -> dict:
++    if type(state_dir) is not str or type(ref) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or type(require_public_real) is not bool or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
++    paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; object_nodes=[]; lock=None
++    if not os.path.isabs(ref) or ref!=os.path.normpath(ref) or not (paths["state_dir"]=="/" or ref.startswith(paths["state_dir"]+"/")) or os.path.basename(ref) in ("",".","..") or any(ref==x or ref.startswith(x+"/") for x in forbidden_roots): raise ContractError("OUT_REF_CONTRACT")
++    try:
++        nodes,_=_walk(os.path.dirname(ref),True); parent=nodes[-1][0]; name=os.path.basename(ref)+".lock"; made=False
++        try:
++            try: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
++            except FileNotFoundError:
++                try: lock=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent); made=True
++                except FileExistsError: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
++        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
++        try:
++            made and os.fchmod(lock,0o600); stat=os.fstat(lock)
++            __import__("stat").S_ISREG(stat.st_mode) and stat.st_uid==os.geteuid() and __import__("stat").S_IMODE(stat.st_mode)==0o600 or (_ for _ in ()).throw(OSError())
++        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
++        try: fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
++        except BlockingIOError: raise ContractError("REF_BUSY") from None
++        raw=_readat(parent,os.path.basename(ref)); raw is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); raw is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); descriptor=_decode(raw); type(descriptor) is dict and set(descriptor)=={"schema_version","kind","digest"} and descriptor.get("schema_version")==1 and descriptor.get("kind") in ("env_pass","terminal_report") and type(descriptor.get("digest")) is str and re.fullmatch("[0-9a-f]{64}",descriptor["digest"]) or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
++        expected={"env_pass":"seed","terminal_report":"terminal_report"}[descriptor["kind"]]; object_nodes,_=_walk(paths["object_dir"]); objectfd=object_nodes[-1][0]
++        raw=_readat(objectfd,descriptor["digest"],0o444); raw is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); primary=_artifact(raw,descriptor["digest"],expected); primary is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
++        needs=[("before",primary["source_state"]["before_digest"],"source_state"),("after",primary["source_state"]["after_digest"],"source_state"),("trace",primary["guard"]["trace_digest"],"trace"),("journal",primary["guard"]["command_journal_digest"],"command_journal")] if expected=="seed" else [(key,digest,key) for key,digest in primary["completed_observation_digests"].items() if digest is not None]
++        all(type(digest)is str and re.fullmatch("[0-9a-f]{64}",digest) and kind in _DOMAINS for _,digest,kind in needs) or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); raw={label:_readat(objectfd,digest,0o444) for label,digest,kind in needs}; any(value is None for value in raw.values()) and (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); values={label:_artifact(raw[label],digest,kind) for label,digest,kind in needs}; all(value is not False for value in values.values()) or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
++        evidence=_closure(primary,values) if expected=="seed" else None; require_public_real and not _validate_public_real(primary,evidence) and (_ for _ in ()).throw(ContractError("PUBLIC_SCOPE_REQUIRED")); return primary
++    except ContractError: raise
++    except (OSError,TypeError,ValueError,KeyError): raise ContractError("OUT_REF_CONTRACT" if not nodes else "REF_CORRUPT") from None
++    finally:
++        if lock is not None:
++            try: fcntl.flock(lock,fcntl.LOCK_UN)
++            except OSError: pass
++        for fd in ([lock] if lock is not None else [])+[fd for fd,_ in object_nodes+nodes]:
++            try: os.close(fd)
++            except OSError: pass
+ def publish_object(*, state_dir: str, artifact_store: str, object_kind: str, payload: dict, forbidden_roots: tuple[str, ...], fault_point: str | None = None) -> dict:
+     if type(state_dir) is not str or type(artifact_store) is not str or type(object_kind) is not str or object_kind not in ("source_state","trace","command_journal") or type(payload) is not dict or type(forbidden_roots) is not tuple or fault_point not in (None,"OBJECT_LINK","OBJECT_DIR_FSYNC") or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
+     domain=_validate_artifact(payload); payload["kind"]==object_kind or (_ for _ in ()).throw(ContractError("ARGUMENT_ERROR")); data=_object_bytes(payload); digest=hashlib.sha256(domain.encode()+data[:-1]).hexdigest(); paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; linked=False; fd=None
+     try:
+         nodes,_=_walk(paths["object_dir"]); fd=os.open(".",os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=nodes[-1][0])
+         def read(name):
+             try: probe=os.open(name,os.O_PATH|os.O_NOFOLLOW,dir_fd=fd)
+             except FileNotFoundError: return None
+             try: stat=os.fstat(probe)
+             finally: os.close(probe)
+diff --git a/common/tests/test_seed_contract_runtime.py b/common/tests/test_seed_contract_runtime.py
+index 1627e98..4c2e5bd 100644
+--- a/common/tests/test_seed_contract_runtime.py
++++ b/common/tests/test_seed_contract_runtime.py
+@@ -136,14 +136,32 @@ def store_object():
+         try: bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=failed,forbidden_roots=()),"PUBLISH_PRECOMMIT_FAILED")
+         finally: runtime.os.fchmod=oldc
+         probe="import os,sys;sys.path.insert(0,"+repr(str(Path(__file__).parents[1]/".harness/closure/v1/lib"))+ ");import seed_contract_runtime as r;old=r.os.fchmod;r.os.fchmod=lambda f,m:os._exit(91) if m==0o444 else old(f,m);r.publish_object(state_dir="+repr(str(state))+",artifact_store="+repr(str(store))+",object_kind='source_state',payload="+repr(failed)+",forbidden_roots=())"; run=subprocess.run([sys.executable,"-c",probe],capture_output=True,text=True,timeout=1); assert run.returncode==91 and not failed_path.exists() and temps(object_path.parent)==[stale]
+         orphan={**payload,"manifest_sha256":"2"*64}; orphan_path=object_path.parent/domain_digest(domain_ascii=runtime._DOMAINS["source_state"],value=orphan); bad(lambda:runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=(),fault_point="OBJECT_DIR_FSYNC"),"PUBLISH_OBJECT_ORPHANED"); assert orphan_path.is_file() and orphan_path.stat().st_mode&0o777==0o444 and temps(object_path.parent)==[stale]
+         calls=[]; runtime.os.fsync=lambda fd:(calls.append(os.fstat(fd).st_mode),oldf(fd))[1]
+         try: runtime.publish_object(state_dir=str(state),artifact_store=str(store),object_kind="source_state",payload=orphan,forbidden_roots=())
+         finally: runtime.os.fsync=oldf
+         clean=root/"clean"; clean.mkdir()
+         with ThreadPoolExecutor(max_workers=16) as pool: results=list(pool.map(lambda _:runtime.publish_object(state_dir=str(clean),artifact_store=str(clean/"artifacts/v1"),object_kind="source_state",payload=payload,forbidden_roots=()),range(16)))
+         assert [S.S_ISREG(x) for x in calls]==[True,False] and S.S_ISDIR(calls[-1]) and len(set(x["object_path"] for x in results))==1 and not temps(clean/"artifacts/v1/sha256") and outside.read_bytes()==b"fixed"
++def ref_resolve():
++    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"resolve_ref"),"resolver missing"; import copy,fcntl,stat
++    with tempfile.TemporaryDirectory() as d:
++        root=Path(d); state=root/"state"; state.mkdir(); store=state/"artifacts/v1"; ref=state/"refs/pass"; obj=store/"sha256"; obj.mkdir(parents=True); h="0"*64
++        state0={"schema_version":1,"kind":"source_state","manifest_sha256":h,"projects":[{"path":"a","head":"0"*40,"status_sha256":h,"entries":[]}]}; trace={"schema_version":1,"kind":"trace","records":[{"sequence":1,"process_ordinal":0,"syscall":"x","result":0,"errno":None,"exec_argv_b64":None,"paths":[],"address_family":None,"classification":"other"}],"counts":dict(other=1,external_network=0,source_mutation=0,sync_download=0,config_query=0,module_build=0,package=0)}; journal={"schema_version":1,"kind":"command_journal","records":[{"stage":x,"argv_b64":[],"cwd_b64":"","exit_code":0,"trace_first_sequence":1,"trace_last_sequence":1} for x in ("manifest_before","source_state_before","namespace_probe","envsetup_lunch","manifest_after","source_state_after")]}
++        put=lambda v:(lambda q:(q,(obj/q).write_bytes(canonical_bytes(value=v)+b"\n"),(obj/q).chmod(0o444))[0])(domain_digest(domain_ascii=runtime._DOMAINS[v["kind"]],value=v)); sd,td,jd=put(state0),put(trace),put(journal)
++        seed=json.loads((Path(__file__).parent/"fixtures/aosp17-services/seed.golden.json").read_text()); seed["manifest"]["projects"][0]["source_state_digest"]=domain_digest(domain_ascii=runtime._DOMAINS["project_source_state"],value=state0["projects"][0]); seed["source_state"].update(before_digest=sd,after_digest=sd); seed["guard"].update(trace_digest=td,command_journal_digest=jd); seed["seed_content_digest"]=domain_digest(domain_ascii=runtime._DOMAINS["seed_content"],value=runtime._seed_parts(seed)[1]); seed["seed_identity_digest"]=domain_digest(domain_ascii=runtime._DOMAINS["seed_identity"],value=runtime._seed_parts(seed)[2]); digest=put(seed); ref.parent.mkdir(); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":digest})+b"\n")
++        probe=(obj/digest).read_bytes(); assert probe==canonical_bytes(value=seed)+b"\n"; assert runtime._decode(probe)==seed; before=len(os.listdir("/proc/self/fd")); assert runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=())==seed and len(os.listdir("/proc/self/fd"))==before; lock=Path(str(ref)+".lock"); assert stat.S_IMODE(lock.stat().st_mode)==0o600 and lock.stat().st_uid==os.geteuid()
++        snapshot=lambda:tuple(sorted((str(x.relative_to(root)),x.read_bytes() if x.is_file() else b"") for x in root.rglob("*")))
++        def fails(fn,code): q=snapshot(); bad(fn,code); assert snapshot()==q
++        fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=(),require_public_real=True),"PUBLIC_SCOPE_REQUIRED")
++        ref.unlink(); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"ARTIFACT_MISSING"); ref.symlink_to(root/"bad"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); ref.unlink(); os.mkfifo(ref); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); ref.unlink(); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":digest})+b"\n")
++        (obj/digest).unlink(); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"ARTIFACT_MISSING"); (obj/digest).symlink_to(root/"bad"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); (obj/digest).unlink(); put(seed); (obj/td).chmod(0o644); (obj/td).write_bytes(b"bad"); (obj/td).chmod(0o444); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); (obj/td).unlink(); os.mkfifo(obj/td); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); (obj/td).unlink(); put(trace)
++        lock.chmod(0o644); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"OUT_REF_CONTRACT"); lock.chmod(0o600); old=runtime.os.geteuid; runtime.os.geteuid=lambda:-1; fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"OUT_REF_CONTRACT"); runtime.os.geteuid=old
++        lock.unlink(); lock.symlink_to(root/"bad"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"OUT_REF_CONTRACT"); lock.unlink(); os.mkfifo(lock); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"OUT_REF_CONTRACT"); lock.unlink(); lock.touch(); lock.chmod(0o600)
++        events=[]; oldf,oldr=runtime.fcntl.flock,runtime._readat; runtime.fcntl.flock=lambda *x:(events.append("lock"),oldf(*x))[1]; runtime._readat=lambda *x:(events.append("read"),oldr(*x))[1]; assert runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=())==seed and events.index("lock")<events.index("read"); runtime.fcntl.flock,runtime._readat=oldf,oldr
++        held=os.open(lock,os.O_RDWR|os.O_NOFOLLOW); fcntl.flock(held,fcntl.LOCK_EX); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_BUSY"); fcntl.flock(held,fcntl.LOCK_UN); os.close(held); assert runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=())==seed; fails(lambda:runtime.resolve_ref(state_dir=str(root/"missing"),ref="relative",artifact_store=str(store),forbidden_roots=()),"STATE_DIR_CONTRACT"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=(str(ref),)),"OUT_REF_CONTRACT"); unsafe=copy.deepcopy(seed); unsafe["guard"]["trace_digest"]="../../../sentinel"; unsafe_digest=put(unsafe); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":unsafe_digest})+b"\n"); reads=[]; oldr=runtime._readat; runtime._readat=lambda *x:(reads.append(x[1]),oldr(*x))[1]; fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); assert reads==["pass",unsafe_digest]; runtime._readat=oldr; ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":digest})+b"\n"); before=len(os.listdir("/proc/self/fd")); oldf=runtime.fcntl.flock; runtime.fcntl.flock=lambda fd,op:(_ for _ in ()).throw(OSError(5,"unlock")) if op==fcntl.LOCK_UN else oldf(fd,op); assert runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=())==seed and len(os.listdir("/proc/self/fd"))==before; runtime.fcntl.flock=oldf
++        terminal={"schema_version":1,"kind":"terminal_report","request_digest":h,"primary_reason":"SOURCE_ROOT_UNAVAILABLE","failed_checks":["SOURCE_ROOT_UNAVAILABLE"],"completed_observation_digests":{"source_state":sd,"trace":td,"command_journal":jd},"summary_lines":["SOURCE_ROOT_UNAVAILABLE"]}; terminal_digest=put(terminal); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"terminal_report","digest":terminal_digest})+b"\n"); assert runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=())==terminal; badterminal=copy.deepcopy(terminal); badterminal["failed_checks"]=[]; bad_digest=put(badterminal); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"terminal_report","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); badterminal=copy.deepcopy(terminal); badterminal["completed_observation_digests"]["trace"]=sd; bad_digest=put(badterminal); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"terminal_report","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); badjournal=copy.deepcopy(journal); badjournal["records"][3]["exit_code"]=1; journal_digest=put(badjournal); badseed=copy.deepcopy(seed); badseed["guard"]["command_journal_digest"]=journal_digest; bad_digest=put(badseed); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); badtrace=copy.deepcopy(trace); badtrace["records"][0].update(sequence=2); trace_digest=put(badtrace); badseed=copy.deepcopy(seed); badseed["guard"]["trace_digest"]=trace_digest; bad_digest=put(badseed); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); badtrace=copy.deepcopy(trace); badtrace["records"][0]["classification"]="external_network"; badtrace["counts"].update(other=0,external_network=1); trace_digest=put(badtrace); badseed=copy.deepcopy(seed); badseed["guard"]["trace_digest"]=trace_digest; bad_digest=put(badseed); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT"); badstate=copy.deepcopy(state0); badstate["projects"]=[]; state_digest=put(badstate); badseed=copy.deepcopy(seed); badseed["source_state"].update(before_digest=state_digest,after_digest=state_digest); badseed["seed_identity_digest"]=domain_digest(domain_ascii=runtime._DOMAINS["seed_identity"],value=runtime._seed_parts(badseed)[2]); bad_digest=put(badseed); ref.write_bytes(canonical_bytes(value={"schema_version":1,"kind":"env_pass","digest":bad_digest})+b"\n"); fails(lambda:runtime.resolve_ref(state_dir=str(state),ref=str(ref),artifact_store=str(store),forbidden_roots=()),"REF_CORRUPT")
+ if __name__ == "__main__":
+-    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths,"store-object":store_object}
++    cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths,"store-object":store_object,"ref-resolve":ref_resolve}
+     try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+     except (IndexError, KeyError): raise SystemExit("usage: canonical-core|concurrent-core") from None
+```
