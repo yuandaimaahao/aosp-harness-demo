@@ -44,6 +44,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-assurance-matrix-v1
 需求: R1, R2, R3, R4, R5, R6, R7, R8
 必需: 是
+状态: 完成
 
 候选文件 = `git show "$PROTO_SHA:$PROTO_ASSURANCE"`（308 行）加以下且仅以下六处整合。每处给出确切代码或确切转换规则；整合后全文约 349 行，必须 ≤400。
 
@@ -79,7 +80,7 @@ fi
 bash -n "$provider" 2>/dev/null || exit 1
 bash -c 'source "$1"' _ "$provider" >/dev/null 2>&1 || exit 1
 for fn in _harness_session_snapshot_worker _harness_session_snapshot_write_core _harness_session_snapshot_read_core; do
-  bash -c 'source "$1" && declare -F "$2" >/dev/null' _ "$provider" "$fn" >/dev/null 2>&1 || exit 1
+  bash -c 'source "$1/common/.harness/lib/session-state-foundation.sh" && source "$1/common/.harness/lib/session-state-path.sh" && source "$2" && declare -F "$3" >/dev/null' _ "$repo" "$provider" "$fn" >/dev/null 2>&1 || exit 1
 done
 for marker in CAPTURE_READY SNAPSHOT_MANAGED_BEFORE_OPEN MANAGED_EXPECTED_EUID \
   SNAPSHOT_EXPECTED_EUID SNAPSHOT_BEFORE_OPEN TEMP_BEFORE_PUBLISH PUBLISH_RESULT OS_ERROR; do
@@ -124,6 +125,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: assurance-accepted-head-v1
 需求: R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.1-report.md"`确认红阶段失败为报告缺席，按固定六行 schema 写 red 文件并核`test -s`；核 implementation clean 且`git rev-parse HEAD`为任务 1.1 的`TASK_HEAD`。
 - [ ] 步骤 2: 保存六上游文件 before SHA（`sha256sum common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh tests/lib/session-path-race-driver.py tests/test-session-path-races.sh common/.harness/lib/session-state-snapshot.sh tests/test-session-snapshot.sh`）；核`test "$(shfmt --version)" = "v3.14.0"`与`shellcheck --version | rg -q '^version: 0.11.0$'`；只对 exact 单文件跑`shfmt -d -i 2 -ci -bn`、`shellcheck -x --severity=warning`、`bash -n`；分别运行 default 入口与`bash ./scripts/check.sh --offline`到独立日志，核 default 摘要逐字、`test "$(rg -c 'RESULT PASS  session snapshot assurance' offline.log)" = 1"`（offline 发现恰一次）且 offline 末行 PASS；再`sha256sum -c`比较 after SHA。
@@ -139,6 +141,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: assurance-full-checkout-v1
 需求: R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.2-report.md"`确认红阶段失败为报告缺席并写 red 文件；核 implementation `git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
 - [ ] 步骤 2: 创建临时目录，运行`git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/full"`并核 full 的`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
@@ -154,6 +157,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: assurance-depth1-checkout-v1
 需求: R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.3-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 运行`git clone --depth 1 "file://$IMPLEMENTATION_WORKTREE" "$tmp/depth1"`，核`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`、`test "$(git rev-list --count HEAD)" = 1`及`test -s .git/shallow`。
@@ -169,6 +173,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: assurance-rollback-v1
 需求: R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.4-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 从 implementation `git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/rollback"`并核 HEAD=`ACCEPTED_HEAD`；运行`git rm tests/test-session-snapshot-assurance.sh`后提交普通 rollback commit，核`git diff --name-status HEAD~1 HEAD`恰为一行`D	tests/test-session-snapshot-assurance.sh`。
@@ -184,6 +189,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: assurance-order-gate-v1
 需求: R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.5-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 定义完整 ID`NEXT=2026-09-02-03c-session-write-interrupts`；运行`test ! -e "$PROJECT/specs/$NEXT"`、`test ! -e "$PROJECT/work/$NEXT"`，并要求`git show-ref --verify --quiet "refs/heads/spec/$NEXT"`返回 1。
@@ -200,6 +206,7 @@ E6（rename 已提交窗口 ENOENT oracle）：对 prototype 信号窗口循环�
 产出: tests/test-session-snapshot-assurance.sh（终交付锚点 session-snapshot-assurance-v1 记入 ledger 完成锚点与 acceptance 报告）
 需求: R9, R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/acceptance/acceptance-report.md"`确认红阶段失败为报告缺席并写 red 文件；核`git rev-parse HEAD`=`ACCEPTED_HEAD`与 clean。
 - [ ] 步骤 2: 汇总 candidate/full/depth/rollback/order 日志到 green 与 acceptance 报告（含 accepted HEAD、active 摘要、八 anchor 注入、`ASSURANCE_UNLINK_LOG` ENOENT oracle、exact1/400、241 断言口径），生成 evidence package 并取得独立 review PASS。
