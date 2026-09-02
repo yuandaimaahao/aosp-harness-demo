@@ -3,10 +3,10 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: new-spec.sh 建了 2026-09-03-03d-session-remove-prune
-updated: '2026-09-03T05:34:15+08:00'
+basis: 门② requirements round2 PASS(0/0/0)，四checker rc0，自动通过已记ledger
+updated: '2026-09-03T06:09:40+08:00'
 current_spec: 2026-09-03-03d-session-remove-prune
-spec_stage: requirements
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -124,6 +124,7 @@ workflow: requirements-first
 | 2026-09-03T05:33:08+08:00 | spec/accept | retro | 五问复盘均否：交付与PLAN v5.7/03d前提一致、无计划外工作、03d口径不变、顺序门证据齐、无未决问题；PLAN v5.7不变 |
 | 2026-09-03T05:34:15+08:00 | retro | select | 五问复盘均否，进入 select 建 03d-session-remove-prune |
 | 2026-09-03T05:34:15+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-03-03d-session-remove-prune |
+| 2026-09-03T06:09:40+08:00 | spec/requirements | spec/design | 门② requirements round2 PASS(0/0/0)，四checker rc0，自动通过已记ledger |
 
 ## SKIPPED 记录
 
