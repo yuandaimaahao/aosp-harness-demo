@@ -3,11 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门② autopilot：03c requirements一轮独立review即PASS（0/0/2，次要留门③）；R1-R8全[计划]、验收清单/四不变量/上游七文件同集/主验证命令闭合；四个checker+diff
-  --check全rc=0
-updated: '2026-09-03T00:36:47+08:00'
+basis: 门③ autopilot：03c design一轮独立review即PASS（0/0/4）；机制正确性实测无死锁/丢信号/打回自身/假绿；R映射8/8、sizing
+  390≤400、frontmatter逐字一致；门②次要1已正面回答
+updated: '2026-09-03T01:11:42+08:00'
 current_spec: 2026-09-03-03c-session-write-interrupts
-spec_stage: design
+spec_stage: tasks
 mode: standard
 workflow: requirements-first
 ---
@@ -119,6 +119,7 @@ workflow: requirements-first
 | 2026-09-03T00:22:04+08:00 | retro | select | 03b1复盘五问均否、PLAN v5.7不变；03c启动门证据已入ledger，选择03c-session-write-interrupts |
 | 2026-09-03T00:22:16+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-03-03c-session-write-interrupts |
 | 2026-09-03T00:36:47+08:00 | spec/requirements | spec/design | 门② autopilot：03c requirements一轮独立review即PASS（0/0/2，次要留门③）；R1-R8全[计划]、验收清单/四不变量/上游七文件同集/主验证命令闭合；四个checker+diff --check全rc=0 |
+| 2026-09-03T01:11:42+08:00 | spec/design | spec/tasks | 门③ autopilot：03c design一轮独立review即PASS（0/0/4）；机制正确性实测无死锁/丢信号/打回自身/假绿；R映射8/8、sizing 390≤400、frontmatter逐字一致；门②次要1已正面回答 |
 
 ## SKIPPED 记录
 
