@@ -1,0 +1,7 @@
+task=task-2.2
+command=test -s .spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03b-session-snapshot-safety/task-2.2-report.md
+expected=rc1 (report absent, red phase)
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=task-2.2-report.md does not exist yet (test -s rc1, both streams empty); precondition confirmed: implementation worktree HEAD is ACCEPTED_HEAD ab1e870ece16bbc24e1a86f84110366f84aae0d9 and working tree is clean (git status --porcelain empty).

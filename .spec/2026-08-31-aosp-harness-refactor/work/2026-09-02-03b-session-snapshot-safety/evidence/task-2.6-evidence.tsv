@@ -1,0 +1,10 @@
+task-2.6-brief.md	5ab69c52282c0afd5d22a9b2b11b35d1c3945220c507bb9cd6e0074b1d94bd20	50260
+task-2.6-report.md	3ad790f30baf8831d2f211abe0c8b8574f89794b25f18c03cc3fadcb01eca81e	5541
+acceptance/acceptance-report.md	1164a67a152c82fcfb4267802c81534557f0d09cbae2519c5ee728985a84a7f9	9878
+evidence/task-2.6-red.txt	f614d5a2cd157bf10b560bafd64dc52ca0d4371227bef9c4e9348e9519c6e41b	624
+evidence/task-2.6-logs/impl-clean.txt	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.6-logs/impl-head.txt	9570fbb17fa898a319f9e76704dbcb472c32c7574b2f2ce7c177f331a78ac426	41
+evidence/task-2.6-logs/manifest-rows.txt	a699dad417ce5d65babc0f6d2e44ea781d0683a4f5d1b1097fbfb48c0e730b1e	721
+evidence/task-2.6-logs/red.rc	4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865	2
+evidence/task-2.6-logs/red.stderr	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.6-logs/red.stdout	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0

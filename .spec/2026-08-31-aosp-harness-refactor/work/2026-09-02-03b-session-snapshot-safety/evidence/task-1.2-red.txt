@@ -1,0 +1,7 @@
+task=task-1.2
+command=test ! -e tests/test-session-snapshot.sh && bash tests/test-session-snapshot.sh
+expected=rc127, no PASS on stdout (file absent)
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=017f8fc67648524e54facf573b139e8b96d0f122965c25fdd01cf9c37f7396e1
+assertion=tests/test-session-snapshot.sh does not exist in $IMPL (test -e rc1 confirmed); bash tests/test-session-snapshot.sh exits 127 with empty stdout (no RESULT PASS line) and stderr "bash: tests/test-session-snapshot.sh: No such file or directory"; precondition check: SNAPSHOT_CORE=common/.harness/lib/session-state-snapshot.sh bash $PROTO_TEST_BLOB (a708ce6:snapshot-test-prototype.sh, 192 lines) still PASSes against task-1.1 runtime (rc0, stdout_sha256=abe0ace186d27ae7af3b4904918851b48cd74c15df019ce04aec4afa292c6c47 exact "RESULT PASS  session snapshot safety\n", stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 empty), confirming the runtime's stderr-suppression fix from task 1.1 does not conflict with prototype test assertions.

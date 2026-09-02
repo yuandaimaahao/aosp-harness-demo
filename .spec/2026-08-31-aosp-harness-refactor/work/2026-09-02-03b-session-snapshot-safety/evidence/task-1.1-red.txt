@@ -1,0 +1,7 @@
+task=1.1
+command=test ! -e common/.harness/lib/session-state-snapshot.sh && bash -c 'source common/.harness/lib/session-state-snapshot.sh'
+expected=file absent; source fails with rc!=0 and stderr reporting missing file
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=4caeb5b21edb36d79c758e50a29b5c0364ee70b4e7d218ed997c7c390c2633c9
+assertion=common/.harness/lib/session-state-snapshot.sh does not exist in the implementation worktree at TASK_BASE (3d15a0d76c2a2e6c8541c5d47001a55f0ca18649); attempting to source it fails with rc=1 and stderr "bash: line 1: common/.harness/lib/session-state-snapshot.sh: No such file or directory", confirming the red phase precondition before the target file is created in step 2.

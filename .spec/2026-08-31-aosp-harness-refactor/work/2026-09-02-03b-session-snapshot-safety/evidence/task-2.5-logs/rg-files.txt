@@ -1,0 +1,11 @@
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-08-31-01-device-safety/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-01-02-offline-quality-gate/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-01-03-session-state-safety/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-01-03a-session-path-safety/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-01-03a1-session-path-race-assurance/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-02-03a2-session-path-race-matrix/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-02-03b-session-snapshot-safety/ledger.md
+.spec/2026-08-31-aosp-harness-refactor/work/2026-09-01-03-session-state-safety/execution-base.env
+.spec/2026-08-31-aosp-harness-refactor/work/2026-09-01-03a-session-path-safety/execution-base.env
+.spec/2026-08-31-aosp-harness-refactor/work/2026-09-01-03a1-session-path-race-assurance/execution-base.env
+.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03b-session-snapshot-safety/execution-base.env
