@@ -191,7 +191,7 @@ def _readat(fd,name,mode=None):
 def _decode(raw):
     try:
         value=json.loads(raw.decode(),object_pairs_hook=_pairs); return value if raw==_object_bytes(value) else False
-    except (AttributeError,ContractError,UnicodeError,json.JSONDecodeError,TypeError): return False
+    except (AttributeError,ContractError,RecursionError,UnicodeError,json.JSONDecodeError,TypeError): return False
 def _artifact(raw,digest,kind):
     try:
         value=_decode(raw); return value if value is not False and _validate_artifact(value)==_DOMAINS[kind] and hashlib.sha256(_DOMAINS[kind].encode()+_object_bytes(value)[:-1]).hexdigest()==digest else False
@@ -206,22 +206,23 @@ def _closure(seed,values):
     except (KeyError,StopIteration,ValueError,ContractError): raise ContractError("REF_CORRUPT") from None
 def resolve_ref(*, state_dir: str, ref: str, artifact_store: str, forbidden_roots: tuple[str, ...], require_public_real: bool = False) -> dict:
     if type(state_dir) is not str or type(ref) is not str or type(artifact_store) is not str or type(forbidden_roots) is not tuple or type(require_public_real) is not bool or any(type(x)is not str or "\0" in x or not os.path.isabs(x) or x!=os.path.normpath(x) or x!=os.path.realpath(x) for x in forbidden_roots): raise ContractError("ARGUMENT_ERROR")
-    paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; object_nodes=[]; lock=None
+    paths=validate_state_paths(state_dir=state_dir,out_ref=None,artifact_store=artifact_store,forbidden_roots=forbidden_roots); nodes=[]; object_nodes=[]; lock=probe=None; locked=False
     if not os.path.isabs(ref) or ref!=os.path.normpath(ref) or not (paths["state_dir"]=="/" or ref.startswith(paths["state_dir"]+"/")) or os.path.basename(ref) in ("",".","..") or any(ref==x or ref.startswith(x+"/") for x in forbidden_roots): raise ContractError("OUT_REF_CONTRACT")
     try:
         nodes,_=_walk(os.path.dirname(ref),True); parent=nodes[-1][0]; name=os.path.basename(ref)+".lock"; made=False
         try:
-            try: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
-            except FileNotFoundError:
-                try: lock=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent); made=True
-                except FileExistsError: lock=os.open(name,os.O_RDWR|os.O_NOFOLLOW,dir_fd=parent)
-        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
+            probe=os.open(name,os.O_PATH|os.O_NOFOLLOW,dir_fd=parent)
+        except FileNotFoundError:
+            try: lock=os.open(name,os.O_RDWR|os.O_NONBLOCK|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent); made=True
+            except FileExistsError: probe=os.open(name,os.O_PATH|os.O_NOFOLLOW,dir_fd=parent)
         try:
+            if probe is not None: stat=os.fstat(probe); __import__("stat").S_ISREG(stat.st_mode) and stat.st_uid==os.geteuid() and __import__("stat").S_IMODE(stat.st_mode)==0o600 or (_ for _ in ()).throw(OSError()); lock=os.open(name,os.O_RDWR|os.O_NONBLOCK|os.O_NOFOLLOW,dir_fd=parent); fresh=os.fstat(lock); (fresh.st_dev,fresh.st_ino)==(stat.st_dev,stat.st_ino) or (_ for _ in ()).throw(OSError())
             made and os.fchmod(lock,0o600); stat=os.fstat(lock)
             __import__("stat").S_ISREG(stat.st_mode) and stat.st_uid==os.geteuid() and __import__("stat").S_IMODE(stat.st_mode)==0o600 or (_ for _ in ()).throw(OSError())
-        except OSError: raise ContractError("OUT_REF_CONTRACT") from None
+        finally: probe is None or os.close(probe)
         try: fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError: raise ContractError("REF_BUSY") from None
+        locked=True
         raw=_readat(parent,os.path.basename(ref)); raw is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); raw is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); descriptor=_decode(raw); type(descriptor) is dict and set(descriptor)=={"schema_version","kind","digest"} and descriptor.get("schema_version")==1 and descriptor.get("kind") in ("env_pass","terminal_report") and type(descriptor.get("digest")) is str and re.fullmatch("[0-9a-f]{64}",descriptor["digest"]) or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
         expected={"env_pass":"seed","terminal_report":"terminal_report"}[descriptor["kind"]]; object_nodes,_=_walk(paths["object_dir"]); objectfd=object_nodes[-1][0]
         raw=_readat(objectfd,descriptor["digest"],0o444); raw is not None or (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); primary=_artifact(raw,descriptor["digest"],expected); primary is not False or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
@@ -229,7 +230,7 @@ def resolve_ref(*, state_dir: str, ref: str, artifact_store: str, forbidden_root
         all(type(digest)is str and re.fullmatch("[0-9a-f]{64}",digest) and kind in _DOMAINS for _,digest,kind in needs) or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); raw={label:_readat(objectfd,digest,0o444) for label,digest,kind in needs}; any(value is None for value in raw.values()) and (_ for _ in ()).throw(ContractError("ARTIFACT_MISSING")); values={label:_artifact(raw[label],digest,kind) for label,digest,kind in needs}; all(value is not False for value in values.values()) or (_ for _ in ()).throw(ContractError("REF_CORRUPT"))
         evidence=_closure(primary,values) if expected=="seed" else None; require_public_real and not _validate_public_real(primary,evidence) and (_ for _ in ()).throw(ContractError("PUBLIC_SCOPE_REQUIRED")); return primary
     except ContractError: raise
-    except (OSError,TypeError,ValueError,KeyError): raise ContractError("OUT_REF_CONTRACT" if not nodes else "REF_CORRUPT") from None
+    except (OSError,TypeError,ValueError,KeyError): raise ContractError("REF_CORRUPT" if locked else "OUT_REF_CONTRACT") from None
     finally:
         if lock is not None:
             try: fcntl.flock(lock,fcntl.LOCK_UN)
