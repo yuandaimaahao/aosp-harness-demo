@@ -3,11 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门③ autopilot：03b1 design两轮独立review最终PASS（round2 0/0/0）；R8 unlink-errno oracle以ASSURANCE_UNLINK_LOG注入闭合；八节/R1-R10映射/签名/mermaid/exact1≤400
-  sizing/文件清单全闭合
-updated: '2026-09-02T20:55:31+08:00'
+basis: 门④ autopilot：03b1 tasks三轮独立review最终PASS（round3 0/0/0）；M1探针字面量恰3处闭合；7任务（1.1交付+2.1-2.6零delta）编号/依赖/manifest
+  awk/03c顺序门/R1-R10映射全闭合；check-tasks rc=0
+updated: '2026-09-02T22:10:56+08:00'
 current_spec: 2026-09-02-03b1-session-snapshot-assurance
-spec_stage: tasks
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -113,6 +113,7 @@ workflow: requirements-first
 | 2026-09-02T19:34:32+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03b1-session-snapshot-assurance |
 | 2026-09-02T20:26:59+08:00 | spec/requirements | spec/design | 门② autopilot：03b1 requirements两轮独立review最终PASS（round2 0阻断/0重要/1次要），F1六文件上游集统一修复闭合；R1-R10全[计划]、判据/不变量/确认依据闭合；prototype cbdbdde 308/400 240项在main实跑rc0字节精确；check-req/criteria/analyze/plan与diff-check全PASS |
 | 2026-09-02T20:55:31+08:00 | spec/design | spec/tasks | 门③ autopilot：03b1 design两轮独立review最终PASS（round2 0/0/0）；R8 unlink-errno oracle以ASSURANCE_UNLINK_LOG注入闭合；八节/R1-R10映射/签名/mermaid/exact1≤400 sizing/文件清单全闭合 |
+| 2026-09-02T22:10:56+08:00 | spec/tasks | spec/execute | 门④ autopilot：03b1 tasks三轮独立review最终PASS（round3 0/0/0）；M1探针字面量恰3处闭合；7任务（1.1交付+2.1-2.6零delta）编号/依赖/manifest awk/03c顺序门/R1-R10映射全闭合；check-tasks rc=0 |
 
 ## SKIPPED 记录
 
