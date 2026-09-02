@@ -3,11 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门② autopilot：03b requirements三轮独立审查最终PASS（0阻断/0重要/0次要），round2全部finding与held-capture
-  follow-up闭环；prototype exact2=397/400、assurance274/400/227项，固定工具、base/assurance、provider缺席inert与机械检查全PASS
-updated: '2026-09-02T13:06:14+08:00'
+basis: 门③ autopilot：03b design三轮独立审查最终PASS（0阻断/0重要/0次要）；cleanup close全fd遍历、temp嵌套finally、latched
+  signal优先与五次close mutant反证闭环；exact2=400/400、assurance=308/400，固定工具、base/assurance和机械检查全PASS
+updated: '2026-09-02T13:50:20+08:00'
 current_spec: 2026-09-02-03b-session-snapshot-safety
-spec_stage: design
+spec_stage: tasks
 mode: standard
 workflow: requirements-first
 ---
@@ -105,6 +105,7 @@ workflow: requirements-first
 | 2026-09-02T11:01:38+08:00 | retro | select | 03a2复盘五问均否：需求无漏项、设计假设成立、任务边界适配、未发现新跨片风险、不需补调研；PLAN v5.6不变，下一片03b-session-snapshot-safety |
 | 2026-09-02T11:03:58+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03b-session-snapshot-safety |
 | 2026-09-02T13:06:14+08:00 | spec/requirements | spec/design | 门② autopilot：03b requirements三轮独立审查最终PASS（0阻断/0重要/0次要），round2全部finding与held-capture follow-up闭环；prototype exact2=397/400、assurance274/400/227项，固定工具、base/assurance、provider缺席inert与机械检查全PASS |
+| 2026-09-02T13:50:20+08:00 | spec/design | spec/tasks | 门③ autopilot：03b design三轮独立审查最终PASS（0阻断/0重要/0次要）；cleanup close全fd遍历、temp嵌套finally、latched signal优先与五次close mutant反证闭环；exact2=400/400、assurance=308/400，固定工具、base/assurance和机械检查全PASS |
 
 ## SKIPPED 记录
 
