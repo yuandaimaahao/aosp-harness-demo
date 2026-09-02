@@ -1,0 +1,21 @@
+03a1 Task 4 deterministic red evidence
+TASK_BASE=e5f4f76f1a44d2fdc757ebb6f7391a9f08887fb0
+
+External 37-row order: swap9, wrong-euid3, eexist9, five managed families x3, real-eio1
+rows=37
+run_rc=1
+run_stdout_bytes=0
+run_stderr_bytes=287
+run_pass=0
+run_case_log_bytes=0
+run_executed_hook_files=21
+run_stderr_tail=AssertionError: matrix executor incomplete
+provider_before=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+provider_after=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+
+Current self-test before Task 4 implementation
+self_rc=1
+self_stdout_bytes=0
+self_stderr_bytes=286
+self_pass=0
+self_stderr_tail=AssertionError: matrix executor incomplete

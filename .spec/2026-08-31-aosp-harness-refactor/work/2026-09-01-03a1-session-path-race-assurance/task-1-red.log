@@ -1,0 +1,8 @@
+command=python3 tests/lib/session-path-race-driver.py protocol
+worktree=/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a1-session-path-race-assurance
+base=c959efaf9887808621852aff28073cf1f8789ca7
+rc=2
+stdout_bytes=0
+stderr_bytes=186
+protocol_token_present=no
+stderr=python3: can't open file '/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a1-session-path-race-assurance/tests/lib/session-path-race-driver.py': [Errno 2] No such file or directory

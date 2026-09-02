@@ -1,0 +1,23 @@
+03a1 Task 3 deterministic red evidence
+TASK_BASE=565008482663664d9192817ccff9810993ca8ba0
+
+22-row matrix order: swap 9, wrong-euid 3, eexist 9, real-eio 1
+matrix_rows=22
+rc=1
+stdout_bytes=0
+stderr_bytes=287
+pass_stdout=0
+case_log_bytes=0
+provider_before=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+provider_after=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+stderr_tail=AssertionError: matrix executor incomplete
+
+Reverse subset order: real-eio, swap-root-safe-dir
+reverse_rows=2
+reverse_rc=1
+reverse_stdout_bytes=0
+reverse_stderr_bytes=287
+reverse_pass_stdout=0
+reverse_case_log_bytes=0
+reverse_eio_hook_lines=1
+reverse_stderr_tail=AssertionError: matrix executor incomplete

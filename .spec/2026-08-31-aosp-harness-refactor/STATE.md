@@ -3,10 +3,10 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门④ autopilot回流：五任务纵切经三轮review修复/裁定闭合；14-site、双仓根、dangling-symlink与全部机械门PASS
-updated: '2026-09-02T02:29:41+08:00'
+basis: 五个串行任务均有真实红灯、普通提交和独立review PASS；candidate exact1/400、14-mutant与full/depth-1证据齐全
+updated: '2026-09-02T08:58:54+08:00'
 current_spec: 2026-09-01-03a1-session-path-race-assurance
-spec_stage: execute
+spec_stage: accept
 mode: standard
 workflow: requirements-first
 ---
@@ -92,6 +92,7 @@ workflow: requirements-first
 | 2026-09-02T01:17:36+08:00 | spec/requirements | spec/design | 门② autopilot回流：03a1 private driver requirements round1初审2 important已即时修复，最终PASS（0/0/0）；R1-R9、round7拆分原型与check-req/check-criteria/check-analyze/diff-check全通过 |
 | 2026-09-02T01:59:54+08:00 | spec/design | spec/tasks | 门③ autopilot回流：design三轮review的path isolation、subset/self-disproof、order/sort、depth-1、Python3.8、hash-before-log与Path契约均修复/裁定闭合；round7 driver exact400/400、实跑与机械检查全PASS |
 | 2026-09-02T02:29:41+08:00 | spec/tasks | spec/execute | 门④ autopilot回流：tasks三轮review达熔断上限，五任务纵切、代码骨架、真实红因、accepted-HEAD checkout、current diff、14-mutant、双仓根与03a2 fail-closed顺序门全部修复/实跑裁定；机械检查全PASS |
+| 2026-09-02T08:58:54+08:00 | spec/execute | spec/accept | 五任务均完成普通提交与独立diff review PASS；manifest连续绑定c959efa至1c6e14f，candidate exact1/400、14-copy、full/depth-1与回归证据齐全，进入controller验收 |
 
 ## SKIPPED 记录
 

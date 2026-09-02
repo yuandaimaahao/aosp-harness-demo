@@ -1,0 +1,14 @@
+03a1 Task 5 deterministic red evidence
+TASK_BASE=f72aaefddd4fa6e06c6c156ff1f3df58b5f27ca9
+
+Main self-test after all Task 4 case/oracle work
+rc=1
+stdout_bytes=0
+stderr_bytes=283
+pass_stdout=0
+hook_open_calls=46
+case_log_780B_writes=1
+stderr_tail=AssertionError: self-disproof incomplete
+provider_sha=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+
+The 46 hook opens (37 cases including nine second EEXIST hooks) and one 780-byte ordered case-log write prove the expected red seam occurs after the full 37-row executor and existing oracle path.

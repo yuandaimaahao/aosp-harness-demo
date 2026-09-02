@@ -1,0 +1,16 @@
+task=03a1-task-2
+task_base=d79de6bb6b10bce9ffd4238b071656cf7089db88
+worktree=/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a1-session-path-race-assurance
+command=python3 tests/lib/session-path-race-driver.py run-matrix FOUNDATION PROVIDER ABSENT_WORKSPACE CASE_TSV CASE_LOG
+fixture=real-eio<TAB>real-eio<TAB>N/A<TAB>N/A<LF>
+rc=1
+stdout_bytes=0
+stderr_bytes=286
+pass_present=no
+red_seam=matrix executor incomplete
+case_log=absent
+provider_before=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+provider_after=07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64
+negative_matrix_count=16
+negative_matrix=relative,dotdot,missing-parent,existing-workspace,symlink-workspace,provider-log,existing-log,symlink-log,hardlink-log,empty-tsv,nul-tsv,three-column,duplicate-id,unknown-token,illegal-combination,noncanonical-id
+negative_matrix_result=all rc1, stdout0, no PASS, zero case hook, provider unchanged
