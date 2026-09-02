@@ -3,11 +3,12 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门③ autopilot：03b design三轮独立审查最终PASS（0阻断/0重要/0次要）；cleanup close全fd遍历、temp嵌套finally、latched
-  signal优先与五次close mutant反证闭环；exact2=400/400、assurance=308/400，固定工具、base/assurance和机械检查全PASS
-updated: '2026-09-02T13:50:20+08:00'
+basis: 门④ autopilot：03b tasks三轮独立review达fix_loop_max=3，全部承重finding已采纳并记录错误代价；最终八任务以固定208/192
+  blob机械落地，candidate/full/depth-1/rollback/order/terminal独立；check-tasks与R1-R9并集、requirements/criteria/analyze、prototype
+  blob及diff-check全PASS
+updated: '2026-09-02T14:44:36+08:00'
 current_spec: 2026-09-02-03b-session-snapshot-safety
-spec_stage: tasks
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -106,6 +107,7 @@ workflow: requirements-first
 | 2026-09-02T11:03:58+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03b-session-snapshot-safety |
 | 2026-09-02T13:06:14+08:00 | spec/requirements | spec/design | 门② autopilot：03b requirements三轮独立审查最终PASS（0阻断/0重要/0次要），round2全部finding与held-capture follow-up闭环；prototype exact2=397/400、assurance274/400/227项，固定工具、base/assurance、provider缺席inert与机械检查全PASS |
 | 2026-09-02T13:50:20+08:00 | spec/design | spec/tasks | 门③ autopilot：03b design三轮独立审查最终PASS（0阻断/0重要/0次要）；cleanup close全fd遍历、temp嵌套finally、latched signal优先与五次close mutant反证闭环；exact2=400/400、assurance=308/400，固定工具、base/assurance和机械检查全PASS |
+| 2026-09-02T14:44:36+08:00 | spec/tasks | spec/execute | 门④ autopilot：03b tasks三轮独立review达fix_loop_max=3，全部承重finding已采纳并记录错误代价；最终八任务以固定208/192 blob机械落地，candidate/full/depth-1/rollback/order/terminal独立；check-tasks与R1-R9并集、requirements/criteria/analyze、prototype blob及diff-check全PASS |
 
 ## SKIPPED 记录
 

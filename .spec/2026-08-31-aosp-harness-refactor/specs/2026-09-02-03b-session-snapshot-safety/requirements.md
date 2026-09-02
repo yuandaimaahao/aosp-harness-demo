@@ -52,6 +52,7 @@ R9. [计划] 当验证独立回滚与顺序时，系统必须从accepted HEAD建
 - [ ] candidate/full/depth-1的snapshot默认与offline全PASS，offline发现恰好一次，depth-1 commit-count=1且shallow marker非空；每个checkout的当前tracked上游SHA测试前后不变且clean。
 - [ ] 隔离rollback commit exact只移除snapshot module/test后，clean checkout中path、driver self-test、race entrypoint与offline全PASS且snapshot发现0次；03b1/03c的spec/ref/worktree/BASE/dispatch按R9机械查缺席。
 - [ ] review manifest六列、任务序号、execution BASE、相邻base/head、accepted HEAD和全PASS一次机械验证通过；BASE..HEAD exact name-only为上述两文件、numstat总和`<=400`，固定版本断言后对exact两文件运行shfmt/ShellCheck/bash-n全绿，`git diff --check`和clean通过；只有ledger accepted后才可创建03b1，03c继续缺席。
+- [ ] 终交付锚点`session-snapshot-core-v2`仅由上述exact两文件与固定基础摘要组成，不包含03b1 provider-copy assurance入口。
 
 不变量（不许劣化，2-4项）:
 
