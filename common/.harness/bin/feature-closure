@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+fail() { printf 'CONTRACT %s\n' "$1" >&2; exit 30; }
+(($#)) || fail ARGUMENT_ERROR
+command=$1
+[[ $command =~ ^[a-z][a-z0-9-]{0,31}$ ]] || fail INVALID_COMMAND
+self=$(realpath -- "$0") || fail COMMAND_UNAVAILABLE
+parent=$(dirname -- "$self")
+target=$(dirname -- "$parent")/closure/v1/commands.d/$command
+[[ -f $target && ! -L $target && -x $target ]] || fail COMMAND_UNAVAILABLE
+shift
+exec "$target" "$@"
