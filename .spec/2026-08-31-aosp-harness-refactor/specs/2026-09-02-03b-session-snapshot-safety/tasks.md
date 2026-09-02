@@ -37,6 +37,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: session-snapshot-runtime-v2
 需求: R1, R2, R3, R4, R5, R6, R7
 必需: 是
+状态: 完成
 
 外部接口：`harness_validate_feature_name <name>`合法0/双流空、非法或arity错2/stdout空/stderr逐字`error: invalid feature name\n`，worker抑制其双流并映射2；`_harness_session_path_core <project-id> <session-id>`成功path+LF/0、OS错双流空/1、安全错双流空/2；03a2 accepted ledger的37/37与九类PASS门。
 
@@ -56,6 +57,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-default-matrix-v1
 需求: R1, R2, R3, R4, R5, R6, R7
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test ! -e tests/test-session-snapshot.sh && bash tests/test-session-snapshot.sh`，确认红阶段失败rc127/no-PASS；按固定schema写red文件并核非空，runtime的prototype test前置仍PASS。
 - [ ] 步骤 2: 用apply_patch创建目标test；内容只对prototype blob做唯一转换：`core=${SNAPSHOT_CORE:-$here/snapshot-core-prototype.sh}`替换为`core=${SNAPSHOT_CORE:-$repo/common/.harness/lib/session-state-snapshot.sh}`，其余逐字相同。以机械转换生成临时expected并`cmp -s`目标，核192行。
@@ -73,6 +75,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-accepted-head-v1
 需求: R8
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.1-report.md"`确认红阶段失败为报告缺席，按固定schema写red文件；implementation必须clean且HEAD为任务1.2 head。
 - [ ] 步骤 2: 保存四上游文件before SHA，核固定工具版本，只对exact两文件跑shfmt/ShellCheck/bash-n/default/all/offline，分别保存日志并核offline中的snapshot摘要恰一次，再`cmp` after SHA清单。
@@ -88,6 +91,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-full-checkout-v1
 需求: R8
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.2-report.md"`确认红阶段失败为报告缺席并写red文件；核implementation HEAD=`ACCEPTED_HEAD`。
 - [ ] 步骤 2: 创建临时目录，运行`git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/full"`并核full HEAD逐字等于`ACCEPTED_HEAD`。
@@ -103,6 +107,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-depth1-checkout-v1
 需求: R8
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.3-report.md"`确认红阶段失败为报告缺席并写red文件。
 - [ ] 步骤 2: 运行`git clone --depth 1 "file://$IMPLEMENTATION_WORKTREE" "$tmp/depth1"`，核HEAD=`ACCEPTED_HEAD`、`git rev-list --count HEAD`=1及`.git/shallow`非空。
@@ -118,6 +123,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-rollback-v1
 需求: R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.4-report.md"`确认红阶段失败为报告缺席并写red文件。
 - [ ] 步骤 2: 从implementation clone rollback并核HEAD=`ACCEPTED_HEAD`；运行`git rm common/.harness/lib/session-state-snapshot.sh tests/test-session-snapshot.sh`后提交普通rollback commit，核其name-status exact两个D。
@@ -133,6 +139,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: snapshot-order-gate-v1
 需求: R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.5-report.md"`确认红阶段失败为报告缺席并写red文件。
 - [ ] 步骤 2: 定义完整ID`NEXT1=2026-09-02-03b1-session-snapshot-assurance`、`NEXT2=2026-09-02-03c-session-write-interrupts`；对两者逐一`test ! -e "$PROJECT/specs/$id"`、`test ! -e "$PROJECT/work/$id"`，并要求`git show-ref --verify --quiet "refs/heads/spec/$id"`返回1。
@@ -149,6 +156,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: session-snapshot-core-v2
 需求: R8, R9
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/acceptance/acceptance-report.md"`确认红阶段失败为报告缺席并写red文件；核HEAD=`ACCEPTED_HEAD`与clean。
 - [ ] 步骤 2: 汇总candidate/full/depth/rollback/order日志到green与acceptance报告，生成evidence package并取得独立review PASS。
