@@ -189,12 +189,12 @@ PY
       local op=$1 project=$2 session=$3 feature=${4-} path_file path_fd rc
       if [[ $op == write ]] && ! harness_validate_feature_name "$feature" >/dev/null 2>&1; then return 2; fi
       umask 077
-      path_file=$(mktemp "${TMPDIR:-/tmp}/snapshot-path.XXXXXXXX") || return 1
-      exec {path_fd}<>"$path_file" || {
-        rm -f -- "$path_file"
+      path_file=$(mktemp "${TMPDIR:-/tmp}/snapshot-path.XXXXXXXX" 2>/dev/null) || return 1
+      exec {path_fd}<>"$path_file" 2>/dev/null || {
+        rm -f -- "$path_file" 2>/dev/null
         return 1
       }
-      rm -f -- "$path_file" || return 1
+      rm -f -- "$path_file" 2>/dev/null || return 1
       : # HARNESS_TEST_MARKER_CAPTURE_READY
       _harness_session_path_core "$project" "$session" 2>/dev/null 1>&"$path_fd"
       rc=$?
