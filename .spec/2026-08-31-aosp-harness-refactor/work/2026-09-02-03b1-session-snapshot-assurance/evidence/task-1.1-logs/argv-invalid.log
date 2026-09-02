@@ -1,0 +1,3 @@
+argv[--bogus] rc=1 noPASS=yes
+argv[all extra] rc=1 noPASS=yes
+argv[--dependency-absent=x] rc=1 noPASS=yes

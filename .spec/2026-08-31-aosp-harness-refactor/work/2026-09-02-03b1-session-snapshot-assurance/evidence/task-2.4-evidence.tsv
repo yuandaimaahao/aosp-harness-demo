@@ -1,0 +1,16 @@
+task-2.4-brief.md	0d9312383b6ff27e6d140a319d1b9a49de3a542e069cbf1aa25053d2bc4b8583	63613
+task-2.4-report.md	f2bd5bff9da611dd43b14f7cbd723c34bf8363bf23c4a47019d079f2c115d950	4479
+evidence/task-2.4-red.txt	2c1d3a0ee33cb3e31690587bdf2834138c40bd0fd1749a9dd18b56f37f93fddc	366
+evidence/task-2.4-logs/base.err	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/base.out	abe0ace186d27ae7af3b4904918851b48cd74c15df019ce04aec4afa292c6c47	37
+evidence/task-2.4-logs/clone.log	d7bf28d19d842cf28fe602715d3ab88d1649b2dddd93dd5508d99a613d3ab315	55
+evidence/task-2.4-logs/commit.log	192e7c42ddd3c08a13ea844c2d17c98ad8350fef249050832ebd91321bb4004a	203
+evidence/task-2.4-logs/git-rm.log	de258a9e21cb3f3a5365b32223ba5e42aff12b5c2f61a9c23fff2afebe6dd098	46
+evidence/task-2.4-logs/impl-status.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/offline.err	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/offline.log	9cbe48129ea49cda6ddb91404f2ef94ef5fe34ee7dbaed4812fb3ec28d93918f	431
+evidence/task-2.4-logs/rb-status.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/red.stderr	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/red.stdout	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.4-logs/rollback-diff.log	4a0b7c90403845a4fdae2f16723154f03e60d087762524cf55be1154a1b85ca6	43
+evidence/task-2.4-logs/rollback-head.txt	a9e86ba490c55ee4e18093ae427150f71d263fd1adab3c7c711b816d75c127a2	41

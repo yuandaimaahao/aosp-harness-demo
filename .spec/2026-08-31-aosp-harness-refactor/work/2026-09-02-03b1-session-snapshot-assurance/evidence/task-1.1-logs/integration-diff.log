@@ -1,0 +1,54 @@
+5c5,35
+< provider=${SNAPSHOT_CORE:-$here/snapshot-core-r2.sh}
+---
+> # 03b1 session snapshot assurance: provider-copy 动态矩阵。
+> # 结构: CLI 分流 -> inert/fail-closed -> 注入副本 -> 动态矩阵 -> 固定摘要。
+> # 成功唯一摘要: RESULT PASS  session snapshot assurance
+> # 注意: 注释只写摘要文字，不得包含固定摘要的 printf 调用（步骤 4/5 探针按该调用字面量的出现次数定位）。
+> case ${1-} in
+>   '' | all) ;;
+>   --dependency-absent) mode=absent ;;
+>   *) exit 1 ;;
+> esac
+> [[ $# -le 1 ]] || exit 1
+> provider=$repo/common/.harness/lib/session-state-snapshot.sh
+> if [[ ! -e $provider && ! -L $provider ]]; then
+>   printf 'RESULT PASS  session snapshot assurance\n'
+>   exit 0
+> fi
+> [[ -f $provider && ! -L $provider ]] || exit 1
+> bash -n "$provider" 2>/dev/null || exit 1
+> bash -c 'source "$1"' _ "$provider" >/dev/null 2>&1 || exit 1
+> for fn in _harness_session_snapshot_worker _harness_session_snapshot_write_core _harness_session_snapshot_read_core; do
+>   bash -c 'source "$1/common/.harness/lib/session-state-foundation.sh" && source "$1/common/.harness/lib/session-state-path.sh" && source "$2" && declare -F "$3" >/dev/null' _ "$repo" "$provider" "$fn" >/dev/null 2>&1 || exit 1
+> done
+> for marker in CAPTURE_READY SNAPSHOT_MANAGED_BEFORE_OPEN MANAGED_EXPECTED_EUID \
+>   SNAPSHOT_EXPECTED_EUID SNAPSHOT_BEFORE_OPEN TEMP_BEFORE_PUBLISH PUBLISH_RESULT OS_ERROR; do
+>   [[ $(rg -c "HARNESS_TEST_MARKER_$marker" "$provider") == 1 ]] || exit 1
+> done
+> [[ $(rg -c 'renameat2' "$provider") == 1 ]] || exit 1
+> if rg -q 'os\.(replace|link|rename)\(' "$provider"; then exit 1; fi
+> if [[ ${mode-} == absent ]]; then
+>   printf 'RESULT PASS  session snapshot assurance\n'
+>   exit 0
+> fi
+10c40
+< python3 - "$provider" "$copy" <<'PY'
+---
+> python3 - "$provider" "$copy" <<'PY' || exit 1
+82a113,117
+>     "                try: os.unlink(temp, dir_fd=dir_fd)\n                except OSError as exc:": """                try:
+>                     os.unlink(temp, dir_fd=dir_fd)
+>                     if os.environ.get("ASSURANCE_UNLINK_LOG"): open(os.environ["ASSURANCE_UNLINK_LOG"], "a").write("success\\n")
+>                 except OSError as exc:
+>                     if os.environ.get("ASSURANCE_UNLINK_LOG"): open(os.environ["ASSURANCE_UNLINK_LOG"], "a").write(errno.errorcode.get(exc.errno, "EUNKNOWN") + "\\n")""",
+268a304
+> unlink_log=$tmp/unlink-log
+271a308
+>   : >"$unlink_log"
+276c313
+<     publish-success) ASSURANCE_PUBLISH=signal-success run_rc 143 _harness_session_snapshot_write_core project session alpha ;;
+---
+>     publish-success) ASSURANCE_PUBLISH=signal-success ASSURANCE_UNLINK_LOG=$unlink_log run_rc 143 _harness_session_snapshot_write_core project session alpha ;;
+282a320
+>   [[ $action != publish-success ]] || check_eq "$action unlink errno" ENOENT "$(<"$unlink_log")"

@@ -1,0 +1,16 @@
+task-2.1-brief.md	ac6c7e98125190d2002c661728405b6f97fe62e1d26432bc885f620021609fa1	64113
+task-2.1-report.md	02c7939ccfe807dd7dbee2f829ef25539be0beb4f0a8fb1e124162d4a12a14fe	4030
+evidence/task-2.1-red.txt	c15f5012fa6d7387165d91745e25dcd4fd1dc03375c71b06e159fd83cb99b020	366
+evidence/task-2.1-logs/default.err	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/default.out	3307876bb169c45b5be4ffea3b51cc7d709ae49b8794cfe86e098d0b9a591a0b	40
+evidence/task-2.1-logs/diff-name-only.log	8e04490a2755649b54f077178d725e4c308f40d679af968269350564d2ed5271	41
+evidence/task-2.1-logs/diff-numstat.log	e118351a46ee253217def2dc00b4594b664e04462cca6c919e8f9116ad6c0c51	4
+evidence/task-2.1-logs/offline.err	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/offline.log	8d89007eb8f34f595d125f74bdd6e32ae4bc15023d796b61586439c27121bff3	471
+evidence/task-2.1-logs/red.stderr	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/red.stdout	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/shellcheck.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/shfmt.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+evidence/task-2.1-logs/tool-versions.log	0cbd9d07047c13ba120a83138fabf9be4581fcbd64c4416fce2e4648fc19bd6f	31
+evidence/task-2.1-logs/upstream-after-check.log	cb4b32da5db32c9604487204f50d9c09b25260495ddeedc9cfe5fcdfbe12bb59	262
+evidence/task-2.1-logs/upstream-before.sha256	46c186ad94a3d4ba4404838e72da518673afa016afc58a7874b6aa14b7ccf9ab	634

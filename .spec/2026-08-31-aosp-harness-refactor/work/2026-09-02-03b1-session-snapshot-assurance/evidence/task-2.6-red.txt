@@ -1,0 +1,7 @@
+task=task-2.6
+command=test -s "$WORK/acceptance/acceptance-report.md"
+expected=rc1（acceptance 报告缺席时验证必失败）
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=红阶段成立：acceptance/acceptance-report.md 缺席，test -s 返回 1，双流为空

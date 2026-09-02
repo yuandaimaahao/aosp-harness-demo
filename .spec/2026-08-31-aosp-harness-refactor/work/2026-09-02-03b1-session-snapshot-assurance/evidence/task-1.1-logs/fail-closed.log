@@ -1,0 +1,7 @@
+class 1: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 2: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 3: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 4: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 5: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 6: default rc=1 noPASS, flag rc=1 noPASS => yes
+class 7: default rc=1 noPASS, flag rc=1 noPASS => yes

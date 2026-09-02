@@ -1,0 +1,40 @@
+worktree /home/zzh0838/CareerDevelop/.repo/projects/AI2D/aosp-harness-demo.git
+HEAD 8a164f212c398a95703a38fb919af2b31c6e1662
+branch refs/heads/main
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-01-device-safety
+HEAD bcd0c9b0b675c384c346dcd0171a055b67a2712c
+branch refs/heads/spec/2026-08-31-01-device-safety
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-02-offline-quality-gate
+HEAD 83eac79c013cd50216b8638005105fb98bcd2977
+branch refs/heads/spec/2026-09-01-02-offline-quality-gate
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03-session-state-safety
+HEAD ac985df39effd937b11ddb436593b33e7eadc248
+branch refs/heads/spec/2026-09-01-03-session-state-safety
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a-session-path-safety
+HEAD f91f54d3d9832c803097bf171e9628b8d1adedab
+branch refs/heads/spec/2026-09-01-03a-session-path-safety
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a1-session-path-race-assurance
+HEAD 1c6e14f0e8d74b223956f605d41d719b6c9fc5c6
+branch refs/heads/spec/2026-09-01-03a1-session-path-race-assurance
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a2-session-path-race-matrix
+HEAD b9582e51ab5769bee90016e7e3aadb9d895ffd12
+branch refs/heads/spec/2026-09-02-03a2-session-path-race-matrix
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03b-snapshot-prototype
+HEAD 9f0dfbc5bca35df8fe9ea9ba249050a8aa4547fd
+branch refs/heads/prototype/2026-09-02-03b-snapshot-state-model
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03b1-session-snapshot-assurance/worktree
+HEAD c7a18edf2f6b3a2fec02b917d37fe5098dd1974a
+branch refs/heads/spec/2026-09-02-03b1-session-snapshot-assurance
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-02-00b-environment-seed-probe/worktree
+HEAD ed58250091c604eae9f807631b6d7598c4247a01
+branch refs/heads/spec/aosp-minimal-00b-workspace
+

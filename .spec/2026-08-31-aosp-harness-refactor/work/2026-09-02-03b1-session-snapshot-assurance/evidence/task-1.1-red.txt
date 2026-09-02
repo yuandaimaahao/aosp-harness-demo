@@ -1,0 +1,7 @@
+task=task-1.1
+command=test ! -e tests/test-session-snapshot-assurance.sh && bash tests/test-session-snapshot-assurance.sh
+expected=rc127, stdout 无 PASS（候选文件缺席时主验证命令失败）
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=d5d26473b9e1c3f075faec463dcdc3f3947d4cbb5d32ddae35b9c0d435fc8949
+assertion=红阶段成立：候选文件缺席，bash 返回 127 且 stdout 为空（无 PASS）
