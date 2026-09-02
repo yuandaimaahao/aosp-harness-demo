@@ -1,0 +1,5 @@
+command: python3 common/tests/test_seed_contract_runtime.py canonical-core
+cwd: /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree
+exit: 1
+stdout: ""
+stderr: "FAIL canonical-core runtime/API missing\\n"

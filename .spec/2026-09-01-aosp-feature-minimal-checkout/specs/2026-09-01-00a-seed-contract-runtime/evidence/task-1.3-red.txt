@@ -1,0 +1,13 @@
+command: python3 common/tests/test_seed_contract_runtime.py seed-schema
+exit: 1
+stdout:
+
+stderr:
+Traceback (most recent call last):
+  File "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree/common/tests/test_seed_contract_runtime.py", line 54, in <module>
+    try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+           ^^^^^^^^^^^^^
+  File "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree/common/tests/test_seed_contract_runtime.py", line 51, in seed
+    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"_seed"),"seed validator missing"
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: seed validator missing

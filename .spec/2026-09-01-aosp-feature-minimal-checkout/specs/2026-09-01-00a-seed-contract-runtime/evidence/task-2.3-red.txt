@@ -1,0 +1,13 @@
+command: python3 common/tests/test_seed_contract_runtime.py ref-resolve
+exit: 1
+stdout:
+
+stderr:
+Traceback (most recent call last):
+  File "common/tests/test_seed_contract_runtime.py", line 150, in <module>
+    try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+           ^^^^^^^^^^^^^
+  File "common/tests/test_seed_contract_runtime.py", line 147, in ref_resolve
+    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"resolve_ref"),"resolver missing"
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: resolver missing

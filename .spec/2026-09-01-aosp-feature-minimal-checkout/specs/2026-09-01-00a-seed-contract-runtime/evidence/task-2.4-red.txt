@@ -1,0 +1,12 @@
+command: python3 common/tests/test_seed_contract_runtime.py ref-publish
+exit: 1
+stdout:
+stderr:
+Traceback (most recent call last):
+  File "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree/common/tests/test_seed_contract_runtime.py", line 178, in <module>
+    try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+           ^^^^^^^^^^^^^
+  File "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree/common/tests/test_seed_contract_runtime.py", line 164, in ref_publish
+    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"publish"),"ref publisher missing"; import concurrent.futures as F
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ref publisher missing

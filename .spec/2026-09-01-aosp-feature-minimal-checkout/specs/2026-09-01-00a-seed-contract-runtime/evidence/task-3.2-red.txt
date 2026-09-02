@@ -1,0 +1,4 @@
+Command: bash common/tests/test-seed-contract-runtime.sh --case rollback --ledger /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-01-00a-seed-contract-runtime/ledger.md
+Exit: 1
+Stdout: (empty)
+Stderr: ROLLBACK ERROR active delivery candidate unavailable

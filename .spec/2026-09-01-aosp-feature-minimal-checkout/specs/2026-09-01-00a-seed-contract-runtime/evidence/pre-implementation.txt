@@ -1,0 +1,5 @@
+command: bash common/tests/test-seed-contract-runtime.sh
+exit: 127
+stdout: empty
+stderr: bash: common/tests/test-seed-contract-runtime.sh: No such file or directory
+classification: expected red evidence before implementation; command runner exists, product test does not

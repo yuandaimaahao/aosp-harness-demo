@@ -1,0 +1,6 @@
+command: python3 common/tests/test_seed_contract_runtime.py store-object
+exit: 1
+stdout:
+stderr:
+Traceback (most recent call last):
+  AssertionError: object publisher missing

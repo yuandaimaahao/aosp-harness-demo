@@ -1,12 +1,12 @@
 ---
 project: 2026-09-01-aosp-feature-minimal-checkout
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 复盘完成：五问均否，00a/00b拆分、顺序和730/630预算继续成立；无新增产品spec或调研问题，下一片选择2026-09-01-00a-seed-contract-runtime
-updated: '2026-09-02T01:59:59+08:00'
-current_spec: null
-spec_stage: null
+basis: new-spec.sh 建了 2026-09-02-00b-environment-seed-probe
+updated: '2026-09-02T11:07:28+08:00'
+current_spec: 2026-09-02-00b-environment-seed-probe
+spec_stage: requirements
 mode: standard
 workflow: requirements-first
 ---
@@ -47,6 +47,16 @@ workflow: requirements-first
 | 2026-09-02T01:54:43+08:00 | spec/execute | spec/accept | execute完成：四任务均经fresh independent diff review PASS；recovery merge a79edb650066bf47d6908fe00ec22c0d6749ef14 parent1=7b46dfba287f2e3e3fb9ca00c3186b69c4720dc7 parent2=55884d4b4819cb2fbda1e4468a25164dc7157b40；六路径744/800；self-test/pre-commit-complete/ledger sync/main acceptance/isolated revert-m1/三项旧harness回归均PASS；未运行AOSP命令 |
 | 2026-09-02T01:59:41+08:00 | spec/accept | retro | 门⑤自动通过：本轮self-test/pre-commit-complete/main acceptance exact PASS；merge a79edb65为two-parent四任务六路径、common增量0、744/800；R1-R27 owners和summary上限通过；check-converge真实base/head spec-root相对模式exit0；全部裁定/挂账/SKIPPED已归档 |
 | 2026-09-02T01:59:59+08:00 | retro | select | 复盘完成：五问均否，00a/00b拆分、顺序和730/630预算继续成立；无新增产品spec或调研问题，下一片选择2026-09-01-00a-seed-contract-runtime |
+| 2026-09-01T18:01:52+00:00 | select | spec/requirements | new-spec.sh 建了 2026-09-01-00a-seed-contract-runtime |
+| 2026-09-02T02:34:07+08:00 | spec/requirements | spec/design | 门②自动通过：三轮独立 requirements review 熔断后逐项裁决，check-req/check-criteria/check-analyze/diff-check 全 PASS |
+| 2026-09-02T03:03:45+08:00 | spec/design | spec/tasks | 门③自动通过：design round2 fresh independent review 0 finding PASS，725-line estimate <=730 |
+| 2026-09-02T03:26:06+08:00 | spec/tasks | spec/execute | 门④自动通过：三轮tasks review熔断后裁定，10任务max100/total725，check-tasks与全自查PASS |
+| 2026-09-02T10:44:36+08:00 | spec/execute | spec/accept | 10/10 tasks complete; fresh reviews PASS; accepted delivery merge 6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a; full acceptance, named invariants, descendant rollback, old harness regressions PASS; common diff 631/730; final review summary 46/140 |
+| 2026-09-02T10:47:04+08:00 | spec/accept | spec/execute | 门⑤发现 accepted candidate 下 rollback invariant 不可重跑；按 implementation fix 退回 task 3.2，旧 delivery merge 待 supersede |
+| 2026-09-02T11:01:04+08:00 | spec/execute | spec/accept | 10/10 tasks complete after closeout fix; R3 PASS; accepted delivery merge f9ead254b70c39532a276e8aa63a537d4cac7af6; active and accepted descendant rollback PASS; full gates PASS; common diff 631/730; final review 57/140; check-converge PASS |
+| 2026-09-02T11:06:03+08:00 | spec/accept | retro | 门⑤通过：accepted delivery f9ead254 与 main merge 43128651 上 CLI、主判据、五项不变量、accepted rollback、旧三回归、check-converge 全 PASS；631/730、57/140；无 skipped，裁定与挂账已归档 |
+| 2026-09-02T11:06:28+08:00 | retro | select | 复盘完成：五问均否；00a 修复未改变 00b 前提、630 行预算、串行依赖或调研范围 |
+| 2026-09-02T11:07:28+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-00b-environment-seed-probe |
 
 ## SKIPPED 记录
 

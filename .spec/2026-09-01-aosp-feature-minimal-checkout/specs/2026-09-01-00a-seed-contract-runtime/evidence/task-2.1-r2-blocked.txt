@@ -1,0 +1,8 @@
+command: deterministic post-mkdir/pre-open rename probe at 349fb437895d3da09f1d65a4d42ae46eb35e3070
+object fired=True code=STATE_DIR_CONTRACT outside=['leaked-v1']
+ref fired=True code=OUT_REF_CONTRACT outside=['leaked-refs']
+open(O_CREAT|O_DIRECTORY): errno=22 Invalid argument
+mkdir return: None
+fifo bounded timeout: fifo: OUT_REF_CONTRACT
+
+Proof: mkdirat creates a directory but returns no fd.  O_CREAT|O_DIRECTORY is invalid on Linux, so openat cannot atomically create-and-return a directory fd.  A rename after mkdirat and before the mandatory name-based open leaves no handle or discoverable name for safe cleanup of the moved inode.

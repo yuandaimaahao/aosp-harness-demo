@@ -1,0 +1,250 @@
+# ledger — spec: 2026-09-01-00a-seed-contract-runtime
+# plan: .spec/2026-09-01-aosp-feature-minimal-checkout/PLAN.md v6
+# worktree: 尚未创建（requirements 阶段）
+
+> 会话压缩之后，「我刚做完什么」的记忆不可靠。这份文件和 git log 才是。
+> `任务 N: 完成` 是唯一的恢复锚点。
+
+---
+
+## requirements
+
+- 02:18 draft requirements=18 schema-kinds=8 questions=0/15 rounds=0/2 mode=autopilot source=PLAN-v6+DECISIONS+supersession-terminal
+- 02:18 checks check-req=PASS check-criteria=PASS check-analyze=PASS diff-check=PASS red=evidence/pre-implementation.txt
+- 02:18 review-dispatch artifact=requirements reviewer=gpt-5.6-sol/high round=1 output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00a-round-1.md
+- 02:25 review artifact=requirements round=1 result=FAIL blocker=5 important=6 minor=3 findings=closed-schema+cli-grammar+runtime-api+error-priority+rollback-topology+parity+ref-kind+provenance+order-oracles+budget+public-seam+channels+temp-cleanup+confirmation
+- 02:31 fix artifact=requirements round=1 action=accept-all findings schema=full-six-artifacts+two-digest-payloads cli=two-mutually-exclusive-productions runtime=marker+module+seven-exports errors=exact-prepublish+publish-order rollback=descendant-wrapper budget=730/140 public-positive=pure-seam
+- 02:31 checks check-req=PASS check-criteria=PASS check-analyze=PASS diff-check=PASS
+- 02:31 review-dispatch artifact=requirements reviewer=gpt-5.6-sol/high round=2 output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00a-round-2.md
+- 02:42 review artifact=requirements round=2 result=FAIL blocker=3 important=2 minor=2 findings=closed-nested-schema+semantic-array-order+store-root+object-only-publish+keyword-api+lock-before-observation+public-code+lock-nofollow+estimate-timing+confirmation+export-list
+- 02:50 fix artifact=requirements round=2 action=accept-all schema=closed-types+nullability+terminal-order+identity+request-reconstruction arrays=sorted-unique-vs-semantic-order store=STATE_DIR/artifacts/v1 api=ContractError+typed-keyword-only+publish_object errors=lock-first+exact-ref-object-public-order path=lock-nofollow+cli-state-derivation budget=preimplementation-estimate confirmation=pending-round3
+- 02:50 checks check-req=PASS check-analyze=PASS diff-check=PASS check-criteria=PENDING_EXPECTED_FALSE_CONFIRMATION
+- 03:01 review-dispatch artifact=requirements reviewer=gpt-5.6-sol/high round=3 fresh=true output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00a-round-3.md
+- 03:08 review artifact=requirements round=3 result=FAIL blocker=2 important=2 minor=1 fuse=max-3 findings=public-success+evidence-closure+ref-lock-codes+publisher-envelope+closed-leaves+object-temp-cleanup
+- 03:16 fuse-adjudication artifact=requirements action=accept-all public=success-invariants+four-object-closure errors=missing-ref+ref-leaf+lock-leaf-exact publisher=complete-envelope+prewrite-validation+domain-dispatch schema=remaining-leaves+relations temp=ref-locked-only+object-no-auto-clean confirmation=auto-true
+- 03:19 checks check-req=PASS check-criteria=PASS check-analyze=PASS diff-check=PASS
+- 03:19 自动通过: 门② — requirements 三轮 fresh independent review 达熔断上限后逐项裁定全部 findings；closed schema/API/error/evidence-closure 已固定且机械门禁全 PASS；未执行任何 AOSP 命令。
+
+## design
+
+- 03:27 draft design sections=8 decisions=4 files=7 requirements=R1-R18 stack=bash4+python3.10-stdlib
+- 03:27 self-check placeholders=PASS contradictions=PASS coverage=PASS mermaid=PASS diff-check=PASS
+- 03:27 review-dispatch artifact=design reviewer=gpt-5.6-sol/high round=1 output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00a-round-1.md
+- 03:36 review artifact=design round=1 result=FAIL blocker=4 important=6 minor=1 findings=rfc8785-uint64+frontmatter-exact+publish-lock-order+python-binding+readonly-statepaths+architecture+domains+error-machine+rollback+budget+modes
+- 03:44 reopen artifact=requirements cause=design-B1+B4 changes=I-JSON-safe-integers+surrogate-reject+python-call-shape-programmer-error confirmation=false
+- 03:48 fix artifact=design round=1 action=accept-all architecture=direct-wrapper-runtime interfaces=frontmatter+four-productions canonical=I-JSON-safe statepaths=mappingproxy publish=lock-before-observation domains=all-nine errors=exact-stages rollback=descendant-first budget=725 modes=0755
+- 03:55 review artifact=requirements reopen-round=1 result=FAIL blocker=1 important=1 findings=numeric-supersession-source+exact-boundary-carrier-oracles
+- 04:00 fix artifact=requirements reopen-round=1 action=accept-all decision=explicit-I-JSON-safe-supersession downstream=00b-05-fail-closed acceptance=numeric-surrogate+four-carrier-matrix
+- 04:08 review artifact=requirements reopen-round=2 result=FAIL blocker=1 important=1 minor=1 findings=cross-layer-priority+call-shape-boundary-oracle+autopilot-wording
+- 04:13 fix artifact=requirements reopen-round=2 action=accept-all errors=dispatcher-then-direct-preamble-then-grammar-then-runtime mixed-fault=exact-4-cases boundary=real-binding-TypeError wording=no-pending-question
+- 04:20 review artifact=requirements reopen-round=3 result=PASS blocker=0 important=0 minor=0 confirmation=may-flip-true output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00a-reopen-round-3.md
+- 04:20 自动通过: 门②重开 — numeric supersession、surrogate、staged error priority 与 carrier matrix 经三轮 fresh regression review 最终 0 finding PASS；confirmation 仅作流程元数据翻 true。
+- 04:22 review-dispatch artifact=design reviewer=gpt-5.6-sol/high round=2 fresh=true output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00a-round-2.md
+- 04:29 review artifact=design round=2 result=PASS blocker=0 important=0 minor=0 round1-closure=4B+6I+1M
+- 04:29 自动通过: 门③ — design round2 fresh independent review 0 finding PASS；八节、R1-R18、exact interfaces、staged state machine、rollback、725-line estimate 与 no-AOSP boundary 全部通过。
+
+## tasks
+
+- 04:41 draft tasks=6 required=6 optional=0 order=schema-core→seed-terminal→object-store→locked-ref→cli→rollback estimates=145+155+145+155+80+45=725
+- 04:45 checks check-tasks=PASS requirements-union=R1-R18 orphan-output=PASS signature-chain=PASS levels=PASS diff-check=PASS
+- 04:45 review-dispatch artifact=tasks reviewer=gpt-5.6-sol/high round=1 output=.spec/2026-09-01-aosp-feature-minimal-checkout/reviews/tasks-00a-round-1.md
+- 04:52 review artifact=tasks round=1 result=FAIL blocker=2 important=2 minor=0 findings=final-task-review-merge-cycle+task2.2-granularity+capability-signatures+postmerge-green-commands
+- 05:02 fix artifact=tasks round=1 action=accept-all tasks=7 split=locked-resolver80+atomic-publish75 capabilities=artifact-validation/object-store/locked-resolver/stable-runtime lifecycle=premerge-green→commit→READY_FOR_REVIEW→fresh-review→two-parent-merge→ledger→postmerge-gates commands=all-explicit total=725
+- 05:02 checks check-tasks=PASS requirements-union=R1-R18 orphan-output=PASS signature-chain=PASS levels=PASS diff-check=PASS
+- 05:10 review artifact=tasks round=2 result=FAIL blocker=1 important=1 minor=0 findings=unknown-report-state+candidate-supersession+isolated-ledger-path+exact-green-actions
+- 05:18 fix artifact=tasks round=2 action=accept-all report=DONE-not-complete ledger=append-only-active/superseded/accepted live-ledger=absolute commands=one-action+exact-cwd+exact-channels
+- 05:25 review artifact=tasks round=3 result=FAIL blocker=0 important=4 minor=0 fuse=max-3 findings=absolute-red-ledger+atomic-control-steps+all-task-single-actions+review-under10
+- 05:38 fuse-adjudication artifact=tasks action=accept-all tasks=10 estimates=70+75+100+55+65+80+80+75+80+45=725 split=canonical/evidence/seed/terminal/path/object/resolver/publisher/cli/delivery actions=single-command-or-control red-ledger=absolute candidate=active/superseded/accepted
+- 05:38 checks check-tasks=PASS requirements-union=R1-R18 orphan-output=PASS signature-chain=PASS tasks=10 max-estimate=100 total=725 diff-check=PASS
+- 05:38 自动通过: 门④ — tasks 三轮 fresh independent review 达熔断上限后逐项裁定全部 4 important；十任务均 <10 分钟 review 面、真实 red、单动作、exact oracle，机械门禁全 PASS；门④前七个实现文件仍不存在。
+
+## execute
+
+- isolation: trunk=main base=c959efaf9887808621852aff28073cf1f8789ca7 worktree=/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/worktree branch=spec/aosp-minimal-00a-impl
+- 05:42 dispatch task=1.1 model=gpt-5.6-terra/high base=c959efaf9887808621852aff28073cf1f8789ca7 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-1.1-brief.md
+- 05:48 report task=1.1 status=DONE commit=67db369556ab8754da67d28159ba45bd44bf1853 tests=canonical-core+diff-check lines=65/70 red=task-1.1-red.txt report-check=PASS
+- 05:49 review-dispatch task=1.1 reviewer=gpt-5.6-sol/high base=c959efaf9887808621852aff28073cf1f8789ca7 head=67db369556ab8754da67d28159ba45bd44bf1853 package=review-c959efaf-67db3695.md
+- 05:55 review task=1.1 round=1 result=FAIL blocker=1 important=2 minor=0 findings=review-context-package+non-json-canonical-input+shared-test-temp
+- 05:56 fix-dispatch task=1.1 round=1 model=gpt-5.6-terra/high action=reject-tuple/nonstring-key+unique-temp+parallel-regression constraint=total-lines<=70
+- 06:03 report task=1.1 fix-round=1 status=DONE commits=[67db3695,214add6b] tests=canonical-core+concurrent-core+diff-check lines=70/70 report-check=PASS
+- 06:04 review-dispatch task=1.1 round=2 reviewer=gpt-5.6-sol/high base=c959efaf9887808621852aff28073cf1f8789ca7 head=214add6b6dd1555afbb977a0a8fcc76cf2d0ba3d inputs=task-1.1-brief.md+review-c959efaf-214add6b.md+round1-findings
+- 03:42 review task=1.1 round=2 result=FAIL blocker=0 important=2 minor=0 prior-findings=all-closed findings=rfc8785-unicode-key-order+load-artifact-argument-error
+- 03:42 fix-dispatch task=1.1 round=2 model=gpt-5.6-terra/high action=ascii-key-safe-subset+public-argument-validation+regressions constraint=total-lines<=70
+- 03:45 report task=1.1 fix-round=2 status=DONE commit=b7ed7abbd1f40b7c8048e6da03cac597b16678b2 tests=canonical-core+concurrent-core+r2-key-type-probe+diff-check lines=70/70 report-check=PASS
+- 03:45 review-dispatch task=1.1 round=3 reviewer=gpt-5.6-sol/high base=c959efaf9887808621852aff28073cf1f8789ca7 head=b7ed7abbd1f40b7c8048e6da03cac597b16678b2 inputs=task-1.1-brief.md+review-c959efaf-b7ed7abb.md+round1+round2-findings fresh=true
+- 03:50 review task=1.1 round=3 result=FAIL blocker=0 important=1 minor=0 prior-findings=all-closed finding=domain-digest-argument-type+public-signature-annotations fuse=max-3
+- 03:50 fuse-adjudication task=1.1 finding=domain-digest-argument-type+public-signature-annotations class=bearing decision=accept fix=exact-str-validation+ARGUMENT_ERROR+declared-annotations+regression if-wrong=non-string-domain-may-forge-domain-separation-or-leak-runtime-error-and-downstream-ABI-introspection-may-diverge
+- 03:50 fix-dispatch task=1.1 round=3 implementer=fresh model=gpt-5.6-sol/high action=domain-type-guard+annotations+regression constraint=total-lines<=70
+- 03:58 report task=1.1 fuse-fix status=DONE commit=b9d61b7ae681b56a8b2c1caea833ebf165988d16 tests=canonical-core+concurrent-core+r3-probe+diff-check lines=70/70 report-check=PASS worktree=clean
+- 03:58 review-dispatch task=1.1 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=b7ed7abbd1f40b7c8048e6da03cac597b16678b2 head=b9d61b7ae681b56a8b2c1caea833ebf165988d16 inputs=task-1.1-brief.md+review-b7ed7abb-b9d61b7a.md+round3-finding scope=adjudicated-fix+regression
+- 04:01 review task=1.1 fuse-verification result=PASS blocker=0 important=0 minor=0 finding=closed tests=canonical-core+concurrent-core+r3-exact-probe+base-target-corpus
+- 任务 1.1: 完成
+- 04:02 dispatch task=1.2 model=gpt-5.6-terra/high base=b9d61b7ae681b56a8b2c1caea833ebf165988d16 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-1.2-brief.md
+- 04:07 report task=1.2 status=DONE commit=67cc360f5bcc7c249a4804a54b9f8ec1b5316997 tests=canonical-core+evidence-schema+diff-check lines=75/75 deletions=3 report-check=PASS
+- 04:07 review-dispatch task=1.2 round=1 reviewer=fresh-gpt-5.6-sol/high base=b9d61b7ae681b56a8b2c1caea833ebf165988d16 head=67cc360f5bcc7c249a4804a54b9f8ec1b5316997 inputs=task-1.2-brief.md+review-b9d61b7a-67cc360f.md
+- 04:13 review task=1.2 round=1 result=FAIL blocker=2 important=3 minor=1 findings=bool-int-exactness+project-domain+journal-record-carrier+source-root-realpath+matrix-coverage+compressed-names
+- 04:13 fix-dispatch task=1.2 round=1 model=gpt-5.6-terra/high action=accept-all-correctness+table-driven-hardcoded-oracles+readability-if-budget constraint=total-additions<=75
+- 04:18 report task=1.2 fix-round=1 status=DONE_WITH_CONCERNS commit=5337b6dd27b198403b2e6db16ecf44edad2844bc tests=canonical-core+evidence-schema+concurrent-core+review-finding-probes+diff-check lines=75/75 report-check=PASS concern=compact-validator-style
+- 04:18 review-dispatch task=1.2 round=2 reviewer=fresh-gpt-5.6-sol/high base=b9d61b7ae681b56a8b2c1caea833ebf165988d16 head=5337b6dd27b198403b2e6db16ecf44edad2844bc inputs=task-1.2-brief.md+review-b9d61b7a-5337b6dd.md+round1-findings
+- 04:24 review task=1.2 round=2 result=FAIL blocker=0 important=3 minor=1 prior-closed=2B+2I findings=carrier-escape+unsupported-schema-priority+per-field-matrix+compressed-names
+- 04:24 fix-dispatch task=1.2 round=2 model=gpt-5.6-terra/high action=carrier-closure+schema-priority+generated-table-driven-cases-within-source-budget+readability-if-feasible constraint=total-additions<=75
+- 04:32 report task=1.2 fix-round=2 status=DONE_WITH_CONCERNS commit=28e8f1b6c1c2690497185e103a44064a28378346 tests=canonical-core+evidence-schema+concurrent-core+r2-probes+old-three-regressions+diff-check lines=75/75 report-check=PASS concern=compact-validator-style
+- 04:32 review-dispatch task=1.2 round=3 reviewer=fresh-gpt-5.6-sol/high base=b9d61b7ae681b56a8b2c1caea833ebf165988d16 head=28e8f1b6c1c2690497185e103a44064a28378346 inputs=task-1.2-brief.md+review-b9d61b7a-28e8f1b6.md+round1+round2-findings
+- 04:38 review task=1.2 round=3 result=FAIL blocker=0 important=3 minor=1 prior-closed=carrier-specific+loader-priority findings=entry-kind-unhashable-carrier+shared-validator-envelope+per-field-matrix+compressed-names fuse=max-3
+- 04:38 fuse-adjudication task=1.2 finding=entry-kind-unhashable-carrier class=bearing decision=accept fix=type-before-enum-dispatch+independent-container-probes if-wrong=ordinary-invalid-descriptor-leaks-TypeError-and-wrapper-misreports-RUNTIME_INTERNAL
+- 04:38 fuse-adjudication task=1.2 finding=shared-validator-envelope class=bearing decision=accept fix=exact-schema-envelope-in-shared-dispatch+direct-negative-probes if-wrong=in-memory-publisher-path-can-accept-schema-2-or-bool-and-publish-nonconforming-evidence
+- 04:38 fuse-adjudication task=1.2 finding=per-field-matrix class=bearing decision=accept fix=independent-boundary-order-base64-enum-digest-rows if-wrong=uncovered-load-bearing-field-regressions-can-pass-task-gate
+- 04:38 fuse-adjudication task=1.2 finding=compressed-names class=nonbearing decision=defer reason=hard-75-line-budget if-wrong=validator-priority-remains-harder-to-audit-but-mechanical-contract-tests-still-decide-correctness
+- 04:38 fix-dispatch task=1.2 round=3 implementer=fresh model=gpt-5.6-sol/high action=three-bearing-fixes constraint=total-additions<=75
+- 04:50 report task=1.2 fuse-fix status=DONE_WITH_CONCERNS commit=5338e29d0acfc09eb12e6181bf72f9095a179044 tests=canonical-core+evidence-schema+concurrent-core+r3-exact-probes+old-three-regressions+diff-check lines=74/75 report-check=PASS concern=deferred-readability-minor
+- 04:50 review-dispatch task=1.2 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=28e8f1b6c1c2690497185e103a44064a28378346 head=5338e29d0acfc09eb12e6181bf72f9095a179044 inputs=task-1.2-brief.md+review-28e8f1b6-5338e29d.md+round3-findings scope=adjudicated-fixes+direct-regression
+- 04:55 review task=1.2 fuse-verification result=PASS blocker=0 important=0 minor=1 known-minor=deferred-readability new-findings=0 tests=exact-head+independent-probes+old-three-regressions
+- 任务 1.2: 完成
+- 04:55 dispatch task=1.3 model=gpt-5.6-terra/high base=5338e29d0acfc09eb12e6181bf72f9095a179044 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-1.3-brief.md
+- 05:02 report task=1.3 status=DONE commit=6afe239296bf244c97087a92f7cbfdc6bbbf89b9 tests=canonical-core+evidence-schema+seed-schema+diff-check lines=53/100 report-check=PASS
+- 05:02 review-dispatch task=1.3 round=1 reviewer=fresh-gpt-5.6-sol/high base=5338e29d0acfc09eb12e6181bf72f9095a179044 head=6afe239296bf244c97087a92f7cbfdc6bbbf89b9 inputs=task-1.3-brief.md+review-5338e29d-6afe2392.md
+- 05:09 review task=1.3 round=1 result=FAIL blocker=2 important=3 minor=1 findings=dirty-project-relations+public-envelope+host-container-nullability+credential-free-remotes+semantic-matrix+launcher-path-overstrict
+- 05:09 fix-dispatch task=1.3 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=100
+- 05:14 report task=1.3 fix-round=1 status=DONE commit=8c4bebb50845061a57f70abe8fbf8d402d74d231 tests=canonical+evidence+seed+r1-semantic+old-regressions+diff-check lines=59/100 report-check=PASS
+- 05:14 review-dispatch task=1.3 round=2 reviewer=fresh-gpt-5.6-sol/high base=5338e29d0acfc09eb12e6181bf72f9095a179044 head=8c4bebb50845061a57f70abe8fbf8d402d74d231 inputs=task-1.3-brief.md+review-5338e29d-8c4bebb5.md+round1-findings
+- 05:20 review task=1.3 round=2 result=FAIL blocker=0 important=3 minor=1 prior-closed=4 findings=credential-url-soundness+relative-path-nul+independent-reconstruction-oracle+string-null-overrestriction
+- 05:20 fix-dispatch task=1.3 round=2 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=100
+- 05:24 report task=1.3 fix-round=2 status=DONE commit=7f2d97fee8705b658bea613ffda6f2f957042f53 tests=canonical+evidence+seed+r2-semantic+old-regressions+diff-check lines=76/100 report-check=PASS
+- 05:24 review-dispatch task=1.3 round=3 reviewer=fresh-gpt-5.6-sol/high base=5338e29d0acfc09eb12e6181bf72f9095a179044 head=7f2d97fee8705b658bea613ffda6f2f957042f53 inputs=task-1.3-brief.md+review-5338e29d-7f2d97fe.md+round1+round2-findings
+- 05:28 review task=1.3 round=3 result=FAIL blocker=0 important=1 minor=1 prior-findings=all-closed-except-credential finding=credential-query-deny-coverage fuse=max-3
+- 05:28 fuse-adjudication task=1.3 finding=credential-query-deny-coverage class=bearing decision=accept fix=case-insensitive-sensitive-key-policy+common-provider-probes if-wrong=credentials-may-be-persisted-in-canonical-seed-content-and-identity-artifacts
+- 05:28 fuse-adjudication task=1.3 finding=credential-semantic-matrix class=bearing decision=accept fix=independent-private-oauth-client-secret-aws-negative-cases if-wrong=credential-regression-can-pass-seed-schema-gate
+- 05:28 fix-dispatch task=1.3 round=3 implementer=fresh model=gpt-5.6-sol/high constraint=total-additions<=100
+- 05:32 report task=1.3 fuse-fix status=DONE commit=bf1b8facb9b4e16a4487f6f6643a0cbdecd71da9 tests=all-schema+r3-provider-probes+old-regressions+diff-check lines=83/100 report-check=PASS
+- 05:32 review-dispatch task=1.3 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=7f2d97fee8705b658bea613ffda6f2f957042f53 head=bf1b8facb9b4e16a4487f6f6643a0cbdecd71da9 inputs=task-1.3-brief.md+review-7f2d97fe-bf1b8fac.md+round3-findings scope=credential-fix+direct-regression
+- 05:36 review task=1.3 fuse-verification result=FAIL blocker=0 important=1 minor=1 finding=credential-case-normalization-direct-regression
+- 05:36 fuse-adjudication task=1.3 finding=credential-case-normalization class=bearing decision=accept fix=normalize-case-before-sensitive-token-match+uppercase-probes if-wrong=uppercase-or-separator-free-credential-keys-bypass-canonical-artifact-protection
+- 05:36 fix-dispatch task=1.3 fuse-correction=1 implementer=gpt-5.6-sol/high constraint=total-additions<=100
+- 05:39 report task=1.3 fuse-correction=1 status=DONE commit=ac37b75f9ddda61b647632c72ad2f8fbc72f8a2d tests=all-schema+three-field-uppercase-mixed-probes+old-regressions+diff-check lines=83/100 report-check=PASS
+- 05:39 review-dispatch task=1.3 fuse-verification=2 reviewer=fresh-gpt-5.6-sol/high base=bf1b8facb9b4e16a4487f6f6643a0cbdecd71da9 head=ac37b75f9ddda61b647632c72ad2f8fbc72f8a2d scope=case-normalization-direct-fix
+- 05:42 review task=1.3 fuse-verification=2 result=PASS blocker=0 important=0 minor=0 credential-variants=closed direct-regressions=PASS
+- 任务 1.3: 完成
+- 05:42 dispatch task=1.4 model=gpt-5.6-terra/high base=ac37b75f9ddda61b647632c72ad2f8fbc72f8a2d brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-1.4-brief.md
+- 05:48 report task=1.4 status=DONE commit=aaa5c4a13c3ae06155aab6c6f9389f4d59676dfe tests=five-runtime-cases+old-regressions+diff-check lines=13/55 report-check=PASS
+- 05:48 review-dispatch task=1.4 round=1 reviewer=fresh-gpt-5.6-sol/high base=ac37b75f9ddda61b647632c72ad2f8fbc72f8a2d head=aaa5c4a13c3ae06155aab6c6f9389f4d59676dfe inputs=task-1.4-brief.md+review-ac37b75f-aaa5c4a1.md
+- 05:52 review task=1.4 round=1 result=FAIL blocker=0 important=1 minor=1 findings=summary-sensitive-content+terminal-matrix
+- 05:52 fix-dispatch task=1.4 round=1 model=gpt-5.6-terra/high action=closed-summary-vocabulary+table-driven-terminal-matrix constraint=total-additions<=55
+- 05:56 report task=1.4 fix-round=1 status=DONE commit=b0d0b133da3a161aa2fde448033f7b737f8881be tests=full-runtime-matrix+old-three-regressions+diff-check lines=17/55 report-check=PASS
+- 05:56 review-dispatch task=1.4 round=2 reviewer=fresh-gpt-5.6-sol/high base=ac37b75f9ddda61b647632c72ad2f8fbc72f8a2d head=b0d0b133da3a161aa2fde448033f7b737f8881be inputs=task-1.4-brief.md+review-ac37b75f-b0d0b133.md+round1-findings
+- 06:01 review task=1.4 round=2 result=PASS blocker=0 important=0 minor=0 matrix=subsets-32767 scope=17/55
+- 任务 1.4: 完成
+- 06:01 dispatch task=2.1 model=gpt-5.6-terra/high base=b0d0b133da3a161aa2fde448033f7b737f8881be brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-2.1-brief.md
+- 06:06 report task=2.1 status=DONE commit=3c3efcb2a9d9e15aa2e8d5a69bb97a46b25efaed tests=state-paths+schema+old-three-regressions+diff-check lines=52/65 report-check=PASS
+- 06:06 review-dispatch task=2.1 round=1 reviewer=fresh-gpt-5.6-sol/high base=b0d0b133da3a161aa2fde448033f7b737f8881be head=3c3efcb2a9d9e15aa2e8d5a69bb97a46b25efaed inputs=task-2.1-brief.md+review-b0d0b133-3c3efcb2.md
+- 06:14 review task=2.1 round=1 result=FAIL blocker=2 important=1 minor=2 findings=fifo-hang+rename-redirection+forbidden-root-argument-code+search-only-dir+security-matrix
+- 06:14 fix-dispatch task=2.1 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=65
+- 06:22 report task=2.1 fix-round=1 status=DONE commits=[79fec29,349fb437] head=349fb437895d3da09f1d65a4d42ae46eb35e3070 tests=full-state+fifo-socket-dir+rename-race+old-regressions+diff-check lines=65/65 report-check=PASS
+- 06:22 review-dispatch task=2.1 round=2 reviewer=fresh-gpt-5.6-sol/high base=b0d0b133da3a161aa2fde448033f7b737f8881be head=349fb437895d3da09f1d65a4d42ae46eb35e3070 inputs=task-2.1-brief.md+review-b0d0b133-349fb437.md+round1-findings
+- 06:31 review task=2.1 round=2 result=FAIL blocker=1 important=0 minor=1 prior-findings=closed-except-rename finding=post-mkdir-rename-cleanup-gap+missing-window-regression
+- 06:31 fix-dispatch task=2.1 round=2 model=gpt-5.6-terra/high action=atomic-or-staged-created-dir-handle+deterministic-window-test constraint=total-additions<=65 fallback=BLOCKED-with-posix-proof-and-minimal-design-change
+- 06:33 report task=2.1 fix-round=2 status=BLOCKED head=349fb437895d3da09f1d65a4d42ae46eb35e3070 evidence=evidence/task-2.1-r2-blocked.txt cause=posix-mkdirat-no-fd+open-create-directory-EINVAL
+- 06:33 adjudication task=2.1 class=tasks-wrong decision=exclude-same-uid-active-directory-topology-mutation scope=stable-topology-static-symlink+nonregular+containment+locked-publishers retained=detected-change-fail-closed+best-effort-cleanup if-wrong=same-uid-hostile-rename-can-move-runtime-created-directory-outside-declared-state-and-leave-unknown-name-residual
+- 06:33 reopen artifacts=requirements+design+tasks action=record-filesystem-threat-boundary docs=requirements.md+design.md+tasks.md+DECISIONS.md
+- 06:34 checks reopened-artifacts check-req=PASS check-criteria=PASS check-analyze=PASS check-tasks=PASS diff-check=PASS decision=effective
+- 06:34 redispatch task=2.1 model=gpt-5.6-terra/high base=b0d0b133da3a161aa2fde448033f7b737f8881be head=349fb437895d3da09f1d65a4d42ae46eb35e3070 action=align-test+report-to-adjudicated-threat-boundary constraint=total-additions<=65
+- 06:37 report task=2.1 adjudicated-fix status=DONE_WITH_CONCERNS commit=a01b436dac32422ec849d471197a6b6d6e621093 tests=full-state+bounded-fifo+post-mkdir-object-ref-fail-closed-best-effort+old-regressions+diff-check lines=65/65 report-check=PASS concern=approved-same-uid-topology-boundary
+- 06:37 review-dispatch task=2.1 round=3 reviewer=fresh-gpt-5.6-sol/high base=b0d0b133da3a161aa2fde448033f7b737f8881be head=a01b436dac32422ec849d471197a6b6d6e621093 inputs=updated-task-2.1-brief.md+review-b0d0b133-a01b436d.md+round1+round2+adjudication
+- 06:41 review task=2.1 round=3 result=FAIL blocker=0 important=0 minor=1 runtime=PASS finding=missing-static-zero-outside-test fuse=max-3
+- 06:41 fuse-adjudication task=2.1 finding=missing-static-zero-outside-test class=bearing decision=accept fix=explicit-before-after-snapshot+sentinel-for-static-symlink-and-containment if-wrong=runtime-static-escape-regression-could-pass-state-paths-suite
+- 06:41 fix-dispatch task=2.1 round=3 implementer=fresh model=gpt-5.6-sol/high constraint=total-additions<=65
+- 06:47 report task=2.1 fuse-fix status=DONE_WITH_CONCERNS commit=657785d355015fbb22390802167533ef542782d8 tests=static-zero-snapshots+full-state+old-regressions+diff-check lines=65/65 report-check=PASS concern=approved-same-uid-topology-boundary
+- 06:47 review-dispatch task=2.1 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=a01b436dac32422ec849d471197a6b6d6e621093 head=657785d355015fbb22390802167533ef542782d8 scope=r3-static-zero-test-fix
+- 06:50 review task=2.1 fuse-verification result=PASS blocker=0 important=0 minor=0 cumulative=65/65 threat-boundary=honest
+- 任务 2.1: 完成
+- 06:50 dispatch task=2.2 model=gpt-5.6-terra/high base=657785d355015fbb22390802167533ef542782d8 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-2.2-brief.md
+- 06:55 report task=2.2 status=DONE commit=7640db1f279e8cb3f08413619f1260a07e5a0c01 tests=seven-runtime+old-three-regressions+diff-check lines=54/80 report-check=PASS correction=live-report-created-after-controller-gate
+- 06:55 review-dispatch task=2.2 round=1 reviewer=fresh-gpt-5.6-sol/high base=657785d355015fbb22390802167533ef542782d8 head=7640db1f279e8cb3f08413619f1260a07e5a0c01 inputs=task-2.2-brief.md+review-657785d3-7640db1f.md
+- 07:02 review task=2.2 round=1 result=FAIL blocker=1 important=3 minor=1 findings=reuse-mode-durability+temp-mode-window+argument-priority+clean-store-concurrency+store-matrix
+- 07:02 fix-dispatch task=2.2 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=80
+- 07:10 report task=2.2 fix-round=1 status=DONE commit=ba8f961064fbc20f9de0c607cc58944b7d6c27fa tests=seven-runtime+old-three-regressions+diff-check lines=71/80 report-check=PASS
+- 07:10 review-dispatch task=2.2 round=2 reviewer=fresh-gpt-5.6-sol/high base=657785d355015fbb22390802167533ef542782d8 head=ba8f961064fbc20f9de0c607cc58944b7d6c27fa inputs=task-2.2-brief.md+review-657785d3-ba8f9610.md+round1-findings
+- 07:16 review task=2.2 round=2 result=FAIL blocker=2 important=2 minor=2 findings=fifo-object-hang+postlink-mutable-window+kind-mismatch+bounded-spin+special-mode+store-matrix
+- 07:16 fix-dispatch task=2.2 round=2 model=gpt-5.6-terra/high action=anonymous-temp-atomic-link+nofollow-classification+exact-combination+concurrency+matrix constraint=total-additions<=80
+- 07:22 report task=2.2 fix-round=2 status=DONE commit=d65d12075f6d6cf7fcf45e3c924bcabc52a74eff tests=seven-runtime+old-three-regressions+diff-check lines=69/80 report-check=PASS protocol=O_TMPFILE+linkat-AT_EMPTY_PATH
+- 07:22 review-dispatch task=2.2 round=3 reviewer=fresh-gpt-5.6-sol/high base=657785d355015fbb22390802167533ef542782d8 head=d65d12075f6d6cf7fcf45e3c924bcabc52a74eff inputs=task-2.2-brief.md+review-657785d3-d65d1207.md+round1+round2-findings
+- 07:28 review task=2.2 round=3 result=FAIL blocker=0 important=1 minor=1 prior-findings=closed finding=eexist-race-error-translation+exact-commit-matrix fuse=max-3
+- 07:28 fuse-adjudication task=2.2 finding=eexist-race-error-translation class=bearing decision=accept fix=translate-recheck-read-file-dir-fsync-errors+preserve-collision if-wrong=expected-race-durability-error-leaks-OSError-and-CLI-misreports-RUNTIME_INTERNAL
+- 07:28 fuse-adjudication task=2.2 finding=exact-commit-matrix class=bearing decision=accept fix=mode-at-fsync+link-flags+collision-bytes+eexist-error-regressions if-wrong=commit-order-or-error-carrier-regression-can-pass-suite
+- 07:28 fix-dispatch task=2.2 round=3 implementer=fresh model=gpt-5.6-sol/high constraint=total-additions<=80
+- 07:33 report task=2.2 fuse-fix status=DONE commit=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a tests=seven-runtime+old-three-regressions+diff-check lines=78/80 report-check=PASS
+- 07:33 review-dispatch task=2.2 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=d65d12075f6d6cf7fcf45e3c924bcabc52a74eff head=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a scope=eexist-error-translation+commit-matrix
+- 07:36 review task=2.2 fuse-verification result=PASS blocker=0 important=0 minor=0 protocol=O_TMPFILE+atomic-ready-link cumulative=78/80
+- 任务 2.2: 完成
+- 07:36 dispatch task=2.3 model=gpt-5.6-terra/high base=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-2.3-brief.md
+- 07:49 report task=2.3 status=DONE commit=a5994969c1e6749e98af0c7f9fe7e797beb98f51 tests=seven-runtime+old-harness+diff-check lines=80/80 report-check=PASS correction=live-report-created-after-controller-gate
+- 07:49 review-dispatch task=2.3 round=1 reviewer=fresh-gpt-5.6-sol/high base=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a head=a5994969c1e6749e98af0c7f9fe7e797beb98f51 inputs=task-2.3-brief.md+review-770fc1ff-a5994969.md
+- 07:57 review task=2.3 round=1 result=FAIL blocker=2 important=3 minor=1 findings=fifo-blocking+embedded-digest-path-escape+synthetic-ref-path-priority+schema-error-translation+unlock-fd-cleanup+resolver-matrix
+- 07:57 fix-dispatch task=2.3 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=80
+- 08:06 report task=2.3 fix-round=1 status=DONE commit=d90d6199a0bce9549123e8c26761d27060b33600 tests=eight-runtime+old-three-regressions+diff-check lines=80/80 report-check=PASS
+- 08:06 review-dispatch task=2.3 round=2 reviewer=fresh-gpt-5.6-sol/high base=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a head=d90d6199a0bce9549123e8c26761d27060b33600 inputs=task-2.3-brief.md+review-770fc1ff-d90d6199.md+round1-findings
+- 08:13 review task=2.3 round=2 result=FAIL blocker=1 important=2 minor=1 prior-findings=mostly-closed findings=special-device-lock-open+recursion-error+flock-error-stage+closure-matrix
+- 08:13 fix-dispatch task=2.3 round=2 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=80
+- 08:20 report task=2.3 fix-round=2 status=DONE commit=8d2a1f484470cba2020ba1ebff6d8c6275f82d67 tests=eight-runtime+old-three-regressions+diff-check lines=80/80 report-check=PASS
+- 08:20 review-dispatch task=2.3 round=3 reviewer=fresh-gpt-5.6-sol/high base=770fc1ff68bb01f1dd90e6ad6ec27ffd58e6737a head=8d2a1f484470cba2020ba1ebff6d8c6275f82d67 inputs=task-2.3-brief.md+review-770fc1ff-8d2a1f48.md+round1+round2-findings
+- 08:26 review task=2.3 round=3 result=FAIL blocker=0 important=1 minor=0 prior-findings=all-closed finding=ref-schema-bool-as-int fuse=max-3
+- 08:26 fuse-adjudication task=2.3 finding=ref-schema-bool-as-int class=bearing decision=accept fix=exact-int-version-check+bool-regression if-wrong=malformed-ref-envelope-is-trusted-as-version-1
+- 08:26 fix-dispatch task=2.3 round=3 implementer=fresh model=gpt-5.6-sol/high constraint=total-additions<=80
+- 08:31 report task=2.3 fuse-fix status=DONE commit=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 tests=eight-runtime+ref-version-matrix+old-three-regressions+diff-check lines=80/80 report-check=PASS
+- 08:31 review-dispatch task=2.3 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=8d2a1f484470cba2020ba1ebff6d8c6275f82d67 head=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 scope=exact-ref-schema-version
+- 08:36 review task=2.3 fuse-verification result=PASS blocker=0 important=0 minor=0 cumulative=80/80
+- 任务 2.3: 完成
+- 08:36 dispatch task=2.4 model=gpt-5.6-terra/high base=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-2.4-brief.md
+- 08:46 report task=2.4 status=DONE commit=abc4a8fac362426801f6337d3beef59fd025a622 tests=nine-runtime+harness+parity+diff-check lines=71/75 report-check=PASS correction=live-report-created-after-controller-gate
+- 08:46 review-dispatch task=2.4 round=1 reviewer=fresh-gpt-5.6-sol/high base=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 head=abc4a8fac362426801f6337d3beef59fd025a622 inputs=task-2.4-brief.md+review-c5b7bfce-abc4a8fa.md
+- 08:54 review task=2.4 round=1 result=FAIL blocker=0 important=3 minor=1 findings=argument-priority+existing-ref-before-intended-evidence+stale-ref-temp-cleanup+finalizer-fd-closure
+- 08:54 fix-dispatch task=2.4 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=75
+- 09:02 report task=2.4 fix-round=1 status=DONE commit=2b9dc53616df17a59f107041498a7c898694808b tests=nine-runtime+old-three-regressions+diff-check lines=73/75 report-check=PASS
+- 09:02 review-dispatch task=2.4 round=2 reviewer=fresh-gpt-5.6-sol/high base=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 head=2b9dc53616df17a59f107041498a7c898694808b inputs=task-2.4-brief.md+review-c5b7bfce-2b9dc536.md+round1-findings
+- 09:11 review task=2.4 round=2 result=FAIL blocker=0 important=2 minor=1 prior-closed=existing-ref-order findings=payload-kind-priority+stale-cleanup-before-digest+inner-fd-cleanup
+- 09:11 fix-dispatch task=2.4 round=2 model=gpt-5.6-terra/high action=accept-all findings constraint=total-additions<=75
+- 09:15 report task=2.4 fix-round=2 status=DONE commit=e577c24a26525a372bb2827b567440a2d186eb33 tests=nine-runtime+old-three-regressions+diff-check lines=73/75 report-check=PASS
+- 09:15 review-dispatch task=2.4 round=3 reviewer=fresh-gpt-5.6-sol/high base=c5b7bfcec2372d03bcbb0be6f9b963e9ac86c6a1 head=e577c24a26525a372bb2827b567440a2d186eb33 inputs=task-2.4-brief.md+review-c5b7bfce-e577c24a.md+round1+round2-findings
+- 09:21 review task=2.4 round=3 result=FAIL blocker=0 important=1 minor=0 prior-findings=closed finding=stale-fd-double-close-reuse-race fuse=max-3
+- 09:21 fuse-adjudication task=2.4 finding=stale-fd-double-close-reuse-race class=bearing decision=accept fix=single-owner-fd-removal+reuse-probe if-wrong=finalizer-can-close-unrelated-fd-reused-by-concurrent-thread
+- 09:21 fix-dispatch task=2.4 round=3 implementer=fresh model=gpt-5.6-sol/high constraint=total-additions<=75
+- 09:27 report task=2.4 fuse-fix status=DONE commit=6953c19e73a5edc500fcc2f26a1ef94474b9a1cf tests=fd-reuse+nine-runtime+old-three-regressions+diff-check lines=75/75 report-check=PASS
+- 09:27 review-dispatch task=2.4 fuse-verification reviewer=fresh-gpt-5.6-sol/high base=e577c24a26525a372bb2827b567440a2d186eb33 head=6953c19e73a5edc500fcc2f26a1ef94474b9a1cf scope=stale-fd-single-ownership
+- 09:30 review task=2.4 fuse-verification result=PASS blocker=0 important=0 minor=0 cumulative=75/75
+- 任务 2.4: 完成
+- 09:30 dispatch task=3.1 model=gpt-5.6-terra/high base=6953c19e73a5edc500fcc2f26a1ef94474b9a1cf brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-3.1-brief.md
+- 09:42 report task=3.1 status=DONE commit=fa278b4d98594067a2d4cb6f6425a1de488a2e9f tests=cli+nine-runtime+old-three-regressions+diff-check lines=77/80 files=5 modes=0755,0755,0644,0755 report-check=PASS correction=live-report-created-after-controller-gate
+- 09:42 review-dispatch task=3.1 round=1 reviewer=fresh-gpt-5.6-sol/high base=6953c19e73a5edc500fcc2f26a1ef94474b9a1cf head=fa278b4d98594067a2d4cb6f6425a1de488a2e9f inputs=task-3.1-brief.md+review-6953c19e-fa278b4d.md
+- 09:49 review task=3.1 round=1 result=FAIL blocker=1 important=0 minor=2 findings=preloaded-module-bypass+cli-matrix+missing-red-evidence
+- 09:49 fix-dispatch task=3.1 round=1 model=gpt-5.6-terra/high action=fd-loader+full-matrix+red-record constraint=total-additions<=80
+- 09:55 report task=3.1 fix-round=1 status=DONE commit=8c55b7bc83183b69a01ed30bb54151e17b1516ad replaces=fa278b4d98594067a2d4cb6f6425a1de488a2e9f tests=cli+nine-runtime+old-three-regressions+parity+sidebar+diff-check lines=79/80 files=5 report-check=PASS
+- 09:55 review-dispatch task=3.1 round=2 reviewer=fresh-gpt-5.6-sol/high base=6953c19e73a5edc500fcc2f26a1ef94474b9a1cf head=8c55b7bc83183b69a01ed30bb54151e17b1516ad inputs=task-3.1-brief.md+review-6953c19e-8c55b7bc.md+task-3.1-review-r1.md
+- 10:02 review task=3.1 round=2 result=PASS blocker=0 important=0 minor=1-nonblocking prior-findings=all-closed cumulative=79/80
+- 任务 3.1: 完成
+- 10:03 dispatch task=3.2 model=gpt-5.6-terra/high base=8c55b7bc83183b69a01ed30bb54151e17b1516ad brief=.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-01-00a-seed-contract-runtime/task-3.2-brief.md scope=implementation-only-premerge-steps-1..11
+- 10:13 report task=3.2 status=DONE commit=2a15daed0f449a7a40c597588d2bbdda78b86593 tests=nine-runtime+four-named+main-acceptance+ledger-fold+old-three-regressions+diff-check lines=38/45 files=2 report-check=PASS
+- 10:13 review-dispatch task=3.2 round=1 reviewer=fresh-gpt-5.6-sol/high base=8c55b7bc83183b69a01ed30bb54151e17b1516ad head=2a15daed0f449a7a40c597588d2bbdda78b86593 inputs=task-3.2-brief.md+review-8c55b7bc-2a15daed.md scope=premerge-task-diff
+- 10:22 review task=3.2 round=1 result=FAIL blocker=1 important=4 minor=1 findings=ledger-noise-and-python-O-failopen+acceptance-channel-suppression+digest-route-coverage+pre-registration-temp-leak+rollback-type-absence-newline-oracles
+- 10:22 fix-dispatch task=3.2 round=1 model=gpt-5.6-terra/high action=accept-all findings constraint=two-files+total-additions<=45
+- 10:31 report task=3.2 fix-round=1 status=DONE commit=3e05011e866b1c351ee83cce7c06b7215c829c05 replaces=2a15daed0f449a7a40c597588d2bbdda78b86593 tests=full+nine-runtime+four-named+adversarial-ledger-and-cleanup+old-three-regressions+diff-check lines=44/45 files=2 report-check=PASS
+- 10:31 review-dispatch task=3.2 round=2 reviewer=fresh-gpt-5.6-sol/high base=8c55b7bc83183b69a01ed30bb54151e17b1516ad head=3e05011e866b1c351ee83cce7c06b7215c829c05 inputs=task-3.2-brief.md+review-8c55b7bc-3e05011e.md+task-3.2-review-r1.md scope=premerge-task-diff
+- 10:40 review task=3.2 round=2 result=PASS blocker=0 important=0 minor=0 prior-findings=all-closed cumulative=44/45 full-common=631/730
+- 10:40 delivery-merge sha=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a parent1=c959efaf9887808621852aff28073cf1f8789ca7 parent2=3e05011e866b1c351ee83cce7c06b7215c829c05 worktree=delivery-worktree
+- 10:40 delivery-candidate sha=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a status=active
+- 10:42 candidate-record-format-correction phase=pre-gate cause=controller-omitted-required-HH:MM action=latest-intended-active-line-corrected-in-place code-and-merge-unchanged
+- 10:43 candidate-gate sha=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a result=PASS parents=2 main+four-named+rollback+old-three=PASS common-diff=631/730 review-summary=46/140 worktree=clean
+- 10:43 delivery-candidate sha=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a status=superseded
+- 10:48 closeout result=FAIL finding=rollback-route-rejects-terminal-accepted-candidate action=reopen-task-3.2+fresh-review+new-merge old-merge=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a
+- 任务 3.2: 重开（门⑤）
+- 10:49 fix-dispatch task=3.2 round=2 model=gpt-5.6-terra/high finding=accepted-candidate-rollback-rerun action=accept-active-or-accepted+terminal-regression constraint=two-files+total-additions<=45
+- 10:51 report task=3.2 fix-round=2 status=DONE commit=8d27769692481fc76919ce0f5ea6d7f8c5840479 replaces=3e05011e866b1c351ee83cce7c06b7215c829c05 tests=active+accepted-descendant-rollback+full-regressions lines=44/45 files=2 report-check=PASS
+- 10:51 review-dispatch task=3.2 round=3 reviewer=fresh-gpt-5.6-sol/high base=8c55b7bc83183b69a01ed30bb54151e17b1516ad head=8d27769692481fc76919ce0f5ea6d7f8c5840479 inputs=task-3.2-brief.md+review-8c55b7bc-8d277696.md+task-3.2-review-r1.md+task-3.2-review-r2.md scope=full-cumulative+closeout-finding
+- 10:59 review task=3.2 round=3 result=PASS blocker=0 important=0 minor=0 closeout-finding=closed cumulative=44/45
+- 10:59 delivery-merge sha=f9ead254b70c39532a276e8aa63a537d4cac7af6 parent1=c959efaf9887808621852aff28073cf1f8789ca7 parent2=8d27769692481fc76919ce0f5ea6d7f8c5840479 replaces=6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a worktree=delivery-worktree-r2
+- 10:59 delivery-candidate sha=f9ead254b70c39532a276e8aa63a537d4cac7af6 status=active
+- 11:00 candidate-gate sha=f9ead254b70c39532a276e8aa63a537d4cac7af6 result=PASS parents=2 cli+main+four-named+active-rollback+old-three=PASS common-diff=631/730 review-summary=57/140 check-converge=PASS worktree=clean
+- 11:00 delivery-candidate sha=f9ead254b70c39532a276e8aa63a537d4cac7af6 status=accepted
+- 11:01 terminal-rerun sha=f9ead254b70c39532a276e8aa63a537d4cac7af6 ledger-fold=accepted rollback=PASS
+- 任务 3.2: 完成
+- 11:04 closeout check-converge=PASS main-branch=main git-ops=clean dirty-path-intersection=empty main-merge=431286513b940c0b6645724cf879f93815e7e0f4 ancestor=PASS post-main-full-gates=PASS
+- 11:04 cleanup merged-branches=spec/aosp-minimal-00a-impl+spec/aosp-minimal-00a-delivery-r2 worktrees=removed retained-audit-branch=spec/aosp-minimal-00a-delivery@6bd8fddac2cc00d8b2a68d501750dec8eb4d7c1a reason=superseded-not-ancestor
+- 11:08 retro five-questions=NO/NO/NO/NO/NO basis=00a-runtime-ABI-confirmed;accepted-rollback-gap-fixed-in-slice;00b-P1-P5-and-630-budget-unchanged;dependency-order-unchanged;no-new-unknown conclusion=no-plan-change next=00b

@@ -1,0 +1,11 @@
+command: python3 common/tests/test_seed_contract_runtime.py terminal-golden
+exit: 1
+stdout:
+
+stderr:
+Traceback (most recent call last):
+  File "common/tests/test_seed_contract_runtime.py", line 91, in <module>
+    try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+  File "common/tests/test_seed_contract_runtime.py", line 88, in terminal
+    runtime=__import__("seed_contract_runtime"); assert hasattr(runtime,"_terminal"),"terminal validator/golden missing"
+AssertionError: terminal validator/golden missing
