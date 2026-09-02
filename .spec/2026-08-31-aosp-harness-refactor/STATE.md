@@ -3,10 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: new-spec.sh 建了 2026-09-02-03b1-session-snapshot-assurance
-updated: '2026-09-02T19:34:32+08:00'
+basis: 门② autopilot：03b1 requirements两轮独立review最终PASS（round2 0阻断/0重要/1次要），F1六文件上游集统一修复闭合；R1-R10全[计划]、判据/不变量/确认依据闭合；prototype
+  cbdbdde 308/400 240项在main实跑rc0字节精确；check-req/criteria/analyze/plan与diff-check全PASS
+updated: '2026-09-02T20:26:59+08:00'
 current_spec: 2026-09-02-03b1-session-snapshot-assurance
-spec_stage: requirements
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -110,6 +111,7 @@ workflow: requirements-first
 | 2026-09-02T19:32:15+08:00 | spec/accept | retro | 03b验收通过：R1-R9逐条对照、四不变量、exact2=208+192=400、八行manifest awk、check-converge、candidate/full/depth-1/rollback/order五路、SKIPPED为空、次要findings已重报；主验证与offline本消息实跑byte-exact PASS；source已FF合入main ab1e870且post-merge回归全绿；PLAN/DECISIONS/decisions已更新 |
 | 2026-09-02T19:33:40+08:00 | retro | select | 03b复盘五问均否：不改PLAN不补调研；下一片固定为2026-09-02-03b1-session-snapshot-assurance（PLAN v5.7），其启动门已由03b验收满足并记录于DECISIONS/ledger |
 | 2026-09-02T19:34:32+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03b1-session-snapshot-assurance |
+| 2026-09-02T20:26:59+08:00 | spec/requirements | spec/design | 门② autopilot：03b1 requirements两轮独立review最终PASS（round2 0阻断/0重要/1次要），F1六文件上游集统一修复闭合；R1-R10全[计划]、判据/不变量/确认依据闭合；prototype cbdbdde 308/400 240项在main实跑rc0字节精确；check-req/criteria/analyze/plan与diff-check全PASS |
 
 ## SKIPPED 记录
 
