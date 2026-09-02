@@ -206,7 +206,26 @@ def cli():
     seam=run(str(direct),str(golden),env={**os.environ,"AOSP_HARNESS_TEST_UNEXPECTED":"call-shape-type-error"}); exact(seam,30,"","CONTRACT RUNTIME_INTERNAL\n"); assert "Traceback" not in seam.stderr
     q=tempfile.TemporaryDirectory(); poison=Path(q.name); (poison/"sitecustomize.py").write_text("import sys,types;m=types.ModuleType('seed_contract_runtime');m.RUNTIME_ABI='seed-contract-runtime/v1';m.ContractError=Exception;m.load_artifact=lambda **x:{};m.canonical_bytes=lambda **x:b'';m.domain_digest=lambda **x:'';m.validate_state_paths=lambda **x:{};m.resolve_ref=lambda **x:{};m.publish_object=lambda **x:{};m.publish=lambda **x:{};sys.modules['seed_contract_runtime']=m"); r=run(str(direct),"/definitely/not/a/seed.json",env={**os.environ,"PYTHONPATH":str(poison)}); exact(r,30,"","CONTRACT DESCRIPTOR_NOT_FOUND\n"); q.cleanup()
     code="from pathlib import Path\nimport os,subprocess\nd=Path(%r);m=Path(%r);u=Path(%r)\ndef x(p,f):\n b=p.read_bytes();z=p.with_name(p.name+'.save');p.rename(z)\n try:\n  f(p);r=subprocess.run([str(d),'--bad'],capture_output=True,text=True);assert(r.returncode,r.stdout,r.stderr)==(30,'','CONTRACT RUNTIME_UNAVAILABLE\\n')\n finally:\n  (p.rmdir() if p.is_dir() else p.unlink()) if p.exists() or p.is_symlink() else None;z.rename(p)\nfor p,f in ((m,lambda p:p.write_bytes(b'bad')),(m,lambda p:p.symlink_to('/dev/null')),(m,lambda p:p.mkdir()),(u,lambda p:None),(u,lambda p:p.symlink_to('/dev/null')),(u,lambda p:p.mkdir()),(u,lambda p:p.write_text('x=')),(u,lambda p:p.write_text(\"RUNTIME_ABI='seed-contract-runtime/v1'\"))):x(p,f)"%(str(direct),str(marker),str(root/"common/.harness/closure/v1/lib/seed_contract_runtime.py")); r=run(sys.executable,"-c",code); exact(r,0,"","")
+def ledger_candidate():
+    import re
+    try:
+        if len(sys.argv)!=4 or sys.argv[2]!="--ledger": raise ValueError
+        active=final=None
+        for line in Path(sys.argv[3]).read_text().splitlines():
+            if "delivery-candidate" not in line: continue
+            match=re.fullmatch(r"- (?:[01][0-9]|2[0-3]):[0-5][0-9] delivery-candidate sha=([0-9a-f]{40}) status=(active|superseded|accepted)",line)
+            if match is None: raise ValueError
+            sha,status=match.groups()
+            if status=="active":
+                if active is not None or final is not None: raise ValueError
+                active=sha
+            elif active!=sha: raise ValueError
+            else: active=None; final=(status,sha) if status=="accepted" else final
+        result=final or (("active",active) if active else None)
+        if result is None: raise ValueError
+    except (OSError,ValueError): raise SystemExit(1) from None
+    print("PASS ledger-candidate",*result)
 if __name__ == "__main__":
     cases = {"canonical-core": core, "concurrent-core": concurrent, "evidence-schema": evidence,"seed-schema":seed,"terminal-golden":terminal,"state-paths":state_paths,"store-object":store_object,"ref-resolve":ref_resolve,"ref-publish":ref_publish,"cli":cli}
-    try: [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
+    try: ledger_candidate() if sys.argv[1:2]==["ledger-candidate"] else [(cases[case](), print("PASS " + case)) for case in sys.argv[1:]]
     except (IndexError, KeyError): raise SystemExit("usage: canonical-core|concurrent-core") from None
