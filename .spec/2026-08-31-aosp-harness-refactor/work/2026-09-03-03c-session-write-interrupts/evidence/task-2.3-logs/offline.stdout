@@ -1,0 +1,12 @@
+PASS  demo harness startup, process layer, and strict verification
+PASS  Codex feature context selection and branch checks
+RESULT PASS  shared Harness regression suite
+RESULT PASS  device safety
+RESULT PASS  offline quality gate child
+RESULT PASS  session path race assurance
+RESULT PASS  session path safety
+RESULT PASS  session write interrupts
+RESULT PASS  session snapshot assurance
+RESULT PASS  session snapshot safety
+RESULT PASS  session state foundation
+RESULT PASS  aosp-harness offline quality gate

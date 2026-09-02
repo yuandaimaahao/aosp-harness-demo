@@ -1,0 +1,7 @@
+common/.harness/lib/session-state-foundation.sh: OK
+common/.harness/lib/session-state-path.sh: OK
+tests/lib/session-path-race-driver.py: OK
+tests/test-session-path-races.sh: OK
+common/.harness/lib/session-state-snapshot.sh: OK
+tests/test-session-snapshot.sh: OK
+tests/test-session-snapshot-assurance.sh: OK

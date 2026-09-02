@@ -1,0 +1,38 @@
+ M .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-03-03c-session-write-interrupts/design.md
+ M .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-03-03c-session-write-interrupts/ledger.md
+ M .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-03-03c-session-write-interrupts/tasks.md
+ M .spec/2026-09-01-aosp-feature-minimal-checkout/DECISIONS.md
+ M .spec/2026-09-01-aosp-feature-minimal-checkout/PLAN-history.md
+ M .spec/2026-09-01-aosp-feature-minimal-checkout/PLAN.md
+ M .spec/2026-09-01-aosp-feature-minimal-checkout/STATE.md
+?? .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03c-session-write-interrupts/
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00b-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00b-round-2.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00b-round-3.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/design-00b-v15-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/plan-v7-00b-split-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/plan-v8-00b-split-round-2.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/plan-v9-00b-split-round-3.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00b-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00b-round-2.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00b-round-3.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00b-v15-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/requirements-00b-v15-round-2.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/tasks-00b-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/tasks-00b-round-2.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/tasks-00b-round-3.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/reviews/tasks-00b-v15-round-1.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/specs/2026-09-02-00b-environment-seed-probe/
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-02-00b-environment-seed-probe/
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v10-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v11-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v12-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v13-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v13-workspace-oracle-sizing-spike.py
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v13-workspace-provider-sizing-spike.py
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v13-workspace-test-sizing-spike.sh
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v14-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v15-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v8-sizing.md
+?? .spec/2026-09-01-aosp-feature-minimal-checkout/work/plan-v9-sizing.md
+?? common/.harness/closure/v1/lib/__pycache__/

@@ -1,0 +1,7 @@
+d3113933e57e59c7d942c60d48d69299bcef64da1c94ff464ea58b0f89767552  common/.harness/lib/session-state-foundation.sh
+07af7800401608fd679c1244854ab1852daa2a98c459a0cff053c1b0e07c4b64  common/.harness/lib/session-state-path.sh
+cb8277c52bc6dd1591c78c58a0baee8fe1a0d7d17305380f0f79f5d745fd94c0  tests/lib/session-path-race-driver.py
+bd2375422b94031946de97d3a6527dc25c92e28687ecc448379a58d5ef8f30f5  tests/test-session-path-races.sh
+17dfa03a4126231f4f4afbbee33178c0f109c637355cc222d7f874a7ec4b5d0f  common/.harness/lib/session-state-snapshot.sh
+725358357555df4c1920478b769450d3708b3e6a81a9017291fcce447ef78ab7  tests/test-session-snapshot.sh
+1105d3f9bf9128d25459348d530b47ee368e3fb274944185e1a45e3b76498e97  tests/test-session-snapshot-assurance.sh

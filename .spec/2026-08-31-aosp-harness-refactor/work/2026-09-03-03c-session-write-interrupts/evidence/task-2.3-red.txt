@@ -1,0 +1,7 @@
+task=task-2.3
+command=test -s $WORK/task-2.3-report.md
+expected=rc!=0（报告缺席即红）
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=红阶段确认报告缺席：rc=1 != 0，stdout/stderr 落盘于 evidence/task-2.3-logs/red.{stdout,stderr}

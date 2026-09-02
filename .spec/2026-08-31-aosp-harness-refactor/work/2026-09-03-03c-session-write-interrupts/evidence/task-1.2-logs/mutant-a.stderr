@@ -1,0 +1,6 @@
+FAIL gap HUP reforward signal want=HUP got=missing
+FAIL gap HUP reforward pid numeric want=yes got=no
+FAIL gap INT reforward signal want=INT got=missing
+FAIL gap INT reforward pid numeric want=yes got=no
+FAIL gap TERM reforward signal want=TERM got=missing
+FAIL gap TERM reforward pid numeric want=yes got=no

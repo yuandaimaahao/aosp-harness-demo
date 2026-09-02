@@ -1,0 +1,6 @@
+signals_export_rc=1
+public_harness_session_path_rc=1
+public_harness_session_write_rc=1
+public_harness_session_read_rc=1
+public_harness_session_remove_rc=1
+provider_marker_rc=1

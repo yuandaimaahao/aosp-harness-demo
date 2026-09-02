@@ -1,0 +1,15 @@
+FAIL facade HUP latched rc want=129 got=143
+FAIL gap HUP latched rc want=129 got=143
+FAIL gap HUP reforward signal want=HUP got=TERM
+FAIL wait HUP latched rc want=129 got=143
+FAIL group HUP latched rc want=129 got=143
+FAIL facade INT latched rc want=130 got=143
+FAIL gap INT latched rc want=130 got=143
+FAIL gap INT reforward signal want=INT got=TERM
+FAIL wait INT latched rc want=130 got=143
+FAIL group INT latched rc want=130 got=143
+FAIL facade TERM latched rc want=143 got=129
+FAIL gap TERM latched rc want=143 got=129
+FAIL gap TERM reforward signal want=TERM got=HUP
+FAIL wait TERM latched rc want=143 got=129
+FAIL group TERM latched rc want=143 got=129

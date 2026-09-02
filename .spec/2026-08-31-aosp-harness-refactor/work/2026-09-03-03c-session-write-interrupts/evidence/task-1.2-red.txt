@@ -1,0 +1,7 @@
+task=task-1.2
+command=bash tests/test-session-signals.sh
+expected=file absent, rc127, stdout has no PASS
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=d8c5bc9d95e262e357ebde2eb9ac7ff683ae62a8eb431c61cb40f38d8447507f
+assertion=tests/test-session-signals.sh absent before task; bash reports rc127 and stdout is empty (no PASS), proving the red stage is a genuine missing-file failure

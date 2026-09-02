@@ -1,0 +1,318 @@
+# review 包 a8d3859f..f6f8eb60
+
+## commit 列表
+
+```
+f6f8eb6 test(session): add write interrupt signal matrix
+```
+
+## diff --stat
+
+```
+ tests/test-session-signals.sh | 293 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 293 insertions(+)
+```
+
+## diff
+
+```diff
+diff --git a/tests/test-session-signals.sh b/tests/test-session-signals.sh
+new file mode 100644
+index 0000000..1b7c873
+--- /dev/null
++++ b/tests/test-session-signals.sh
+@@ -0,0 +1,293 @@
++#!/usr/bin/env bash
++set -u
++# 03c session write interrupts: signals facade 默认发现矩阵。
++# 结构: CLI 分流 -> 依赖探测/inert 出口 -> 结构核对 -> inert fixture -> probe
++# 注入 -> 常规 0/1/2/3 透传 -> facade/group/spawn-gap/after-wait 信号矩阵 ->
++# 固定摘要。成功唯一摘要文字为 RESULT PASS 加两个空格加 session write
++# interrupts（此处只写文字）。注意: 注释只写摘要文字，不得逐字包含固定摘要
++# 的 printf 调用（步骤 4/6 探针按该调用字面量的 rindex/index 定位）。
++case ${1-} in
++  '' | all) ;;
++  --dependency-absent) mode=absent ;;
++  *) exit 1 ;;
++esac
++[[ $# -le 1 ]] || exit 1
++here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
++repo=$(git -C "$here" rev-parse --show-toplevel)
++signals=${SIGNALS_MODULE:-$repo/common/.harness/lib/session-state-signals.sh}
++snapshot=$repo/common/.harness/lib/session-state-snapshot.sh
++inert() {
++  printf 'RESULT PASS  session write interrupts\n'
++  exit 0
++}
++[[ -e $signals || -L $signals ]] || inert
++[[ -f $signals && ! -L $signals ]] || exit 1
++bash -n "$signals" 2>/dev/null || exit 1
++for fn in _harness_session_snapshot_worker _harness_session_snapshot_write_core _harness_session_snapshot_read_core; do
++  bash -c 'source "$1/common/.harness/lib/session-state-foundation.sh" && source "$1/common/.harness/lib/session-state-path.sh" && source "$2" && declare -F "$3" >/dev/null' _ "$repo" "$snapshot" "$fn" >/dev/null 2>&1 || inert
++done
++[[ ${mode-} != absent ]] || inert
++tmp=$(mktemp -d)
++trap 'rm -rf -- "$tmp"' EXIT
++export TMPDIR=$tmp
++failures=0
++checks=0
++check_eq() {
++  local label=$1 want=$2 got=$3
++  checks=$((checks + 1))
++  if [[ $got != "$want" ]]; then
++    printf 'FAIL %s want=%q got=%q\n' "$label" "$want" "$got" >&2
++    failures=$((failures + 1))
++  fi
++}
++# 结构核对: 双 anchor exact-once、无 temp/publish 逻辑副本、snapshot 模块指纹。
++snapshot_sha_before=$(sha256sum "$snapshot" | cut -d ' ' -f 1)
++check_eq 'anchor before-spawn exact-once' 1 "$(rg -c ': # HARNESS_TEST_MARKER_SIGNALS_BEFORE_SPAWN' "$signals")"
++check_eq 'anchor after-wait exact-once' 1 "$(rg -c ': # HARNESS_TEST_MARKER_SIGNALS_AFTER_WAIT' "$signals")"
++leak=absent
++rg -q 'renameat2|\.snapshot-' "$signals" && leak=present
++check_eq 'no temp/publish logic copy' absent "$leak"
++# CLI 非法表: unknown/extra/flag 带值均 rc1 且不打印 PASS。
++argv_bad() {
++  local label=$1
++  shift
++  bash "$0" "$@" >"$tmp/out" 2>"$tmp/err"
++  local rc=$?
++  check_eq "argv $label rc" 1 "$rc"
++  check_eq "argv $label stdout empty" 0 "$(wc -c <"$tmp/out" | xargs)"
++}
++argv_bad unknown --bogus
++argv_bad extra all extra
++argv_bad flag-value --dependency-absent=x
++printf '%s\n' 'RESULT PASS  session write interrupts' >"$tmp/summary"
++bash "$0" --dependency-absent >"$tmp/out" 2>"$tmp/err"
++rc=$?
++check_eq 'flag inert rc' 0 "$rc"
++check_eq 'flag inert stderr empty' 0 "$(wc -c <"$tmp/err" | xargs)"
++cmp -s "$tmp/summary" "$tmp/out"
++check_eq 'flag inert summary bytes' 0 "$?"
++# inert fixture: 三 export 各自全局改名后 source signals 必须零副作用。
++for missing in _harness_session_snapshot_worker _harness_session_snapshot_write_core _harness_session_snapshot_read_core; do
++  fixture=$tmp/fixture-$missing.sh
++  python3 - "$snapshot" "$fixture" "$missing" <<'PY'
++import sys
++text = open(sys.argv[1]).read()
++assert text.count(sys.argv[3]) > 0
++open(sys.argv[2], "w").write(text.replace(sys.argv[3], sys.argv[3] + "_absent"))
++PY
++  bash -c '
++    set -u
++    source "$1/common/.harness/lib/session-state-foundation.sh"
++    source "$1/common/.harness/lib/session-state-path.sh"
++    source "$2"
++    inv_before=$(declare -F | sort)
++    exp_before=$(export -p)
++    source "$3"
++    rc=$?
++    inv_after=$(declare -F | sort)
++    exp_after=$(export -p)
++    [[ $rc == 0 && $inv_before == "$inv_after" && $exp_before == "$exp_after" ]] || exit 1
++    ! declare -F _harness_session_write_with_signals >/dev/null || exit 1
++    for name in harness_session_path harness_session_write harness_session_read harness_session_remove; do
++      ! declare -F "$name" >/dev/null || exit 1
++    done
++    ! declare -p HARNESS_SESSION_STATE_PROVIDER_VERSION >/dev/null 2>&1 || exit 1
++  ' _ "$repo" "$fixture" "$signals" >"$tmp/out" 2>"$tmp/err"
++  rc=$?
++  check_eq "inert fixture $missing rc" 0 "$rc"
++  check_eq "inert fixture $missing stdout empty" 0 "$(wc -c <"$tmp/out" | xargs)"
++  check_eq "inert fixture $missing stderr empty" 0 "$(wc -c <"$tmp/err" | xargs)"
++done
++# 齐全 fixture: source signals 恰好新增唯一 export。
++bash -c '
++  set -u
++  source "$1/common/.harness/lib/session-state-foundation.sh"
++  source "$1/common/.harness/lib/session-state-path.sh"
++  source "$2"
++  inv_before=$(declare -F | sort)
++  source "$3" || exit 1
++  inv_after=$(declare -F | sort)
++  added=$(comm -13 <(printf "%s\n" "$inv_before") <(printf "%s\n" "$inv_after"))
++  [[ $added == "declare -f _harness_session_write_with_signals" ]] || exit 1
++  for name in harness_session_path harness_session_write harness_session_read harness_session_remove; do
++    ! declare -F "$name" >/dev/null || exit 1
++  done
++  ! declare -p HARNESS_SESSION_STATE_PROVIDER_VERSION >/dev/null 2>&1 || exit 1
++' _ "$repo" "$snapshot" "$signals" >"$tmp/out" 2>"$tmp/err"
++rc=$?
++check_eq 'full fixture rc' 0 "$rc"
++check_eq 'full fixture stdout empty' 0 "$(wc -c <"$tmp/out" | xargs)"
++check_eq 'full fixture stderr empty' 0 "$(wc -c <"$tmp/err" | xargs)"
++# snapshot probe 副本: barrier 持有 owned temp、caught 证实信号锁存、EIO 注入。
++probe_snapshot=$tmp/snapshot-probe.sh
++python3 - "$snapshot" "$probe_snapshot" <<'PY'
++import sys
++text = open(sys.argv[1]).read()
++replacements = {
++    "    pass  # HARNESS_TEST_MARKER_TEMP_BEFORE_PUBLISH": """    barrier = os.environ.get("SNAPSHOT_PID_BARRIER")
++    if barrier: open(barrier, "w").close()
++    while barrier and os.path.exists(barrier): __import__("time").sleep(.01)
++    pass  # HARNESS_TEST_MARKER_TEMP_BEFORE_PUBLISH""",
++    "    raise Interrupted": """    caught = os.environ.get("SNAPSHOT_SIGNAL_CAUGHT")
++    if caught: open(caught, "w").close(); __import__("time").sleep(.2)
++    raise Interrupted""",
++    "    pass  # HARNESS_TEST_MARKER_OS_ERROR": """    if os.environ.get("SNAPSHOT_EIO"): raise OSError(errno.EIO, "injected")
++    pass  # HARNESS_TEST_MARKER_OS_ERROR""",
++}
++for old, new in replacements.items():
++    assert text.count(old) == 1, old
++    text = text.replace(old, new)
++open(sys.argv[2], "w").write(text)
++PY
++# facade probe 副本: 双 anchor 处同步注入首/第二信号，锁死 spawn-gap 与已退出窗口。
++gap_signals=$tmp/signals-gap.sh
++wait_signals=$tmp/signals-wait.sh
++python3 - "$signals" "$gap_signals" "$wait_signals" <<'PY'
++import sys
++text = open(sys.argv[1]).read()
++before = ": # HARNESS_TEST_MARKER_SIGNALS_BEFORE_SPAWN"
++after = ": # HARNESS_TEST_MARKER_SIGNALS_AFTER_WAIT"
++assert text.count(before) == 1 and text.count(after) == 1
++inject = ('\n  [[ -z ${HARNESS_FIRST_SIGNAL-} ]] || { kill -s "$HARNESS_FIRST_SIGNAL" "$BASHPID";'
++          ' [[ -z ${HARNESS_SECOND_SIGNAL-} ]] || kill -s "$HARNESS_SECOND_SIGNAL" "$BASHPID"; }')
++open(sys.argv[2], "w").write(text.replace(before, before + inject))
++open(sys.argv[3], "w").write(text.replace(after, after + inject))
++PY
++export HARNESS_STATE_ROOT=$tmp/state
++source "$repo/common/.harness/lib/session-state-foundation.sh"
++source "$repo/common/.harness/lib/session-state-path.sh"
++# shellcheck source=/dev/null
++source "$probe_snapshot"
++# shellcheck source=/dev/null
++source "$signals"
++reset() { rm -rf -- "$HARNESS_STATE_ROOT"; }
++leaf() { printf '%s/project/session/feature' "$HARNESS_STATE_ROOT"; }
++temp_count() { find "$tmp" -name '.snapshot-*' | wc -l | xargs; }
++file_state() {
++  stat -Lc '%d:%i:%u:%a:%h:%s' "$1"
++  sha256sum "$1" | cut -d ' ' -f 1
++}
++run_rc() {
++  local want=$1
++  shift
++  local rc
++  "$@" >"$tmp/out" 2>"$tmp/err"
++  rc=$?
++  checks=$((checks + 1))
++  if [[ $rc != "$want" || -s $tmp/out || -s $tmp/err ]]; then
++    printf 'FAIL rc want=%s got=%s command=%q\n' "$want" "$rc" "$*" >&2
++    failures=$((failures + 1))
++  fi
++}
++# 常规 0/1/2/3 透传行: 全部双流空。
++reset
++run_rc 0 _harness_session_write_with_signals project session alpha
++run_rc 0 _harness_session_write_with_signals project session alpha
++before=$(file_state "$(leaf)")
++run_rc 3 _harness_session_write_with_signals project session beta
++check_eq 'conflict winner unchanged' "$before" "$(file_state "$(leaf)")"
++run_rc 2 _harness_session_write_with_signals project session '../bad'
++check_eq 'bad feature winner unchanged' "$before" "$(file_state "$(leaf)")"
++reset
++SNAPSHOT_EIO=1 run_rc 1 _harness_session_write_with_signals project session alpha
++check_eq 'EIO winner absent' absent "$([[ -e $(leaf) ]] && echo present || echo absent)"
++check_eq 'EIO temp' 0 "$(temp_count)"
++# 信号矩阵 inner: 独立 bash 顺序执行 facade，rc 落文件，双流落文件。
++inner=$tmp/inner.sh
++cat >"$inner" <<'EOF'
++#!/usr/bin/env bash
++set -u
++export HARNESS_STATE_ROOT=$4
++source "$1/common/.harness/lib/session-state-foundation.sh"
++source "$1/common/.harness/lib/session-state-path.sh"
++# shellcheck source=/dev/null
++source "$2"
++# shellcheck source=/dev/null
++source "$3"
++printf '%s\n' "$$" >"$5"
++_harness_session_write_with_signals project session beta
++printf '%s\n' "$?" >"$6"
++EOF
++# 信号矩阵 runner: facade 运行中（driver 送信号、ps 证实 child 为 python3）、
++# spawn-gap/after-wait（probe anchor 同步注入）、group（setsid 隔离 pgroup）。
++# 每行附第二不同信号核对锁存；行外 timeout 把无补转发的挂起封闭为 FAIL。
++run_signal_row() {
++  local mode=$1 first=$2 expected=$3 second=$4
++  local mod=$signals
++  local barrier=$tmp/barrier caught=$tmp/caught pidfile=$tmp/pid rcfile=$tmp/rc wraprc=$tmp/wrap-rc
++  case $mode in
++    gap) mod=$gap_signals ;;
++    wait) mod=$wait_signals ;;
++  esac
++  local launcher=(bash)
++  [[ $mode != group ]] || launcher=(setsid --wait bash)
++  reset
++  run_rc 0 _harness_session_write_with_signals project bystander alpha
++  local bystander_before
++  bystander_before=$(file_state "$HARNESS_STATE_ROOT/project/bystander/feature")
++  local barrier_env=$barrier caught_env=$caught
++  if [[ $mode == wait ]]; then
++    barrier_env=
++    caught_env=
++  fi
++  rm -f -- "$barrier" "$caught" "$pidfile" "$rcfile" "$wraprc"
++  (
++    timeout 20 env SNAPSHOT_PID_BARRIER=$barrier_env SNAPSHOT_SIGNAL_CAUGHT=$caught_env \
++      HARNESS_FIRST_SIGNAL=$first HARNESS_SECOND_SIGNAL=$second \
++      "${launcher[@]}" "$inner" "$repo" "$probe_snapshot" "$mod" "$HARNESS_STATE_ROOT" "$pidfile" "$rcfile" \
++      >"$tmp/out" 2>"$tmp/err"
++    printf '%s\n' "$?" >"$wraprc"
++  ) &
++  local wrapper=$!
++  if [[ $mode == facade || $mode == group ]]; then
++    local target
++    while [[ ! -e $pidfile ]] && kill -0 "$wrapper" 2>/dev/null; do sleep .01; done
++    target=$(<"$pidfile")
++    while [[ ! -e $barrier ]] && kill -0 "$wrapper" 2>/dev/null; do sleep .01; done
++    if [[ -e $barrier ]]; then
++      if [[ $mode == group ]]; then
++        kill -s "$first" -- -"$target"
++      else
++        local child
++        child=$(ps -o pid= --ppid "$target" | xargs)
++        check_eq "$mode $first child is python3" python3 "$(ps -o comm= -p "$child" | xargs)"
++        kill -s "$first" "$target"
++      fi
++      while [[ ! -e $caught ]] && kill -0 "$wrapper" 2>/dev/null; do sleep .01; done
++      if [[ $mode == group ]]; then
++        kill -s "$second" -- -"$target" 2>/dev/null || true
++      else
++        kill -s "$second" "$target" 2>/dev/null || true
++      fi
++    fi
++  fi
++  wait "$wrapper"
++  local got=missing
++  [[ ! -e $rcfile ]] || got=$(<"$rcfile")
++  local want_target=absent target_state=absent
++  if [[ $mode == wait ]]; then
++    want_target=beta
++    [[ ! -e $(leaf) ]] || target_state=$(<"$(leaf)")
++  else
++    [[ ! -e $(leaf) ]] || target_state=present
++  fi
++  check_eq "$mode $first wrapper rc" 0 "$(<"$wraprc")"
++  check_eq "$mode $first latched rc" "$expected" "$got"
++  check_eq "$mode $first stdout empty" 0 "$(wc -c <"$tmp/out" | xargs)"
++  check_eq "$mode $first stderr empty" 0 "$(wc -c <"$tmp/err" | xargs)"
++  check_eq "$mode $first target winner" "$want_target" "$target_state"
++  check_eq "$mode $first bystander unchanged" "$bystander_before" "$(file_state "$HARNESS_STATE_ROOT/project/bystander/feature")"
++  check_eq "$mode $first temp" 0 "$(temp_count)"
++}
++for item in HUP:129:TERM INT:130:TERM TERM:143:HUP; do
++  IFS=: read -r first expected second <<<"$item"
++  for mode in facade gap wait group; do
++    run_signal_row "$mode" "$first" "$expected" "$second"
++  done
++done
++check_eq 'snapshot module sha256 unchanged' "$snapshot_sha_before" "$(sha256sum "$snapshot" | cut -d ' ' -f 1)"
++if ((failures)); then
++  printf 'RESULT FAIL session write interrupts checks=%d failures=%d\n' "$checks" "$failures"
++  exit 1
++fi
++printf 'RESULT PASS  session write interrupts\n'
+```
