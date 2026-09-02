@@ -3,10 +3,10 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门② requirements round2 PASS(0/0/0)，四checker rc0，自动通过已记ledger
-updated: '2026-09-03T06:09:40+08:00'
+basis: 门③ design round1 PASS(0/0/2)，M1落盘期已修M2留门④，checker全绿，自动通过已记ledger
+updated: '2026-09-03T06:29:39+08:00'
 current_spec: 2026-09-03-03d-session-remove-prune
-spec_stage: design
+spec_stage: tasks
 mode: standard
 workflow: requirements-first
 ---
@@ -125,6 +125,7 @@ workflow: requirements-first
 | 2026-09-03T05:34:15+08:00 | retro | select | 五问复盘均否，进入 select 建 03d-session-remove-prune |
 | 2026-09-03T05:34:15+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-03-03d-session-remove-prune |
 | 2026-09-03T06:09:40+08:00 | spec/requirements | spec/design | 门② requirements round2 PASS(0/0/0)，四checker rc0，自动通过已记ledger |
+| 2026-09-03T06:29:39+08:00 | spec/design | spec/tasks | 门③ design round1 PASS(0/0/2)，M1落盘期已修M2留门④，checker全绿，自动通过已记ledger |
 
 ## SKIPPED 记录
 
