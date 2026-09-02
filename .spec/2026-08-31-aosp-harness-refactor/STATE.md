@@ -1,12 +1,13 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 03a2验收并合入main，复盘五问均否，不改PLAN或补调研；下一片固定为03b-session-snapshot-safety
-updated: '2026-09-02T11:01:38+08:00'
-current_spec: null
-spec_stage: null
+basis: 门② autopilot：03b requirements三轮独立审查最终PASS（0阻断/0重要/0次要），round2全部finding与held-capture
+  follow-up闭环；prototype exact2=397/400、assurance274/400/227项，固定工具、base/assurance、provider缺席inert与机械检查全PASS
+updated: '2026-09-02T13:06:14+08:00'
+current_spec: 2026-09-02-03b-session-snapshot-safety
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -102,6 +103,8 @@ workflow: requirements-first
 | 2026-09-02T10:59:09+08:00 | spec/execute | spec/accept | 三任务均有真实red、普通提交和独立diff review最终PASS；manifest连续绑定6f26119至b9582e5，dependency-present 37/37、九类、exact1/141、full/depth-1/rollback、pinned tools、offline、clean及03b全缺席的controller终门PASS |
 | 2026-09-02T11:01:38+08:00 | spec/accept | retro | 03a2验收PASS：R1-R10、三行manifest、dependency-present 37/37、九类、exact1/141、full/depth-1/rollback、收敛门与post-merge回归全PASS；实现以merge `744acdc`合入main |
 | 2026-09-02T11:01:38+08:00 | retro | select | 03a2复盘五问均否：需求无漏项、设计假设成立、任务边界适配、未发现新跨片风险、不需补调研；PLAN v5.6不变，下一片03b-session-snapshot-safety |
+| 2026-09-02T11:03:58+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03b-session-snapshot-safety |
+| 2026-09-02T13:06:14+08:00 | spec/requirements | spec/design | 门② autopilot：03b requirements三轮独立审查最终PASS（0阻断/0重要/0次要），round2全部finding与held-capture follow-up闭环；prototype exact2=397/400、assurance274/400/227项，固定工具、base/assurance、provider缺席inert与机械检查全PASS |
 
 ## SKIPPED 记录
 

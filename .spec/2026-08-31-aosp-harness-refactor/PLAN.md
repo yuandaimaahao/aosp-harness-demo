@@ -1,4 +1,4 @@
-# 2026-08-31-aosp-harness-refactor 拆分计划 v5.6
+# 2026-08-31-aosp-harness-refactor 拆分计划 v5.7
 
 > 上游：`research/report.md`
 > v5.3 依据：03 task 1.1/1.2 的真实 diff 与增量 PLAN review 证明 359/400 行 sizing prototype 失真且 1400 行例外不满足 P5；按安全完成边界拆为互不叠改的私有模块，只有最终 aggregator 发布完整 capability。
@@ -6,6 +6,7 @@
 > v5.4 依据：03a design review round 2 证明 311 行 sizing 原型只执行1个fresh case，无法把完整三层竞态fixture压入剩余89行。03a保留private provider与功能/静态/代表性竞态验收；新增只拥有独立race test的03a1，在任何消费者进入前完成穷举竞态保证。
 > v5.5 依据：03a task4 fix1实测未格式化包397行，但pinned shfmt后为527行；把root代表性race留在03a仍无法同时满足格式门和400行/P5。全部anchor-driven provider-copy mutation移到03a1，03a只保留完整private provider、source/root/static、确定性错误分类probe和anchor结构验收。round2可运行原型实测03a exact2为392/400，03a1三层共享driver为269/400并执行19个代表case，完整37-case矩阵剩18个data rows/calls。
 > v5.6 依据：03a1 round6把全部37-case、完整对象delta oracle与14项active self-disproof放入单文件后，固定格式实测411/400，再次证伪原边界。round7将测试专用private Python driver与默认发现shell matrix真实拆开，补齐路径隔离后分别实测400/400与109/400；driver独立self-test，entrypoint独立生成/核对37 rows，因而新增03a2并让03b等待dependency-present的03a2穷举验收。
+> v5.7 依据：03b requirements round1证明原03c无法访问封装在03b Python worker内的owned temp/publish点，且259行代表原型没有覆盖完整rename/mutation oracle。把child信号处理、owned-temp cleanup和`TEMP_BEFORE_PUBLISH`归还03b worker，03c只做可组合的Bash转发facade；新增只拥有默认发现穷举测试的03b1，在其dependency-present证据通过前禁止03c启动。复审闭环后的fixed-format核心199行+基础测试198行实跑397/400，补齐四态source rc/双流/完整inventory/export属性、strict worker、held capture结构、managed disappearance/suffix、字节级read oracle、第二波并发完整winner指纹与静态攻击整树delta并使exact2 ShellCheck全绿；03b1完整active-family runnable prototype再以exact1=274/400、227项调用/状态delta、换入对象身份/shape、EEXIST全oracle前temp清理与完整winner指纹、固定工具全绿证明单文件边界可实施。
 
 ## 总目标
 
@@ -14,7 +15,7 @@
 整体验收：
 
 - `./scripts/check.sh --offline` 退出 `0`，末行为 `RESULT PASS  aosp-harness offline quality gate`。
-- `./tests/test-device-safety.sh && ./tests/test-session-path-races.sh && ./tests/test-session-state.sh && ./tests/test-claude-session-lifecycle.sh && ./tests/test-resource-leases.sh && ./tests/test-verifier-contract.sh && ./tests/test-command-runtime.sh && ./tests/test-registry-resolver.sh && ./tests/test-client-session-adapters.sh && ./tests/test-verifier-adapters.sh` 全部退出 `0`。
+- `./tests/test-device-safety.sh && ./tests/test-session-path-races.sh && ./tests/test-session-snapshot-assurance.sh && ./tests/test-session-state.sh && ./tests/test-claude-session-lifecycle.sh && ./tests/test-resource-leases.sh && ./tests/test-verifier-contract.sh && ./tests/test-command-runtime.sh && ./tests/test-registry-resolver.sh && ./tests/test-client-session-adapters.sh && ./tests/test-verifier-adapters.sh` 全部退出 `0`。
 - Claude、Codex、common 三套旧回归全部退出 `0`；`git diff --check` 退出 `0`。
 - 默认验收全程不连真实 ADB/CVD，不跑 AOSP build，不改被跟踪的 `CURRENT_FEATURE`，不残留 session/lease 文件。
 
@@ -24,7 +25,7 @@
 - 真实模式在首次 ADB 调用前必须固定安全 serial；无/非法 serial、查询失败或必需断言 SKIP 时不得退出 `0`。
 - 严格 PASS 至少覆盖 boot、system_server、crash baseline、service、package 五项，不降低现有 Codex 负向测试强度。
 - 每个存在可回滚 provider 依赖的 consumer，都要在 fixture 中验证 provider-present/provider-absent 两条路径，并保留上一版兼容 fallback。
-- `03a`及`03a2–03d`的默认测试必须同时覆盖依赖齐全的功能分支与直接依赖缺席时的 inert 分支；inert 分支不得设置完整 capability 或状态 public API，仍以本测试固定 PASS 摘要退出 `0`，使任一前序模块可单独回滚而不拖垮已合入测试。`03a1`是不进入默认发现的private driver，以独立self-test验收。
+- `03a`及`03a2–03d`（含03b1）的默认测试必须同时覆盖依赖齐全的功能分支与直接依赖缺席时的 inert 分支；inert 分支不得设置完整 capability 或状态 public API，仍以本测试固定 PASS 摘要退出 `0`，使任一前序模块可单独回滚而不拖垮已合入测试。`03a1`是不进入默认发现的private driver，以独立self-test验收。
 - 实现类 spec 严格串行，不发布、提交或推送。
 
 ## 全局约束
@@ -46,8 +47,9 @@
 | `03a-session-path-safety` | 交付 fully-hardened 私有 path 模块及source/root/static/anchor结构验收 | `03-session-state-safety` | `./tests/test-session-path.sh` 输出 `RESULT PASS  session path safety` | ✅ 完成 |
 | `03a1-session-path-race-assurance` | 交付不进入默认发现的path race私有driver与自反证oracle | `03a-session-path-safety` | `python3 tests/lib/session-path-race-driver.py self-test common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh` 输出 `RESULT PASS  session path race driver` | ✅ 完成 |
 | `03a2-session-path-race-matrix` | 在任何path consumer前以37-row默认入口穷举三层竞态 | `03a-session-path-safety`, `03a1-session-path-race-assurance` | dependency-present时driver `protocol`/`self-test`与`./tests/test-session-path-races.sh`均退0，入口内部37/37及九类计数逐字通过，末摘要为`RESULT PASS  session path race assurance` | ✅ 完成 |
-| `03b-session-snapshot-safety` | 交付独占的 create-once snapshot write/read 模块 | `03a-session-path-safety`, `03a2-session-path-race-matrix` | `./tests/test-session-snapshot.sh` 输出 `RESULT PASS  session snapshot safety` | ⬜ 未开始 |
-| `03c-session-write-interrupts` | 交付独占的 write child/facade/group signal 模块 | `03b-session-snapshot-safety` | `./tests/test-session-signals.sh` 输出 `RESULT PASS  session write interrupts` | ⬜ 未开始 |
+| `03b-session-snapshot-safety` | 交付signal-aware create-once snapshot worker/write/read模块 | `03-session-state-safety`, `03a-session-path-safety`, `03a2-session-path-race-matrix` | `./tests/test-session-snapshot.sh` 输出 `RESULT PASS  session snapshot safety` | ⏳ 进行中 |
+| `03b1-session-snapshot-assurance` | 在signals facade前穷举snapshot mutation/publish/child signal | `03b-session-snapshot-safety` | dependency-present时`./tests/test-session-snapshot-assurance.sh`输出`RESULT PASS  session snapshot assurance`且完整矩阵全PASS | ⬜ 未开始 |
+| `03c-session-write-interrupts` | 交付独占的 write facade/group signal 模块 | `03b-session-snapshot-safety`, `03b1-session-snapshot-assurance` | `./tests/test-session-signals.sh` 输出 `RESULT PASS  session write interrupts` | ⬜ 未开始 |
 | `03d-session-remove-prune` | 交付 remove 模块与 complete-provider aggregator | `03c-session-write-interrupts` | `./tests/test-session-state.sh` 输出 `RESULT PASS  session state` | ⬜ 未开始 |
 | `03e-claude-session-lifecycle` | 将 Claude hook/demo 接入完整安全状态 API并验证生命周期 | `03d-session-remove-prune` | `./tests/test-claude-session-lifecycle.sh` 输出 `RESULT PASS  claude session lifecycle` | ⬜ 未开始 |
 | `04-runtime-resource-leases` | 为源码、build、device、CVD 提供跨会话独占租约 | `02-offline-quality-gate` | `./tests/test-resource-leases.sh` 输出 `RESULT PASS  resource leases` | ⬜ 未开始 |
@@ -73,6 +75,7 @@
 | `03a1` | `tests/lib/session-path-race-driver.py`；不进入默认发现，不修改03/03a实现和测试 |
 | `03a2` | `tests/test-session-path-races.sh`；只消费03a provider与03a1 private driver，不修改前序文件 |
 | `03b` | `session-state-snapshot.sh`、`test-session-snapshot.sh`；不修改03/03a文件 |
+| `03b1` | `tests/test-session-snapshot-assurance.sh`；只消费03b provider，不修改前序文件 |
 | `03c` | `session-state-signals.sh`、`test-session-signals.sh`；不修改前序模块 |
 | `03d` | `session-state-remove.sh`、最终`session-state.sh` aggregator、`test-session-state.sh`、独占 `tests/coverage.d/03d-session-state.md` fragment；不修改02的`tests/COVERAGE.md` |
 | `03e` | Claude hook/settings/demo 适配、lifecycle test |
@@ -112,11 +115,15 @@
 
 ### `03b-session-snapshot-safety`
 
-独占交付 `session-state-snapshot.sh`，增加 verified snapshot open、create-once `renameat2(RENAME_NOREPLACE)` write/read、同值/异值竞争、winner 生命周期、软/硬链/属性/内容攻击和 `SNAPSHOT_BEFORE_OPEN`/`OS_ERROR` mutation。精确私有接口：`_harness_session_snapshot_write_core <project-id> <session-id> <feature>` 双流空，首次/同值0、OS错1、安全错2、异值冲突3；`_harness_session_snapshot_read_core <project-id> <session-id>` 成功唯一feature+LF/0，OS错1、安全错2、缺失3。source 时若 `_harness_session_path_core` 缺失则静默返回0且不定义本模块exports/public API/marker；独立测试在依赖present时跑功能矩阵，在真实上游或fixture缺席时验证inert并以同一摘要PASS。回滚本模块后 aggregator 不设置 marker，consumer 自动走 legacy。
+独占交付 `session-state-snapshot.sh`，增加held-fd path capture、逐层managed reopen、verified snapshot open、create-once `renameat2(RENAME_NOREPLACE)` write/read及Python child信号清理。精确私有接口：spawn-only `_harness_session_snapshot_worker write <project-id> <session-id> <feature>`与`_harness_session_snapshot_worker read <project-id> <session-id>`由调用方放入独立进程后最终`exec python3`且PID不变。write core与worker write始终双流空，首次/同值0、OS错1、安全/协议错2、异值冲突3、HUP/INT/TERM为129/130/143；read core与worker read成功唯一stdout为feature+LF、stderr空/0，失败双流空且OS错1、安全/协议错2、缺失3。worker拥有本调用temp与publish提交点；首次HUP/INT/TERM必须先ignore三种后续信号再进入finally，以首信号码返回，只清未发布owned temp、绝不回滚winner。source时若public validate或path core缺失则静默返回0且不定义三个本模块exports/public API/marker；同片默认测试验source/inert、基础功能/静态攻击/竞态、TEMP barrier后的真实worker PID、连续TERM+HUP首信号码/temp清理及anchor结构，完整provider-copy穷举由03b1独占。
+
+### `03b1-session-snapshot-assurance`
+
+只新增shfmt-clean `tests/test-session-snapshot-assurance.sh`，不修改snapshot provider。入口用provider-copy逐项反证held capture fd不受同名路径重建影响、managed与snapshot stat→open mutation、无特权wrong-owner、短读、真实EIO、libc symbol缺失、ENOSYS以及确定性EEXIST后same/different/disappear/unsafe；并核对全部marker精确一次、无rename/link fallback、winner/victim/temp完整delta及child HUP/INT/TERM清理。provider物理缺席时默认与`--dependency-absent`走同一零case inert摘要；provider存在但类型/marker/协议损坏必须fail closed。完整active-family runnable prototype `7ffc213ee773abe88d25436998e71f9ff08f270a`经固定shfmt、exact-file ShellCheck、bash-n及实跑全绿，03b core/base 199+198=397/400且worker misuse在capture前返回并保持state root缺席，source后只留下三个约定export，capture anchor再钉pathname absent、0600/nlink0与Python fd消费；03b1单文件274/400、227项调用/状态delta，所有失败检查双流，managed/snapshot换入对象核对注入身份与精确shape，EEXIST核对注入winner的dev/inode/uid/mode/nlink/size/hash且在winner初次name-stat前主动证明temp已先清理，保留126行给inert/CLI/controller整合。controller只有在dependency-present完整矩阵、exact1/400、full/depth-1/offline与回滚证据入ledger后才允许03c启动；inert PASS不能解除顺序门。
 
 ### `03c-session-write-interrupts`
 
-独占交付 `session-state-signals.sh`，在 snapshot core 上增加 `TEMP_BEFORE_PUBLISH`、Python owned-temp cleanup、Bash `pending_signal/child_pid/child_rc` facade 与 child/facade/group HUP/INT/TERM。精确私有接口 `_harness_session_write_with_signals <project-id> <session-id> <feature>`：常规双流/返回沿用 snapshot write，HUP/INT/TERM 返回129/130/143，并证明 loser/post-publish/repeated-signal 不删 winner。source 时若 snapshot write/read exports 缺任一则静默返回0且不定义本模块export/public API/marker；独立测试在依赖present时跑功能矩阵，在真实上游或fixture缺席时验证inert并以同一摘要PASS。回滚本模块后 aggregator 不设置 marker，consumer 自动走 legacy。
+独占交付 `session-state-signals.sh`，只在已由03b/03b1验收的signal-aware snapshot worker上增加Bash `pending_signal/child_pid/child_rc` facade、spawn-gap补转发、facade first-signal-wins与facade/process-group HUP/INT/TERM；不复制temp/publish逻辑、不修改snapshot模块。精确私有接口 `_harness_session_write_with_signals <project-id> <session-id> <feature>`：常规双流/返回沿用snapshot write，HUP/INT/TERM返回129/130/143。source时必须同时验证worker/write/read三个exports，任一缺席都静默inert且不定义signals export/public API/marker；独立测试逐个覆盖三export缺席及facade/group矩阵。回滚本模块后aggregator不设置marker，consumer自动走legacy。
 
 ### `03d-session-remove-prune`
 
@@ -170,9 +177,12 @@
 | `03a -> 03a1` | `_harness_session_path_core <project-id> <session-id>` + 三个生产文本唯一的mutation anchor；path+LF/0、OS错1、安全错2 | `03a1` 的private self-test/run-matrix只复制provider做only-anchor race oracle，不修改provider或发布API |
 | `03a -> 03a2` | 同上；provider文件与三anchor结构是入口前置 | `03a2` 在provider缺席时inert，存在时先验anchor后才检查driver/core；损坏provider总是fail closed |
 | `03a1 -> 03a2` | `session-path-race-driver-v1`；`protocol/self-test/run-matrix`私有CLI及`0|1|2`协议 | `03a2` 生成四列37-row TSV并调driver；driver物理缺席inert，存在但类型/protocol/执行损坏则fail closed |
-| `03a -> 03b` | `_harness_session_path_core <project-id> <session-id>`：path+LF/0，OS错1，安全错2；无marker/public path | `03b` 产出 `_harness_session_snapshot_write_core <project-id> <session-id> <feature>` 与 `_read_core <project-id> <session-id>`，协议如详情；path export absent时source静默0且test走inert PASS |
+| `03 -> 03b` | `harness_validate_feature_name <name>`：合法0/双流空，非法2/固定错误 | `03b`用其验证write feature；validate或path core任一缺席时source inert，不复制名称规则 |
+| `03a -> 03b` | `_harness_session_path_core <project-id> <session-id>`：path+LF/0，OS错1，安全错2；无marker/public path | `03b`产出write core双流空`0|1|2|3|129|130|143`与read core成功feature+LF/0、失败双流空`1|2|3`；path export absent时source静默0且test走inert PASS |
 | `03a2 -> 03b` | `test-session-path-races.sh` dependency-present的37-case默认运行证据；无运行时API | controller只在03a1/03a2 accepted HEAD与全PASS manifest均入ledger，且03a2九类计数证据齐全后启动03b；03b运行时仍直接消费03a core |
-| `03b -> 03c` | snapshot write：双流空、`0|1|2|3`；snapshot read：feature+LF/0或双流按详情返回`1|2|3` | `03c` 产出 `_harness_session_write_with_signals <project-id> <session-id> <feature>`；snapshot exports absent时source静默0且test走inert PASS |
+| `03b -> 03b1` | signal-aware snapshot write/read、八个确定性测试anchor及基础测试PASS证据 | `03b1`只复制provider做完整mutation/race/signal assurance，不修改运行时模块 |
+| `03b -> 03c` | spawn-only worker直接在调用进程最终exec Python且PID稳定；worker write双流空`0|1|2|3|129|130|143`，worker read成功feature+LF/0、失败双流空`1|2|3` | `03c`直接background worker取得真实child PID并产出 `_harness_session_write_with_signals <project-id> <session-id> <feature>`；三个snapshot exports任一缺席时source inert |
+| `03b1 -> 03c` | `test-session-snapshot-assurance.sh` dependency-present完整矩阵与全PASS ledger；无运行时API | controller只在03b1 accepted HEAD、exact1/400和完整active证据入ledger后启动03c；inert PASS不能替代 |
 | `03c -> 03d` | `_harness_session_write_with_signals <project-id> <session-id> <feature>`：常规沿用write，信号`129|130|143` | `03d` 产出 `_harness_session_remove_core <project-id> <session-id>`和aggregator；signals export absent时remove inert、aggregator返回1，集成test验证legacy PASS |
 | `03d -> 03e` | `session-state.sh` 完整 capability：marker精确`1` + validate/path/write/read/remove 全存在；常规 `0|1|2|3`、remove缺失0、write信号129/130/143 | Claude hook 只有 marker+五API 同时满足才启用；aggregator缺席或任一模块缺席都走legacy并输出compat marker |
 | `03d -> 08` | 同上 | Codex/公共 adapter 同时检查 marker+五API；完整、aggregator缺席和五种missing-module fixture覆盖，partial/absent均走legacy并输出 `compat: session-provider=legacy` |
@@ -190,12 +200,13 @@
 | spec | 独立回滚路径 | 已合入消费者的行为 |
 |---|---|---|
 | `01` | 回退 serial/flag 补丁与安全测试 | `02` 只发现现存测试；`09` 的独立 preflight 继续拦截裸 ADB/真实 SKIP，并用 `01`-absent fixture 验证 |
-| `02` | 删除根 gate/CI/`tests/COVERAGE.md` | `03–10`（含 `03a–03e`）的独立test与判据均不调用`check.sh`，03d coverage位于独占fragment而不依赖该文件；`10`直接调用`check-docs.sh`/`test-docs.sh` |
+| `02` | 删除根 gate/CI/`tests/COVERAGE.md` | `03–10`（含 `03a–03e`与assurance片）的独立test与判据均不调用`check.sh`，03d coverage位于独占fragment而不依赖该文件；`10`直接调用`check-docs.sh`/`test-docs.sh` |
 | `03` | 删除 foundation 模块与独立测试，不改后序模块文件 | aggregator preflight/source 失败，marker 未设置且完整五API predicate 为 false；`03e/08` 的 missing-foundation fixture 自动转 legacy |
 | `03a` | 删除 path 模块与独立测试，不改 foundation/后序模块 | aggregator preflight/source 失败，marker 未设置且完整五API predicate 为 false；`03e/08` 的 missing-path fixture 自动转 legacy |
 | `03a1` | 删除private race driver，不改provider、03a2或后序模块 | `03a2`因driver物理缺席走inert PASS/0 case；03b运行时不变，但该状态不得重新验收03a2或新启动03b |
 | `03a2` | 删除唯一root race entrypoint，不改provider/driver或后序模块 | private driver不被root gate默认发现；03b运行时不变，只失去穷举门禁证据 |
-| `03b` | 删除 snapshot 模块与独立测试，不改其他模块 | aggregator preflight/source 失败，marker 未设置且完整五API predicate 为 false；`03e/08` 的 missing-snapshot fixture 自动转 legacy |
+| `03b` | 删除 snapshot 模块与基础测试，不改03b1/后序模块 | 03b1与03c依赖缺席时inert；aggregator preflight/source失败，marker未设置且完整五API predicate为false；`03e/08`的missing-snapshot fixture自动转legacy |
+| `03b1` | 删除唯一snapshot assurance入口，不改provider或后序模块 | snapshot及已合入03c运行时行为不变，但失去穷举门禁证据且不得重新验收或新启动03c |
 | `03c` | 删除 signals 模块与独立测试，不改其他模块 | aggregator preflight/source 失败，marker 未设置且完整五API predicate 为 false；`03e/08` 的 missing-signals fixture 自动转 legacy |
 | `03d` | 删除 remove模块、aggregator、集成测试和独占coverage fragment，不改前序私有模块或02文件 | marker未设置且完整五API predicate为false；foundation的public validate可单独存在，`03e/08`仍自动转legacy且不丢旧入口 |
 | `03e` | 回退 Claude hook/settings/demo 接入 | `03d` 完整 provider与测试不依赖03e；08不修改03e独占hook |
@@ -213,11 +224,12 @@ session 模块的回滚验收命令固定如下；对应测试脚本必须实现
 
 | 回滚目标 | 已合入后序测试必须保持绿色的命令 |
 |---|---|
-| `03` | `./tests/test-session-path.sh --dependency-absent && ./tests/test-session-path-races.sh --dependency-absent && ./tests/test-session-snapshot.sh --dependency-absent && ./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-foundation && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-foundation && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-foundation` |
-| `03a` | `./tests/test-session-path-races.sh --dependency-absent && ./tests/test-session-snapshot.sh --dependency-absent && ./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-path && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-path && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-path` |
+| `03` | `./tests/test-session-path.sh --dependency-absent && ./tests/test-session-path-races.sh --dependency-absent && ./tests/test-session-snapshot.sh --dependency-absent && ./tests/test-session-snapshot-assurance.sh --dependency-absent && ./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-foundation && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-foundation && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-foundation` |
+| `03a` | `./tests/test-session-path-races.sh --dependency-absent && ./tests/test-session-snapshot.sh --dependency-absent && ./tests/test-session-snapshot-assurance.sh --dependency-absent && ./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-path && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-path && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-path` |
 | `03a1` | 删除driver后 `./tests/test-session-path-races.sh && ./tests/test-session-path-races.sh --dependency-absent` 均inert PASS；已合入snapshot及后序运行时行为不变 |
 | `03a2` | 删除root test后运行`python3 tests/lib/session-path-race-driver.py self-test common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh && bash ./scripts/check.sh --offline`，证明private driver仍PASS且root gate不再发现race entrypoint；不依赖尚未实现的03b文件 |
-| `03b` | `./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-snapshot && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-snapshot && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-snapshot` |
+| `03b` | `./tests/test-session-snapshot-assurance.sh --dependency-absent && ./tests/test-session-signals.sh --dependency-absent && ./tests/test-session-state.sh --session-provider-fixture missing-snapshot && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-snapshot && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-snapshot` |
+| `03b1` | 删除assurance入口后运行`bash ./tests/test-session-snapshot.sh && bash ./scripts/check.sh --offline`，snapshot worker及后序运行时不变；该状态不得作为重新启动03c的门禁证据 |
 | `03c` | `./tests/test-session-state.sh --session-provider-fixture missing-signals && ./tests/test-claude-session-lifecycle.sh --session-provider-fixture missing-signals && ./tests/test-client-session-adapters.sh --session-provider-fixture missing-signals` |
 | `03d` | `./tests/test-claude-session-lifecycle.sh --session-provider-fixture absent && ./tests/test-client-session-adapters.sh --session-provider-fixture absent`；另以 `missing-remove` 覆盖保留aggregator但remove模块回退 |
 
@@ -246,9 +258,12 @@ session 模块的回滚验收命令固定如下；对应测试脚本必须实现
 03a --> 03a1
 03a --> 03a2
 03a1 --> 03a2
+03 --> 03b
 03a --> 03b
 03a2 --> 03b
+03b --> 03b1
 03b --> 03c
+03b1 --> 03c
 03c --> 03d
 03d --> 03e
 02 --> 04
@@ -265,12 +280,12 @@ session 模块的回滚验收命令固定如下；对应测试脚本必须实现
 09 --> 10
 ```
 
-实施顺序固定为 `01 → 02 → 03 → 03a → 03a1 → 03a2 → 03b → 03c → 03d → 03e → 04 → 05 → 06 → 07 → 08 → 09 → 10`。`01` 先关闭单点安全风险；`02` 建防线；`03a1` 先交付共享race oracle，`03a2`再在任何path consumer进入前补全37-case穷举门；`03–03c` 逐个交付互不叠改的私有模块，`03d` 才由 aggregator 原子发布完整五API capability，`03e` 再接 Claude 生命周期；然后锁定资源、交付语义和执行时；最后收敛 registry/session/verifier 并更新文档。
+实施顺序固定为 `01 → 02 → 03 → 03a → 03a1 → 03a2 → 03b → 03b1 → 03c → 03d → 03e → 04 → 05 → 06 → 07 → 08 → 09 → 10`。`01`先关闭单点安全风险；`02`建防线；03a1/03a2先穷举path race，03b1再在signals facade前穷举snapshot mutation；`03–03c`逐个交付互不叠改的私有模块，`03d`才由aggregator原子发布完整五API capability，`03e`再接Claude生命周期；然后锁定资源、交付语义和执行时；最后收敛registry/session/verifier并更新文档。
 
 ## 资源冲突
 
-- 17 个 spec 均为实现或验收代码片，必须按上述顺序串行。
-- `01/05/06/09` 会触及 verifier/设备路径；`03–03c` 各自独占不同私有模块/test，`03a1`独占private Python driver，`03a2`独占root race entrypoint，`03d` 独占remove、aggregator、最终集成test和coverage fragment，因接口依赖仍串行但没有跨spec同文件叠改；`03e`独占Claude hook而`08`只修改wrapper/Codex hook；`07/08/09`触及resolver/adapter，不允许重叠实施。
+- 18 个 spec 均为实现或验收代码片，必须按上述顺序串行。
+- `01/05/06/09`会触及verifier/设备路径；`03–03c`各自独占不同私有模块/test，03a1/03a2与03b1分别独占path/snapshot assurance资产，`03d`独占remove、aggregator、最终集成test和coverage fragment，因接口依赖仍串行但没有跨spec同文件叠改；`03e`独占Claude hook而`08`只修改wrapper/Codex hook；`07/08/09`触及resolver/adapter，不允许重叠实施。
 - 真实运行时使用 `04` 的组合 lease：同一 canonical workspace 的 source/build 互斥，同一 Android instance 的 device/cvd 互斥；多租约按稳定键排序后全有或全无获取，不允许部分占有。
 - 所有测试使用独立 `mktemp` fixture/mock，不共享真实设备、CVD、AOSP tree 或外部环境。
 
