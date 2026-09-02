@@ -135,9 +135,9 @@ sequenceDiagram
   F->>F: trap锁存pending_signal; child_pid仍空 不转发
   F->>W: spawn; child_pid=$!
   F->>W: pending非空 立即补转发
-  W->>W: handler安装前默认终止或锁存清理; barrier保证无补转发则挂起
-  W-->>F: 128+首信号
-  F-->>T: 恰为129/130/143; 无winner; temp=0
+  W->>W: 补转发送达则终止; 落入pre-exec窗口被吞则barrier出现后由driver放行(执行期修订: 异步subshell SIG_IGN可吞SIGINT, hang不作oracle)
+  W-->>F: 128+首信号 或 正常0(被吞时)
+  F-->>T: 恰为129/130/143; winner随child结局(absent或beta); temp=0
   T->>F: 另一行 AFTER_WAIT注入点kill(child已reap)
   F->>F: 锁存; 转发目标不存在 kill静默失败
   F-->>T: 恰为129/130/143; wait/cleanup不遮蔽信号码
@@ -152,7 +152,7 @@ sequenceDiagram
 | 真实 provider 缺席或 `--dependency-absent` | 三种调用走同一零 active case inert surface | 测试入口依赖探测 | 无 | 固定摘要、rc0 |
 | write arity/feature 非法 | 完全委托 worker 在 capture 前拒绝，零 state 副作用 | worker guard/validator 透传 | 无 | 双流空、rc2 |
 | 常规首次/同值/OS错/安全错/异值 | worker 协议原样透传，facade 不加码不改流 | 常规透传行 rc/双流核对 | 无 | 双流空、0/1/2/3 |
-| spawn-gap 收到信号 | 锁存后 spawn 立即补转发 | spawn-gap 行 rc/winner/temp 核对（barrier 保证无补转发则挂起即 FAIL） | 无 | 恰 129/130/143 |
+| spawn-gap 收到信号 | 锁存后 spawn 立即补转发 | spawn-gap 行 rc/temp 核对 + 补转发前向观测日志（facade probe 副本包装补转发语句落日志，mutant 删行则日志缺席即 FAIL；执行期修订：child pre-exec 窗口可吞信号，接收为尽力而为，winner 断言为 absent/beta 析取，不靠 hang 判 mutant） | 无 | 恰 129/130/143 |
 | 运行中收到信号 | 锁存并向 child 正 PID 转发；child handler 自清 owned temp | facade 三行与 group 三行 rc/指纹/temp 核对 | 无 | 双流空、恰 129/130/143 |
 | 第二信号 | facade 锁存非空只返回不改码；child ignore 期重入只返回 | 每信号行附带第二信号核对锁存 rc | 无 | 仍为首信号码 |
 | child 已 reap 后收到信号 | 锁存；`kill` 目标不存在静默失败；信号码不被 wait/cleanup 遮蔽 | AFTER_WAIT 注入行 rc 核对 | 无 | 恰 129/130/143 |
@@ -166,11 +166,11 @@ sequenceDiagram
 | 层 | 测什么 | 用什么工具 |
 |---|---|---|
 | 单元/结构 | CLI 四态（无参数/all 接受，unknown/extra/flag 带值 rc1 无 PASS）；三 export 各自缺席的 inert fixture 逐字比较 rc/双流/export inventory/四 public API/marker 全缺席；齐全 fixture 恰好新增唯一 export；facade 双 anchor 各 exact-once；生产文本无 `renameat2`/`.snapshot-` 等 temp/publish 逻辑副本；测试前后 snapshot 模块 SHA-256 不变 | `bash` 隔离 shell、`declare`、`export -p`、`rg`、`sha256sum`、`mktemp` |
-| 集成（信号矩阵，本片主体） | 常规 0/1/2/3 透传行（双流空）；facade HUP/INT/TERM × 到达窗口：运行中（snapshot probe 副本 barrier 持有 owned temp、`ps -o comm=` 证实该 PID 为 python3 后送信号，照 03b 先例）、spawn-gap（facade probe 副本 BEFORE_SPAWN 同步注入）、已退出后（AFTER_WAIT 同步注入），每行附第二不同信号核对锁存；process-group HUP/INT/TERM 三行（`setsid --wait` 隔离 pgroup，inner 写 PID 文件，`kill -SIG -- -pgid`）；每行核对恰 129/130/143、无 winner、owned temp=0、winner 指纹不变 | `bash ./tests/test-session-signals.sh`（主验证命令）、python3 注入、`ps/kill/find/stat/sha256sum`、测试侧 `setsid` |
+| 集成（信号矩阵，本片主体） | 常规 0/1/2/3 透传行（双流空）；facade HUP/INT/TERM × 到达窗口：运行中（snapshot probe 副本 barrier 持有 owned temp、`ps -o comm=` 证实该 PID 为 python3 后送信号，照 03b 先例）、spawn-gap（facade probe 副本 BEFORE_SPAWN 同步注入）、已退出后（AFTER_WAIT 同步注入），每行附第二不同信号核对锁存；process-group HUP/INT/TERM 三行（`setsid --wait` 隔离 pgroup，inner 写 PID 文件，`kill -SIG -- -pgid`）；每行核对恰 129/130/143、owned temp=0、winner 指纹不变；facade/wait/group 行核无 winner，spawn-gap 行 winner 为 absent/beta 析取（执行期修订：pre-exec 窗口可吞补转发，child 结局 don't-care，oracle 为前向观测日志） | `bash ./tests/test-session-signals.sh`（主验证命令）、python3 注入、`ps/kill/find/stat/sha256sum`、测试侧 `setsid` |
 | inert | 真实 snapshot provider 缺席与 `--dependency-absent` 均走同一零 active case surface、同一固定摘要逐字 rc0；inert 摘要不计入本片验收证据 | 同上入口 + `--dependency-absent`、隔离 fixture shell |
 | 端到端/收敛（controller 验收资产） | candidate、完整历史 checkout、真实 `git clone --depth 1 file://...` 分别跑默认入口与 `bash ./scripts/check.sh --offline`，offline 发现本入口恰好一次，depth-1 commit-count=1 且 shallow marker 非空；上游七 tracked 文件 SHA-256 测试前后不变且 clean；隔离 rollback commit exact 只删本片两文件后 03b 基础测试、03b1 assurance 入口与 offline 全绿、本入口发现 0 次；03d 四类资产机械查缺席 | `git clone --depth 1 file://...`、`git worktree/status/diff/show-ref`、`bash ./scripts/check.sh --offline`、`rg`、`ls -d` |
 | 静态与 sizing | 固定版本断言后只对 exact 两文件 `shfmt -d -i 2 -ci -bn`、`shellcheck -x --severity=warning`、`bash -n`；execution BASE..HEAD exact 只新增本片两文件、numstat 总和 ≤400；六列 manifest 机械验证；`git diff --check` 与 clean 通过 | shfmt `v3.14.0`、ShellCheck `0.11.0`、`bash -n`、Git/awk controller 命令 |
-| 性能 | 不适用：本片不设吞吐/延迟 SLO；barrier 用短轮询等待，`timeout` 仅作测试防挂死（spawn-gap 行若无补转发会挂起，由 timeout 判 FAIL），不冒充 benchmark | `timeout` |
+| 性能 | 不适用：本片不设吞吐/延迟 SLO；barrier 用短轮询等待，`timeout` 仅作测试防挂死兜底（执行期修订：spawn-gap 行的 mutant 判定靠前向观测日志缺席，不靠挂起），不冒充 benchmark | `timeout` |
 
 sizing 承诺：execution diff exact2 且 `git diff --numstat` 总和 ≤400。行数预算分解：`common/.harness/lib/session-state-signals.sh` ≤45 行（shebang 与三 export 守卫 ~6、facade locals 与三条 inline trap ~5、spawn/补转发/双 anchor ~6、wait 循环 ~7、trap 摘除与 129/130/143 映射 ~8、结构注释 ~13）；`tests/test-session-signals.sh` ≤345 行（CLI 与 repo/tmp 引导 ~18、inert 三 fixture 加齐全 fixture ~28、依赖探测与 inert 摘要 ~6、双 probe 副本注入 ~30（复用 03b barrier/caught 替换文本，另加 facade 双 anchor 注入）、helper ~36、常规透传行 ~14、三模式信号 runner ~60、矩阵调用 ~20、第二信号核对 ~8、CLI 自调用 ~10、SHA-256 与结构核对 ~10、摘要与计数 ~6、结构注释 ~99）；合计 ≤390，保留 ≥10 行余量。stdout/stderr 一律落文件后按字节比较，禁止用吞尾随 LF 的 command substitution 验证成功流。facade 本体极小（无外部命令、无分支矩阵），不需要 runnable prototype 作为 sizing 依据；预算按上述分解机械核对。
 
