@@ -11,6 +11,7 @@ TMP_TEST=$(mktemp -d "${TMPDIR:-/tmp}/session-path-races-03a2.XXXXXX")
 trap 'rm -rf -- "$TMP_TEST"' EXIT
 SUMMARY='RESULT PASS  session path race assurance'
 DRIVER_PROTOCOL='session-path-race-driver-v1'
+DRIVER_SUMMARY='RESULT PASS  session path race driver'
 
 fail() {
   printf 'FAIL %s\n' "$1" >&2
@@ -30,6 +31,7 @@ case ${1:-all} in
 esac
 
 CASE_TSV="$TMP_TEST/cases.tsv"
+CASE_LOG="$TMP_TEST/driver/cases.log"
 for layer in root project session; do
   for kind in safe-dir link file; do
     printf 'swap-%s-%s\tswap\t%s\t%s\n' "$layer" "$kind" "$layer" "$kind"
@@ -127,4 +129,13 @@ fi
 if [[ $GROUP == dependency-absent ]] || ! core_available; then
   pass_inert
 fi
-fail 'race adapter incomplete'
+printf '%s\n' "$DRIVER_SUMMARY" >"$TMP_TEST/driver.expected"
+if ! python3 "$DRIVER" run-matrix "$FOUNDATION" "$PROVIDER" "$TMP_TEST/driver" "$CASE_TSV" "$CASE_LOG" >"$TMP_TEST/driver.out" 2>"$TMP_TEST/driver.err"; then
+  fail 'race driver execution'
+fi
+[[ ! -s $TMP_TEST/driver.err ]] && cmp -s "$TMP_TEST/driver.out" "$TMP_TEST/driver.expected" || fail 'race driver result bytes'
+cut -f1 "$CASE_TSV" >"$TMP_TEST/cases.expected"
+cmp -s "$CASE_LOG" "$TMP_TEST/cases.expected" || fail '37-case ordered log'
+validate_matrix || fail 'post-driver matrix validation'
+[[ $(wc -l <"$CASE_LOG") == 37 && $(sort -u "$CASE_LOG" | wc -l) == 37 ]] || fail '37 unique executed cases'
+printf '%s\n' "$SUMMARY"
