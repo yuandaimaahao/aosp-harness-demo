@@ -5,24 +5,38 @@ import pathlib
 import stat
 import subprocess
 import sys
+import tempfile
 
 PROTOCOL = "session-path-race-driver-v1"
 LAYERS = ("root", "project", "session")
+
+def default_rows():
+    rows = [(f"swap-{layer}-{kind}", "swap", layer, kind) for layer in LAYERS for kind in ("safe-dir", "link", "file")]
+    rows += [(f"wrong-euid-{layer}", "wrong-euid", layer, "N/A") for layer in LAYERS]
+    rows += [(f"eexist-{layer}-{kind}", "eexist", layer, kind) for layer in LAYERS for kind in ("safe", "unsafe", "disappear")]
+    rows += [(f"{kind}-{layer}", kind, layer, "N/A") for kind in ("mkdir-replace", "mkdir-failure", "post-mkdir-disappear", "open-disappear", "final-stat-disappear") for layer in LAYERS]
+    return rows + [("real-eio", "real-eio", "N/A", "N/A")]
 
 if sys.argv[1:] == ["protocol"]:
     print(PROTOCOL)
     raise SystemExit
 if len(sys.argv) == 4 and sys.argv[1] == "self-test":
-    raise AssertionError("matrix executor incomplete")
+    mode = "self-test"
+    foundation, provider = map(pathlib.Path, sys.argv[2:])
+    owner = tempfile.TemporaryDirectory(prefix="session-race-driver.")
+    workspace, rows = pathlib.Path(owner.name) / "workspace", default_rows()
+    case_log = workspace / "cases.log"
 elif len(sys.argv) == 7 and sys.argv[1] == "run-matrix":
+    mode = "run-matrix"
     foundation, provider, workspace, case_tsv, case_log = map(pathlib.Path, sys.argv[2:])
 else:
     raise SystemExit(2)
 
-case_text = case_tsv.read_text()
-if "\0" in case_text:
-    raise AssertionError("case TSV contains NUL")
-rows = [tuple(line.split("\t")) for line in case_text.splitlines()]
+if mode == "run-matrix":
+    case_text = case_tsv.read_text()
+    if "\0" in case_text:
+        raise AssertionError("case TSV contains NUL")
+    rows = [tuple(line.split("\t")) for line in case_text.splitlines()]
 if not rows or any(len(row) != 4 or any(not field for field in row) for row in rows):
     raise AssertionError("case TSV must contain exact nonempty columns")
 if len({row[0] for row in rows}) != len(rows):
@@ -67,11 +81,18 @@ source_bytes = provider.read_bytes()
 executed = []
 managed_hook = r'''    _kind, _layer, _expected_name, _detail, _hook = os.environ["HARNESS_RACE_PLAN"].split("|", 4)
     _match = ((_kind == "swap" and phase == "before_open" and not made)
-              or (_kind == "eexist" and phase in ("before_mkdir", "after_eexist")))
+              or (_kind == "eexist" and phase in ("before_mkdir", "after_eexist"))
+              or (_kind in ("mkdir-replace", "post-mkdir-disappear") and phase == "before_open" and made)
+              or (_kind == "mkdir-failure" and phase == "before_mkdir" and not made)
+              or (_kind in ("open-disappear", "final-stat-disappear") and phase == "before_open" and not made))
     if name == _expected_name and _match:
         _catch = "1" if phase == "after_eexist" else "0"
+        _original = ""
+        if _kind == "mkdir-replace":
+            _original_info = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            _original = f"|original={'dir' if stat.S_ISDIR(_original_info.st_mode) else 'other'},{_original_info.st_dev},{_original_info.st_ino},{stat.S_IMODE(_original_info.st_mode)},{_original_info.st_uid}"
         with open(_hook, "a") as _stream:
-            _stream.write(f"MANAGED|{_layer}|{name}|{phase}|{int(made)}|{_catch}\n")
+            _stream.write(f"MANAGED|{_layer}|{name}|{phase}|{int(made)}|{_catch}{_original}\n")
         if _kind == "swap" and phase == "before_open" and not made:
             os.rename(name, name+".old", src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
             if _detail == "safe-dir": os.mkdir(name, 0o700, dir_fd=parent_fd)
@@ -82,6 +103,27 @@ managed_hook = r'''    _kind, _layer, _expected_name, _detail, _hook = os.enviro
             if _detail == "unsafe": os.chmod(name, 0o755, dir_fd=parent_fd)
         elif _kind == "eexist" and phase == "after_eexist" and _detail == "disappear":
             os.rmdir(name, dir_fd=parent_fd)
+        elif _kind == "mkdir-replace" and phase == "before_open" and made:
+            os.rename(name, name+".old", src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+            os.mkdir(name, 0o700, dir_fd=parent_fd); os.chmod(name, 0o755, dir_fd=parent_fd)
+        elif _kind == "mkdir-failure" and phase == "before_mkdir":
+            _real_mkdir = os.mkdir
+            def _planned_mkdir(path, mode=0o777, *, dir_fd=None):
+                if path != name: return _real_mkdir(path, mode, dir_fd=dir_fd)
+                os.mkdir = _real_mkdir
+                raise FileNotFoundError(errno.ENOENT, "gone")
+            os.mkdir = _planned_mkdir
+        elif _kind == "post-mkdir-disappear" and phase == "before_open" and made:
+            os.rmdir(name, dir_fd=parent_fd)
+        elif _kind == "open-disappear" and phase == "before_open" and not made:
+            os.rmdir(name, dir_fd=parent_fd)
+        elif _kind == "final-stat-disappear" and phase == "before_open" and not made:
+            _real_stat = os.stat
+            def _planned_stat(path, *args, **kwargs):
+                if path == name and kwargs.get("dir_fd") == parent_fd:
+                    os.stat = _real_stat; os.rmdir(name, dir_fd=parent_fd)
+                return _real_stat(path, *args, **kwargs)
+            os.stat = _planned_stat
         pass  # HARNESS_TEST_MARKER_MANAGED_BEFORE_OPEN'''
 euid_hook = r'''    _kind, _layer, _expected_name, _detail, _hook = os.environ["HARNESS_RACE_PLAN"].split("|", 4)
     if _kind == "wrong-euid" and name == _expected_name:
@@ -93,7 +135,6 @@ os_hook = r'''        _kind, _layer, _expected_name, _detail, _hook = os.environ
             _stream.write("OS_ERROR|N/A|N/A|N/A|N/A|N/A\n")
         raise OSError(errno.EIO)  # HARNESS_TEST_MARKER_OS_ERROR'''
 
-
 def check(condition, label):
     if not condition:
         raise AssertionError(label)
@@ -101,7 +142,6 @@ def check(condition, label):
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
 
 def signature(path):
     info = path.lstat()
@@ -147,7 +187,6 @@ def assert_marker_counts(text):
 
 def assert_hooks(actual, expected, label):
     check(actual == expected, f"{label}: ordered hooks {actual!r}")
-
 
 def injected_copy(base, anchor):
     marker = markers[anchor]
@@ -199,9 +238,12 @@ def exercise(label, copy, root, plan, expected, hook, hook_lines, base, schema_b
     result = invoke(copy, root, plan)
     after = inventory(base)
     check((result.returncode, result.stdout, result.stderr) == expected, f"{label}: protocol")
-    assert_hooks(hook.read_text().splitlines(), hook_lines, label)
-    assert_delta(before, after, schema_builder(before), label)
+    actual_hooks = hook.read_text().splitlines()
+    assert_hooks(actual_hooks, hook_lines(after) if callable(hook_lines) else hook_lines, label)
+    schema = schema_builder(before)
+    assert_delta(before, after, schema, label)
     executed.append(label)
+    return before, after, schema, actual_hooks
 
 
 def setup(label, layer, include_target=True, anchor="MANAGED"):
@@ -216,7 +258,6 @@ def setup(label, layer, include_target=True, anchor="MANAGED"):
 
 def safe_dir(_, value):
     return value[0] == "dir" and value[3] == 0o700 and value[4] == os.geteuid()
-
 
 def swap_delta(before, target, old, replacement_predicate):
     subtree = {path: value for path, value in before.items() if path == target or path.startswith(target + "/")}
@@ -283,6 +324,36 @@ def eexist(layer, kind):
         check(not target.exists(), f"{label}: disappeared winner")
 
 
+managed_specs = {
+    "mkdir-replace": (False, unsafe, "before_open", 1), "mkdir-failure": (False, operation, "before_mkdir", 0),
+    "post-mkdir-disappear": (False, operation, "before_open", 1), "open-disappear": (True, operation, "before_open", 0),
+    "final-stat-disappear": (True, operation, "before_open", 0),
+}
+
+
+def managed_case(kind, layer):
+    include, expected, phase, made = managed_specs[kind]
+    label = f"{kind}-{layer}"
+    base, root, target, hook, copy, _, plan = setup(label, layer, include)
+    plan[0] = kind
+    target_key = str(target.relative_to(base))
+    old_key = str(target.with_name(target.name + ".old").relative_to(base))
+    if kind == "mkdir-replace":
+        predicates = {target_key: lambda _, value: value[0] == "dir" and value[3] == 0o755 and value[4] == os.geteuid(), old_key: safe_dir}
+        schema_builder = lambda before: delta_schema(before, (target_key, old_key), predicates=predicates)
+        hook_lines = lambda after: [f"MANAGED|{layer}|{target.name}|before_open|1|0|original={','.join(map(str, after[old_key][:5]))}"]
+    elif kind in ("open-disappear", "final-stat-disappear"):
+        schema_builder = lambda before: delta_schema(before, removed=(target_key,))
+        hook_lines = [f"MANAGED|{layer}|{target.name}|{phase}|{made}|0"]
+    else:
+        schema_builder = delta_schema
+        hook_lines = [f"MANAGED|{layer}|{target.name}|{phase}|{made}|0"]
+    _, after, _, _ = exercise(label, copy, root, plan, expected, hook, hook_lines, base, schema_builder)
+    if kind == "mkdir-replace":
+        check(after[old_key] == signature(target.with_name(target.name + ".old")), f"{label}: runtime original")
+        check(after[target_key][2] != after[old_key][2] and after[target_key][3] == 0o755, f"{label}: replacement")
+
+
 def exercise_eio(label):
     base = workspace / label
     base.mkdir()
@@ -293,6 +364,13 @@ def exercise_eio(label):
     check(not (base / "state").exists(), "EIO created root")
 
 
+if mode == "self-test":
+    order_probe = workspace / "inventory-order"
+    order_probe.mkdir()
+    for name in ("z-last", "a-first"):
+        (order_probe / name).mkdir()
+    check(list(inventory(order_probe)) == ["a-first", "z-last"], "C-locale filesystem-byte inventory order")
+
 for row_case_id, row_family, row_layer, row_variant in rows:
     if row_family == "swap":
         swap(row_layer, row_variant)
@@ -300,6 +378,8 @@ for row_case_id, row_family, row_layer, row_variant in rows:
         wrong_euid(row_layer)
     elif row_family == "eexist":
         eexist(row_layer, row_variant)
+    elif row_family in managed_specs:
+        managed_case(row_family, row_layer)
     elif row_family == "real-eio":
         exercise_eio(row_case_id)
     else:
@@ -311,6 +391,10 @@ case_bytes = "".join(case_id + "\n" for case_id in expected_ids).encode()
 check(provider.read_bytes() == source_bytes, "production provider changed")
 check(os.write(log_fd, case_bytes) == len(case_bytes), "complete case log write")
 os.lseek(log_fd, 0, os.SEEK_SET)
-check(os.read(log_fd, 1 << 20).decode().splitlines() == expected_ids, "exact ordered unique case IDs")
+case_ids = os.read(log_fd, 1 << 20).decode().splitlines()
+check(case_ids == expected_ids, "exact ordered unique case IDs")
+if mode == "self-test":
+    check(len(rows) == 37 and hashlib.sha256(case_bytes).hexdigest() == "721b3687bda848db7b6481c527f491e6733cf376dbade3dd37b319fce8029bc8", "ordered 37 case ID hash")
+    raise AssertionError("self-disproof incomplete")
 os.close(log_fd)
 print("RESULT PASS  session path race driver")
