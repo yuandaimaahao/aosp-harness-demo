@@ -45,3 +45,6 @@
 - accepted HEAD: `b9582e51ab5769bee90016e7e3aadb9d895ffd12`。六列manifest恰好3行，首base=`6f26119e0f49891f033c1f63183a27344cf60bb5`、相邻连续、末head=accepted HEAD、reviewer非空且全PASS。
 - controller final gate PASS: driver protocol 28B/self-test 38B；entrypoint default/all 41B；foundation/path/offline回归PASS且offline发现一次；持久matrix证据37行/37唯一/连续计数`9/3/9/3/3/3/3/3/1`/ordered case-log；shfmt 3.14.0、ShellCheck 0.11.0、bash-n、dependency SHA、exact1/141、diff-check与clean全PASS。
 - 03b顺序门: controller在上述accepted证据入ledger紧邻前已fail-closed验证03b spec/work/branch/worktree/execution-base/manifest/dispatch物理全缺席；现在仅允许03a2进入accept/合入，03b仍未创建。
+- main merge: `744acdc9ef2f8eb92a74fc8fefd32d130c46aa04` (`merge: session race matrix`)；实现branch/worktree保留供追溯。
+- post-merge main: driver protocol/self-test、entrypoint default/all、foundation/path、offline、shfmt 3.14.0、ShellCheck 0.11.0、bash-n与diff-check全PASS；offline发现race入口恰好一次。
+- accept converge: `check-converge.py` PASS；R1-R10、不变量、文件/行预算和可回滚边界闭合。
