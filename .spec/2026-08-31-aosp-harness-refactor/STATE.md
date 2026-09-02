@@ -1,12 +1,12 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 03a1复盘五问均否，不改PLAN或补调研；下一片固定为03a2-session-path-race-matrix
-updated: '2026-09-02T09:04:25+08:00'
-current_spec: null
-spec_stage: null
+basis: 门④ autopilot：03a2 tasks round3独立review PASS；三任务纵切、唯一红因、fake调用证据、双仓accepted门、exact1/400与03b fail-closed顺序门闭合
+updated: '2026-09-02T09:58:58+08:00'
+current_spec: 2026-09-02-03a2-session-path-race-matrix
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -95,6 +95,10 @@ workflow: requirements-first
 | 2026-09-02T08:58:54+08:00 | spec/execute | spec/accept | 五任务均完成普通提交与独立diff review PASS；manifest连续绑定c959efa至1c6e14f，candidate exact1/400、14-copy、full/depth-1与回归证据齐全，进入controller验收 |
 | 2026-09-02T09:04:25+08:00 | spec/accept | retro | 03a1验收PASS并以bf489b0合入main；accepted HEAD、五行manifest、full/depth-1及post-merge回归全部闭合 |
 | 2026-09-02T09:04:25+08:00 | retro | select | 03a1复盘五问均否，不改PLAN或补调研；下一片固定为03a2-session-path-race-matrix |
+| 2026-09-02T09:04:43+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-02-03a2-session-path-race-matrix |
+| 2026-09-02T09:15:22+08:00 | spec/requirements | spec/design | 门② autopilot：03a2 requirements round2独立review PASS；R1-R10、优先级、rollback、固定工具、full/depth与顺序门闭合，机械检查全PASS |
+| 2026-09-02T09:37:08+08:00 | spec/design | spec/tasks | 门③ autopilot：03a2 design round2独立review PASS（0/0/0）；概览与时序仅保留matrix duplicate递归自证，其余损坏由controller隔离夹具验收，137/400扩展原型与机械检查全PASS |
+| 2026-09-02T09:58:58+08:00 | spec/tasks | spec/execute | 门④ autopilot：03a2 tasks三轮独立review最终PASS；三任务纵切、可执行Bash骨架、fake零/精确调用、显式BASE、双仓accepted/full/depth-1/rollback、三行manifest与03b fail-closed顺序门闭合，机械检查全PASS |
 
 ## SKIPPED 记录
 

@@ -1,0 +1,58 @@
+COMMAND: HARNESS_SIZING_TOOLS=/tmp/03a2-pinned-tools.4K0skR bash .spec/2026-08-31-aosp-harness-refactor/work/2026-09-02-03a2-session-path-race-matrix/run-sizing.sh
+PASS default-37                         rc0 stdout41 stderr0
+PASS explicit-all                       rc0 stdout41 stderr0
+PASS default-all-identical              byte-identical summaries; real driver enforces 37/37 ordered log
+PASS fake-exact-argv                    rc0 stdout41 stderr0
+PASS fake-argv-sequence                 exact protocol,run-matrix; self-test count 0
+PASS matrix-before-provider             rc1 stdout0 no-PASS
+PASS matrix-priority                    duplicate rejected before absent provider/driver access
+PASS provider-absent                    rc0 stdout41 stderr0
+PASS provider-absent-zero               inert surface PASS; driver calls 0
+PASS anchor-OPEN-missing-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-OPEN-missing-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-OPEN-missing-flag           rc1 stdout0 no-PASS
+PASS anchor-OPEN-duplicate-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-OPEN-duplicate-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-OPEN-duplicate-flag         rc1 stdout0 no-PASS
+PASS anchor-EUID-missing-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-EUID-missing-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-EUID-missing-flag           rc1 stdout0 no-PASS
+PASS anchor-EUID-duplicate-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-EUID-duplicate-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-EUID-duplicate-flag         rc1 stdout0 no-PASS
+PASS anchor-ERROR-missing-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-ERROR-missing-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-ERROR-missing-flag          rc1 stdout0 no-PASS
+PASS anchor-ERROR-duplicate-foundation-absent rc1 stdout0 no-PASS
+PASS anchor-ERROR-duplicate-core-unavailable rc1 stdout0 no-PASS
+PASS anchor-ERROR-duplicate-flag        rc1 stdout0 no-PASS
+PASS anchor-cross-product               3 anchors x missing/duplicate x 3 downstream states = 18 fail-closed
+PASS driver-absent                      rc0 stdout41 stderr0
+PASS driver-symlink                     rc1 stdout0 no-PASS
+PASS driver-directory                   rc1 stdout0 no-PASS
+PASS driver-protocol-mismatch           rc1 stdout0 no-PASS
+PASS driver-protocol-rc                 rc1 stdout0 no-PASS
+PASS driver-protocol-stderr             rc1 stdout0 no-PASS
+PASS driver-syntax-error                rc1 stdout0 no-PASS
+PASS driver-run-rc                      rc1 stdout0 no-PASS
+PASS driver-run-stderr                  rc1 stdout0 no-PASS
+PASS driver-run-summary                 rc1 stdout0 no-PASS
+PASS driver-log-duplicate               rc1 stdout0 no-PASS
+PASS driver-damage-matrix               absent inert; symlink/directory/protocol/syntax/rc/stderr/result/log fail closed
+PASS inert-foundation-absent            rc0 stdout41 stderr0
+PASS inert-core-unavailable             rc0 stdout41 stderr0
+PASS inert-flag                         rc0 stdout41 stderr0
+PASS inert-zero-case                    foundation/core/flag: protocol once, run-matrix/self-test zero, surface oracle PASS
+PASS args-unknown                       rc1 stdout0 no-PASS
+PASS args-extra                         rc1 stdout0 no-PASS
+PASS args-flag-value                    rc1 stdout0 no-PASS
+PASS argument-protocol                  unknown/extra/flag-value rc1; no PASS
+PASS pinned-tools                       shfmt v3.14.0; ShellCheck 0.11.0; exact argv/file; bash -n
+PASS sizing                             entrypoint physical LOC 137/400
+PASS candidate-diff                     exact1; numstat 137/400
+PASS full-checkout                      protocol28/selftest38/direct41; offline discovered once; SHA stable; clean
+PASS depth1-checkout                    protocol28/selftest38/direct41; offline discovered once; SHA stable; clean
+PASS depth1-proof                       commit-count 1; shallow-bytes 41; no historical SHA query
+PASS independent-rollback               delete exact entrypoint; driver selftest38/offline PASS; discovery0; 03b absent; clean
+PASS repository-integrity               git diff --check rc0; production/spec/STATE/ledger not written by runner
+RESULT PASS  03a2 sizing prototype
