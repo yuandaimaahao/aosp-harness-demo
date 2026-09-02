@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import os, stat, sys
+from pathlib import Path
+def fail(code): print("CONTRACT " + code, file=sys.stderr); raise SystemExit(30)
+base = Path(__file__).resolve().parents[1]
+def take(path):
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        stat.S_ISREG(os.fstat(fd).st_mode) or (_ for _ in ()).throw(OSError()); return b"".join(iter(lambda:os.read(fd,65536),b""))
+    finally: os.close(fd)
+try:
+    marker, module = base / "runtime/seed-contract-runtime.version", base / "lib/seed_contract_runtime.py"
+    take(marker)==b"seed-contract-runtime/v1\n" or (_ for _ in ()).throw(OSError()); namespace={"__name__":"seed_contract_runtime_private","__file__":str(module)}; exec(compile(take(module),str(module),"exec"),namespace)
+    ContractError,RUNTIME_ABI,load_artifact,canonical_bytes,domain_digest,validate_state_paths,resolve_ref,publish_object,publish=(namespace[x] for x in "ContractError RUNTIME_ABI load_artifact canonical_bytes domain_digest validate_state_paths resolve_ref publish_object publish".split()); RUNTIME_ABI=="seed-contract-runtime/v1" or (_ for _ in ()).throw(OSError())
+except BaseException: fail("RUNTIME_UNAVAILABLE")
+try:
+    if os.environ.get("AOSP_HARNESS_TEST_UNEXPECTED") == "call-shape-type-error": canonical_bytes({})
+    args = sys.argv[1:]
+    if len(args) == 1 and not args[0].startswith("--"):
+        value = load_artifact(path=args[0], expected_kind="seed"); canonical_bytes(value=value); suffix = ""
+    elif len(args) in (4, 5) and args[0] == "--ref" and args[2] == "--artifact-store" and not args[1].startswith("--") and not args[3].startswith("--") and (len(args) == 4 or args[4] == "--require-public-real"):
+        store, ref, public = args[3], args[1], len(args) == 5
+        value = resolve_ref(state_dir=str(Path(store).parent.parent), ref=ref, artifact_store=store, forbidden_roots=(str(base.parents[3]),), require_public_real=public)
+        value["kind"] == "seed" or (_ for _ in ()).throw(ContractError("REF_CORRUPT")); suffix = " public_aosp17_cuttlefish" if public else ""
+    else: raise ContractError("ARGUMENT_ERROR")
+    print("SEED ABI PASS" + suffix)
+except ContractError as error: fail(error.code)
+except BaseException: fail("RUNTIME_INTERNAL")
