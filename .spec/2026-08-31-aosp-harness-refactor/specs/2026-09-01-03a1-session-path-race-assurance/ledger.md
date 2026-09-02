@@ -59,3 +59,9 @@
 - 任务 4: 完成。commit=`f72aaefddd4fa6e06c6c156ff1f3df58b5f27ca9`，reviewer=`review_design_03a_r1`，final-status=`PASS`；外部37/37、五managed family×三层、6项oracle mutant与provider-before-log反证全PASS；self-test实测46 hook writes与780B case-log后唯一`self-disproof incomplete`红；累计及物理exact1/400行，worktree clean。
 - 任务 5: 完成。commit=`1c6e14f0e8d74b223956f605d41d719b6c9fc5c6`，reviewer=`review_design_03a_r1`，final-status=`PASS`；14个真实callback trace与14-copy mutation 14/14、unknown-exception/order mutant、1/2/37 matrix、provider-before-log、full 118 commits、真实depth-1 1 commit及offline/03/03a回归均经独立review PASS；最终exact1/400、物理400/400，worktree clean。
 - acceptance: PASS。controller原样重跑accepted HEAD、full 118 commits与真实depth-1 1 commit的protocol/self-test/offline；exact1/400、物理400、03/03a零diff、provider SHA、五行manifest、双仓common-dir、dangling-symlink和03a2物理缺席门全部通过。accepted implementation HEAD=`1c6e14f0e8d74b223956f605d41d719b6c9fc5c6`已先于任何03a2 base/worktree/dispatch记入ledger。
+
+## Retro
+
+- 合入：implementation HEAD `1c6e14f0e8d74b223956f605d41d719b6c9fc5c6`已通过merge commit `bf489b07ed568eb8e27afd0d8b23248c0288641e`进入main；post-merge protocol/self-test/foundation/path/offline全PASS。保留branch/worktree用于追溯。
+- 五问：调研范围仍足够；PLAN v5.6的03a1/03a2拆分无需再改；private CLI与03a2消费边没有新增接口债；round7 exact400 sizing被最终exact400验证；五任务红绿+独立review流程无需改。五项均否，不回research/plan。
+- 下一片：`03a2-session-path-race-matrix`，只新增默认发现shell entrypoint；必须消费已合入private driver并在dependency-present状态提供37/37与九类计数证据。
