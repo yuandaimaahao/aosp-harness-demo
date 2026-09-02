@@ -190,7 +190,7 @@ PY
       if [[ $op == write ]] && ! harness_validate_feature_name "$feature" >/dev/null 2>&1; then return 2; fi
       umask 077
       path_file=$(mktemp "${TMPDIR:-/tmp}/snapshot-path.XXXXXXXX" 2>/dev/null) || return 1
-      exec {path_fd}<>"$path_file" 2>/dev/null || {
+      { exec {path_fd}<>"$path_file"; } 2>/dev/null || {
         rm -f -- "$path_file" 2>/dev/null
         return 1
       }
