@@ -307,7 +307,7 @@ def publish(*, state_dir: str, out_ref: str, artifact_store: str, object_kind: s
         nodes,lock=_lock_ref(os.path.dirname(out_ref),os.path.basename(out_ref)); parent=nodes[-1][0]; refdir=os.open(".",os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=parent); objects,_=_walk(paths["object_dir"]); objectfd=objects[-1][0]; _existing_ref(parent,os.path.basename(out_ref),objectfd); _evidence(objectfd,payload); result=_publish_object(state_dir=state_dir,artifact_store=artifact_store,object_kind=object_kind,payload=payload,forbidden_roots=forbidden_roots,fault_point=fault_point if fault_point in ("OBJECT_LINK","OBJECT_DIR_FSYNC") else None,_output=True)
         try:
             for n in os.listdir(refdir):
-                if re.fullmatch(r"\."+re.escape(os.path.basename(out_ref))+r"\.tmp\.[0-9]+\.[0-9a-f]{16}",n): p=os.open(n,os.O_PATH|os.O_NOFOLLOW,dir_fd=refdir); objects.append((p,"")); stat=os.fstat(p); _close(p); __import__("stat").S_ISREG(stat.st_mode) and __import__("stat").S_IMODE(stat.st_mode)==0o600 and os.unlink(n,dir_fd=refdir)
+                if re.fullmatch(r"\."+re.escape(os.path.basename(out_ref))+r"\.tmp\.[0-9]+\.[0-9a-f]{16}",n): p=os.open(n,os.O_PATH|os.O_NOFOLLOW,dir_fd=refdir); objects.append((p,"")); stat=os.fstat(p); _close(objects.pop()[0]); __import__("stat").S_ISREG(stat.st_mode) and __import__("stat").S_IMODE(stat.st_mode)==0o600 and os.unlink(n,dir_fd=refdir)
         except OSError: pass
         data=_object_bytes({"schema_version":1,"kind":ref_kind,"digest":result["digest"]}); temp="."+os.path.basename(out_ref)+".tmp."+str(os.getpid())+"."+__import__("secrets").token_hex(8); fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=refdir)
         try:
