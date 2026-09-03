@@ -48,6 +48,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: session-remove-core-runtime-v1
 需求: R1, R2, R3, R4
 必需: 是
+状态: 完成
 
 候选文件权威结构（design「组件与接口」节，唯一 export、不新增辅助函数）：source 守卫单一 `declare -F _harness_session_write_with_signals` 检查，缺席则静默返回 0、双流空，不定义 remove export、四个状态 public API 与 `HARNESS_SESSION_STATE_PROVIDER_VERSION`，不读写文件、不覆写依赖；在场则定义 `_harness_session_remove_core <project-id> <session-id>`——bash 层做 exact arity 与 `_harness_component_is_safe` 双 ID 校验（失败 rc2 + `error: unsafe session state\n`）、`umask 077` 后 heredoc embedded python3（唯一外部进程）；python 侧复刻 path 同源 root 选择（`HARNESS_STATE_ROOT` exact 且拒 `/`、否则 `XDG_RUNTIME_DIR`/非空 `TMPDIR`/`/tmp` 拼 `aosp-harness-<euid>`，physical parent 必须 strict resolve 存在），non-creating 打开 root/project/session 链——每层 `stat(name, dir_fd, follow_symlinks=False)`→拒绝非目录/链接→`open(O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC)`+`fstat`→after stat 三方 dev/inode/type 一致且 EUID/0700 通过才继续，任一层 ENOENT 幂等 0，链接/非目录/owner/mode/identity 不符 rc2；feature 删除先 stat 验 regular/EUID/0600/nlink1 后 `os.unlink("feature", dir_fd=session_fd)`，ENOENT 幂等继续 prune，unsafe 对象 rc2 不删；prune 对 (project_fd, session_fd, session)、(root_fd, project_fd, project)、(parent_fd, root_fd, root_leaf) 三步，每步 `pass  # PRUNE_BEFORE_IDENTITY` checkpoint 后 name 重取 stat 与 held child fd fstat 核 dev/inode/type，一致才 `os.rmdir(name, dir_fd=parent_fd)`，ENOENT/ENOTEMPTY 幂等成功停止，identity 不符 rc2，EIO 及其他 OSError rc1 + `error: session state operation failed\n`；OS 错注入 anchor `pass  # HARNESS_TEST_MARKER_OS_ERROR`（沿 path/snapshot 先例）与 `pass  # PRUNE_BEFORE_IDENTITY` 各 exact-once；永不触碰 physical parent 本身，finally 逆序关闭全部 fd；stdout 恒空、不存在 rc3 分支。remove 矩阵的行为正确性（R3/R4）由任务 1.3 封闭，本任务只做 source 契约与静态门，避免在无矩阵覆盖下制造假绿。
 
@@ -66,6 +67,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: session-state-aggregator-runtime-v1
 需求: R5, R6, R7
 必需: 是
+状态: 完成
 
 候选文件权威结构（design「组件与接口」节）：preflight 先验证五个模块文件路径（`common/.harness/lib/` 下 foundation/path/snapshot/signals/remove 五文件均 `[[ -f && -r ]]`，路径常量由 `BASH_SOURCE` 定位），再按 foundation→path→snapshot→signals→remove 唯一顺序逐个 source 并核 rc0，随后逐个点名 `declare -F` 核对 9 个预期 export——`harness_validate_feature_name`、`_harness_session_state_run`、`_harness_session_state_foundation_path`、`_harness_session_path_core`、`_harness_session_snapshot_worker`、`_harness_session_snapshot_write_core`、`_harness_session_snapshot_read_core`、`_harness_session_write_with_signals`、`_harness_session_remove_core`；任一文件缺席/不可读、source 非零或 export 缺失则 `return 1 2>/dev/null || exit 1`，静默、双流空，不设置 marker、不定义四个状态 public API；全部在场才进入单个临界区——只含四个一行转接函数定义（`harness_session_state_path`→`_harness_session_path_core "$@"`、`harness_session_state_write`→`_harness_session_write_with_signals "$@"`、`harness_session_state_read`→`_harness_session_snapshot_read_core "$@"`、`harness_session_state_remove`→`_harness_session_remove_core "$@"`）与 `HARNESS_SESSION_STATE_PROVIDER_VERSION=1` 赋值，无任何可失败语句，partial capability 物理不可能；`harness_validate_feature_name` 继续由 foundation 单独提供，aggregator 不重定义、不复制任何模块内部逻辑（无 root selector/rmdir/heredoc python 片段）。aggregator 发布面与六类 inert fixture 的行为正确性由任务 1.3 封闭，本任务只做 source 契约、临界区文本顺序结构核对与静态门。
 
@@ -98,6 +100,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: session-state-matrix-v1
 需求: R1, R2, R3, R4, R5, R6, R7, R8, R9
 必需: 是
+状态: 完成
 
 候选文件权威结构（design「默认发现测试」「测试策略」与「独占 coverage fragment」节）：CLI 只接受无参数、`all`、唯一 `--dependency-absent` 或唯一 `--session-provider-fixture <missing-foundation|missing-path|missing-snapshot|missing-signals|missing-remove>`，unknown/extra/flag 带值 rc1 且不打印 PASS；依赖探测要求 aggregator 文件在场且在隔离 shell source 后 marker 精确为 1，真实 provider 缺席时默认与 `--dependency-absent` 走同一零 active case inert surface，打印 inert 出口摘要（printf 调用字面量第 1 处）；active 路径覆盖：remove 矩阵——feature 存在删除并自底向上 prune 空 session/project/root（namespace inventory 前后比较只差被删 feature 与被删空目录）、feature 缺失幂等 0 且安全目录存在时仍 prune 空层级、并发非空成功且不删他项（前后完整 namespace inventory 逐字比较仅差被删 feature 与被删的 session 目录）、rc 表逐字（合法 0/双流空、unsafe ID 与 unsafe 对象 rc2 固定 stderr、provider 副本在 OS 错 anchor 注入 EIO 得 rc1 固定 stderr、`rg` 证明生产文本无 rc3 映射）、`PRUNE_BEFORE_IDENTITY` 换入攻击行 rc2 且新旧目录均保留；aggregator 发布面——五 public API 逐个在场、marker 精确为 1、四个转接行为等价各取一例透传 rc/双流、validate 由 foundation 提供、aggregator 生产文本 rg 证明无模块内部逻辑副本；六类 inert fixture——`--session-provider-fixture` 五值（mktemp 内复制 lib 树移除对应模块，source 其中 aggregator rc1、双流空、marker 未设置、完整五 API predicate 为 false、预置同名家哨兵函数不被当作 capability）加 aggregator 缺席 fixture（自愿加严：lib 树无 `session-state.sh`，source 尝试返回非零、marker 未设置、五 API predicate 为 false，不断言双流空）；stdout/stderr 一律落文件按字节比较，禁止用吞尾随 LF 的 command substitution 验证成功流；active 出口打印末行摘要（printf 调用字面量第 2 处），全文恰 2 处（裁定 2）；coverage fragment 登记 R1–R9 到测试用例区段的映射表，不触碰 `tests/COVERAGE.md`。门③ design review M2 纪律（必须正面落实）：测试文件预算 205 行偏紧，实现者必须最先落定六类 fixture 表驱动循环与 mutant/anchor 注入的真实行数消耗——候选创建后立即核行数并把 fixture 循环区段与注入区段的实际行数记入 green 报告；若任一区段迫使测试文件超过 205 行或 numstat 总和预计超过 400，立即停手上报 controller 回 PLAN 拆片（备选：把 remove 动态攻击行拆为独立 assurance 片），禁止压缩任何 oracle 语义。
 
@@ -134,6 +137,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: provider-accepted-head-v1
 需求: R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.1-report.md"`确认红阶段失败为报告缺席，按固定六行 schema 写 red 文件并核`test -s`；核 implementation clean 且`git rev-parse HEAD`为任务 1.3 的`TASK_HEAD`。
 - [ ] 步骤 2: 创建临时目录`tmp=$(mktemp -d)`；保存九上游文件 before SHA（`sha256sum $UPSTREAM9 >"$tmp/before.sha"`）；逐字核`test "$("$TOOLS/shfmt" --version)" = "v3.14.0"`与`"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'`；只对 exact 四文件中三个 shell 文件跑`"$TOOLS/shfmt" -d -i 2 -ci -bn common/.harness/lib/session-state-remove.sh common/.harness/lib/session-state.sh tests/test-session-state.sh`、`"$TOOLS/shellcheck" -x --severity=warning common/.harness/lib/session-state-remove.sh common/.harness/lib/session-state.sh tests/test-session-state.sh`、`bash -n common/.harness/lib/session-state-remove.sh`与`bash -n common/.harness/lib/session-state.sh`与`bash -n tests/test-session-state.sh`；分别运行 default 入口与`bash ./scripts/check.sh --offline`到独立日志，核 default 摘要逐字`RESULT PASS  session state\n`、`test "$(rg -c 'RESULT PASS  session state$' offline.log)" = 1"`（offline 发现恰一次，`$`锚定行尾以区别于 foundation 摘要）且 offline 末行 PASS；再`sha256sum -c "$tmp/before.sha"`比较 after SHA，结束后删除临时目录。
@@ -149,6 +153,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: provider-full-checkout-v1
 需求: R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.2-report.md"`确认红阶段失败为报告缺席并写 red 文件；核 implementation `git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
 - [ ] 步骤 2: 创建临时目录，运行`git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/full"`并核 full 的`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
@@ -164,6 +169,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: provider-depth1-checkout-v1
 需求: R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.3-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 运行`git clone --depth 1 "file://$IMPLEMENTATION_WORKTREE" "$tmp/depth1"`，核`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`、`test "$(git rev-list --count HEAD)" = 1`及`test -s .git/shallow`。
@@ -179,6 +185,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: provider-rollback-v1
 需求: R11
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.4-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 从 implementation `git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/rollback"`并核 HEAD=`ACCEPTED_HEAD`；运行`git rm common/.harness/lib/session-state-remove.sh common/.harness/lib/session-state.sh tests/test-session-state.sh tests/coverage.d/03d-session-state.md`后提交普通 rollback commit，核`git diff --name-status HEAD~1 HEAD`恰为四行`D`且路径逐字等于`$EXACT4`。
@@ -194,6 +201,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: provider-order-gate-v1
 需求: R11
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-2.5-report.md"`确认红阶段失败为报告缺席并写 red 文件。
 - [ ] 步骤 2: 定义日期无关规范 ID 片段`NEXT=03e-claude-session-lifecycle`（日期前缀由创建日决定，本片不预知，R11）；前提：执行 shell 不得开 nullglob——未匹配 glob 需按字面传给 `ls`、由其 rc2 经 `!` 判缺席；在 implementation worktree 运行`! ls -d "$PROJECT"/specs/*"$NEXT" 2>/dev/null`与`! ls -d "$PROJECT"/work/*"$NEXT" 2>/dev/null`核 spec/work 目录缺席。
@@ -210,6 +218,7 @@ python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --rep
 产出: tests/test-session-state.sh（终交付锚点 session-state-provider-v1 记入 ledger 完成锚点与 acceptance 报告）
 需求: R10, R11
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/acceptance/acceptance-report.md"`确认红阶段失败为报告缺席并写 red 文件；核`git rev-parse HEAD`=`ACCEPTED_HEAD`与 clean。
 - [ ] 步骤 2: 汇总 candidate/full/depth/rollback/order 日志到 green 与 acceptance 报告（含 accepted HEAD、active 摘要、双 anchor 注入行、两 mutant 自反证、checks 计数口径、exact4/400、六类 inert fixture），生成 evidence package 并取得独立 review PASS。

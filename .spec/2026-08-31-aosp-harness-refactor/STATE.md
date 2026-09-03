@@ -3,10 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门④ tasks round3 PASS(0/0/0)，check-tasks rc0，自动通过已记ledger
-updated: '2026-09-03T07:09:24+08:00'
+basis: 03d execute 完成：任务 1.1-2.6 全部 DONE 且独立 review PASS；九行六列 manifest awk 全量核验 rc0；终门（check-tasks/check-req/check-criteria/check-analyze、default
+  逐字、offline 发现恰1次、diff --check、clean、03e 顺序门五门）全绿
+updated: '2026-09-03T09:47:00+08:00'
 current_spec: 2026-09-03-03d-session-remove-prune
-spec_stage: execute
+spec_stage: accept
 mode: standard
 workflow: requirements-first
 ---
@@ -127,6 +128,7 @@ workflow: requirements-first
 | 2026-09-03T06:09:40+08:00 | spec/requirements | spec/design | 门② requirements round2 PASS(0/0/0)，四checker rc0，自动通过已记ledger |
 | 2026-09-03T06:29:39+08:00 | spec/design | spec/tasks | 门③ design round1 PASS(0/0/2)，M1落盘期已修M2留门④，checker全绿，自动通过已记ledger |
 | 2026-09-03T07:09:24+08:00 | spec/tasks | spec/execute | 门④ tasks round3 PASS(0/0/0)，check-tasks rc0，自动通过已记ledger |
+| 2026-09-03T09:47:00+08:00 | spec/execute | spec/accept | 03d execute 完成：任务 1.1-2.6 全部 DONE 且独立 review PASS；九行六列 manifest awk 全量核验 rc0；终门（check-tasks/check-req/check-criteria/check-analyze、default 逐字、offline 发现恰1次、diff --check、clean、03e 顺序门五门）全绿 |
 
 ## SKIPPED 记录
 
