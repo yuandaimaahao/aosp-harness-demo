@@ -3,10 +3,11 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: new-spec.sh 建了 2026-09-03-03e-claude-session-lifecycle
-updated: '2026-09-03T09:54:52+08:00'
+basis: 门② requirements round3 PASS(0/0/2)，check-req/check-criteria/check-analyze/diff
+  --check 全 rc0，自动通过已记ledger
+updated: '2026-09-03T10:55:00+08:00'
 current_spec: 2026-09-03-03e-claude-session-lifecycle
-spec_stage: requirements
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -131,6 +132,7 @@ workflow: requirements-first
 | 2026-09-03T09:54:11+08:00 | spec/accept | retro | 03d 验收六块全过：accepted HEAD 388a83d5 exact4=378≤400 FF 合入 main、post-merge 回归全绿（default 逐字+03b/03b1/03c/path-races 入口+offline 发现恰1次）、九任务 manifest awk rc0、worktree/分支已清理；簿记 daa359d+98776b7 |
 | 2026-09-03T09:54:29+08:00 | retro | select | 03d 复盘五问均否：交付与 PLAN v5.7 一致、无计划外工作、03e 口径不变、顺序门证据齐、无未决问题；PLAN v5.7 不变 |
 | 2026-09-03T09:54:52+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-03-03e-claude-session-lifecycle |
+| 2026-09-03T10:55:00+08:00 | spec/requirements | spec/design | 门② requirements round3 PASS(0/0/2)，check-req/check-criteria/check-analyze/diff --check 全 rc0，自动通过已记ledger |
 
 ## SKIPPED 记录
 

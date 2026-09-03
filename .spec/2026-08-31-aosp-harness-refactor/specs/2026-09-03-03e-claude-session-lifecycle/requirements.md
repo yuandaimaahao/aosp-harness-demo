@@ -1,39 +1,69 @@
 ---
 id: 2026-09-03-03e-claude-session-lifecycle
-依赖: []
-消费: （上游 spec 的产出，写明用法和输出格式；无则写「无」）
-产出: （后续 spec 要用的确切签名；无则写「无」）
+依赖: [2026-09-03-03d-session-remove-prune]
+消费: "session-state-provider-v1的完整capability：marker HARNESS_SESSION_STATE_PROVIDER_VERSION精确为1且五个public API全存在（harness_validate_feature_name <name>；harness_session_state_path <project-id> <session-id>；harness_session_state_write <project-id> <session-id> <feature>；harness_session_state_read <project-id> <session-id>；harness_session_state_remove <project-id> <session-id>；path成功path+LF/0，write/read常规0|1|2|3、write异值冲突与read缺失3、write信号129|130|143，remove缺失幂等0、OS错1、协议/安全错2）；03d accepted ledger中的03e启动门（dependency-present active证据checks=72、exact4/400、full/depth-1/rollback与03e顺序门证据，无其他运行时API）"
+产出: "claude-session-lifecycle-v1 —— Claude SessionStart/UserPromptSubmit/SessionEnd三hook的生命周期行为契约（marker+五API完整才消费v1 provider，任一partial状态走legacy并输出compat marker `compat: session-provider=legacy`；project-id为权威物理根完整SHA-256；SessionStart按source分级建/读基线；UserPromptSubmit漂移退出2阻止prompt；SessionEnd经事件名/session ID/reason校验后幂等清理）plus tests/test-claude-session-lifecycle.sh固定摘要`RESULT PASS  claude session lifecycle`；不新增稳定公共API"
 验收方式: 混合判定
+已由用户确认: true
+确认依据: 用户已授权后续按autopilot执行；03d验收记录（DECISIONS.md 2026-09-03 03d行）确认remove模块、complete-provider aggregator、checks=72、exact4/400、full/depth-1/rollback与03e顺序门证据已入ledger，PLAN v5.7与03d requirements R11规定的03e启动门由该记录满足
 ---
 
-> 用户原话：
-> （引用块，供追溯。大需求的子 spec 引用 PLAN.md 的对应条目）
+> 用户原话：“$spec review 这套 aosp harness 工程，有哪些欠缺的地方，进行重构和完善”；并确认后续按 autopilot 执行。PLAN v5.7要求03e保留现有Claude hook/demo入口，只有marker精确为`1`且五个public API全存在才消费v1，fixture至少覆盖完整provider、aggregator缺席以及foundation/path/snapshot/signals/remove任一模块缺席，所有partial状态必须走legacy；SessionStart按source建立或读取基线，UserPromptSubmit检查漂移，SessionEnd同步幂等清理；demo在成功、受控失败和信号退出时只改自建mktemp子目录。DECISIONS.md 2026-09-01「03 requirements review round 1-3」与「round 2」两行已确认本片承接的Claude生命周期口径：UserPromptSubmit退出2阻止prompt；SessionStart错误只保证不创建/注入状态并报错，不宣称阻止会话；SessionEnd只保证hook被执行且未超时时的幂等清理；五种SessionStart source永不覆盖已有基线，startup/fork/clear/resume可在缺失时建立活跃生命周期基线，compact缺失报错；SessionEnd后resume建新基线，不宣称跨结束检测漂移；项目ID为权威物理根完整SHA-256；最低Claude Code版本2.1.234；SessionEnd经事件名/session ID/reason校验后删除目标已提交快照。
 
 ## 目标
 
-（一句话。做完这个 spec，世界上多了什么 / 少了什么）
+适配现有Claude hook/settings/demo入口消费session-state-provider-v1：修改`claude-code/features/.harness/hooks/load-feature.sh`（SessionStart）与`claude-code/features/.harness/hooks/check-branch-drift.sh`（UserPromptSubmit）、新增`claude-code/features/.harness/hooks/session-end.sh`（SessionEnd）、修改`claude-code/features/.harness/settings.json`注册SessionEnd事件、修改`claude-code/run-demo.sh`收敛写入到自建mktemp子目录，并新增默认发现生命周期测试`tests/test-claude-session-lifecycle.sh`（CLI只接受无参数/`all`/唯一`--dependency-absent`/唯一`--session-provider-fixture <missing-foundation|missing-path|missing-snapshot|missing-signals|missing-remove|absent>`）——共exact六文件。三个hook仅当source aggregator后marker `HARNESS_SESSION_STATE_PROVIDER_VERSION`精确为`1`且`harness_validate_feature_name`/`harness_session_state_path`/`harness_session_state_write`/`harness_session_state_read`/`harness_session_state_remove`五public API逐个`declare -F`在场时才消费v1；任一partial状态（aggregator缺席、五模块任一缺席、session_id/source/reason/事件名非法、provider调用以设计外错误码返回）走legacy并输出compat marker `compat: session-provider=legacy`恰好一次。v1生命周期口径承接DECISIONS已确认行：project-id为权威物理根（realpath）完整SHA-256（64位小写hex，天然安全单组件）；SessionStart从stdin JSON解析`session_id`与`source`（startup/fork/clear/resume缺失时建立基线、compact缺失报错、五source永不覆盖已有基线）；UserPromptSubmit漂移时退出`2`阻止prompt；SessionEnd经事件名/session ID/`reason`校验后幂等清理；最低Claude Code版本2.1.234。SessionStart保持hook既有`sync_feature_link`软链同步行为；demo运行期间树根`CURRENT_FEATURE`始终只读。本片不修改上游十二tracked文件、不触碰codex/common/wrapper（08范围）、不新增稳定公共API；dependency-present active证据入ledger后才可启动04，inert或legacy-only PASS不能解除该顺序门。
 
 ## 需求
 
-R1. [原话] 当 <条件> 时，系统必须 <行为>
-R2. [计划:example-spec] 在 <状态> 期间，系统必须 <行为>
-R3. [调研:E-001] 凡具备 <能力>，系统必须 <行为>
-R4. [默认] 如果发生 <故障>，系统必须 <行为>
-R5. [推断] 系统必须 <始终成立的行为>
+R1. [计划] 当Claude `SessionStart`/`UserPromptSubmit`/`SessionEnd`三个hook任一开始执行时，系统必须source `common/.harness/lib/session-state.sh` aggregator并核对marker `HARNESS_SESSION_STATE_PROVIDER_VERSION`精确为`1`与五个public API（`harness_validate_feature_name`、`harness_session_state_path`、`harness_session_state_write`、`harness_session_state_read`、`harness_session_state_remove`）逐个`declare -F`在场，全部满足才以v1 provider消费会话状态。（依据PLAN v5.7 03e详情「只有marker精确为1且五个public API全存在才消费v1」与03d→03e依赖边PLAN.md:187）
 
-来源标记取值：[原话] / [推断] / [默认] / [调研:E-NNN] / [计划:<spec-id>]
+R2. [计划] 如果发生aggregator文件缺席、source返回非零、marker非精确`1`、五public API任一缺席、hook stdin JSON缺失或`session_id`/`source`/`reason`/事件名非法或provider任一调用以设计外错误码返回非零（设计内码——read缺失`3`、write同值幂等`0`、remove缺失幂等`0`——按各hook自身流程处理、不触发本条），系统必须使该hook本次走legacy路径、stdout输出字面量`compat: session-provider=legacy`恰好一次、以退出码0结束（不阻断Claude会话），且不得形成partial capability。（依据PLAN.md:187「aggregator缺席或任一模块缺席都走legacy并输出compat marker」；compat marker字面量对齐PLAN.md:188 08行字面量——PLAN.md:187对03e只说「输出compat marker」未给字面量，本片定死为同一字面量并在此注明）
+
+R3. [计划] 当v1 provider可用且`SessionStart`触发时，系统必须从hook stdin JSON解析`session_id`与`source`（`session_id`须经`harness_validate_feature_name`安全单组件校验，`source`须为startup/resume/clear/compact/fork五值之一），以权威物理根完整SHA-256（64位小写hex）为project-id，五种source永不覆盖已有基线：source为startup/fork/clear/resume且基线缺席时经`harness_session_state_write`以detect_feature当前值建立基线（同值幂等不视为错误），source为compact且基线缺席时报错且不创建基线，基线已在场时任何source都只读取不改写；发生错误时系统必须只保证不创建/注入状态并报错，不宣称阻止会话，并保持现状`sync_feature_link`软链同步与人类可读stdout契约。（依据PLAN v5.7 03e详情「SessionStart按source建立或读取基线」与DECISIONS.md 2026-09-01「03 requirements review round 1-3」已确认行「五种SessionStart source永不覆盖已有基线；startup/fork/clear/resume可在缺失时建立活跃生命周期基线，compact缺失报错」「SessionStart错误只保证不创建/注入状态并报错，不宣称阻止会话」「项目ID为权威物理根完整SHA-256」）
+
+R4. [计划] 当v1 provider可用且`UserPromptSubmit`触发时，系统必须经`harness_session_state_read`读取该session基线并与detect_feature当前值比较，漂移时输出告警文本（沿用现状两行措辞）并退出`2`阻止该prompt，基线缺席或一致时静默以退出码0通过；SessionEnd之后的resume已按R3建立新基线，系统不得宣称跨结束漂移检测。（依据PLAN v5.7 03e详情「UserPromptSubmit检查漂移」与DECISIONS.md 2026-09-01「03 requirements review round 1-3」已确认行「UserPromptSubmit退出2阻止prompt」「SessionEnd后resume建新基线，不宣称跨结束检测漂移」）
+
+R5. [计划] 当`SessionEnd`触发时，系统必须在v1 provider可用时先校验hook事件名为SessionEnd、`session_id`为安全单组件且`reason`合法，校验通过才经`harness_session_state_remove`同步幂等清理该session已提交状态（状态缺失幂等返回0不视为错误），校验失败（事件名/session ID/reason任一非法）时不删除任何状态（v1状态与legacy全局快照均不删），只走R2的compat marker与退出码0、不执行legacy清理；校验通过的legacy路径幂等删除legacy全局快照文件`${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot`（缺席不视为错误）；系统只保证hook被执行且未超时时的幂等清理，并使`claude-code/features/.harness/settings.json`注册`SessionEnd`事件指向`session-end.sh`。（依据PLAN v5.7 03e详情「SessionEnd同步幂等清理」与DECISIONS.md 2026-09-01「03 requirements review round 1-3」已确认行「SessionEnd只保证hook被执行且未超时时的幂等清理」「最低Claude Code版本2.1.234」及「round 2」已确认行「SessionEnd经事件名/session ID/reason校验后删除目标已提交快照」；现状settings.json仅注册两事件，SessionEnd注册为本片新增）
+
+R6. [计划] 在legacy路径期间，系统必须保持现状行为逐字不变：SessionStart以`printf '%s'`覆盖写全局单文件`${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot`、UserPromptSubmit漂移判定为快照内容与detect_feature当前值字符串不等且告警为现状纯文本两行、两hook均不阻断（退出码0）；v1路径不得读写该legacy全局文件。（依据PLAN v5.7 03e详情「现有Claude hook/demo入口」存续要求与独立回滚矩阵03e行「03d完整provider与测试不依赖03e」）
+
+R7. [计划] 当`claude-code/run-demo.sh`以成功、受控失败或HUP/INT/TERM信号任一方式退出时，系统必须使其全部持久写入局限于自建`mktemp`子目录（hook演示在私有fixture中进行、真实`CURRENT_FEATURE`始终只读、不触发对`/tmp`全局快照的真实写入），并在EXIT trap中恢复任何被暂改的树根状态后删除该mktemp目录。（依据PLAN v5.7 03e详情「demo在成功、受控失败和信号退出时只改自建mktemp子目录」；codex/run-demo.sh已是该同构形态，本片对齐）
+
+R8. [计划] 系统必须提供默认发现且shfmt-clean的`tests/test-claude-session-lifecycle.sh`，只接受无参数、`all`、唯一`--dependency-absent`（与03c/03d测试的同构外推）或唯一`--session-provider-fixture <missing-foundation|missing-path|missing-snapshot|missing-signals|missing-remove|absent>`（六值逐字依据PLAN.md:223-234固定回滚验收命令：`absent`对应aggregator回退、`missing-remove`对应aggregator在场但remove模块回退）；dependency-present默认/all必须覆盖v1生命周期（SessionStart按source分级建/读基线含同值幂等与compact缺失报错、UserPromptSubmit漂移退出`2`/无漂移/基线缺席、SessionEnd校验后清理/重复清理幂等/session ID、reason或事件名非法不删且不执行legacy清理）与七类fixture（完整provider、aggregator缺席、foundation/path/snapshot/signals/remove任一模块缺席）各自验证v1启用或legacy+compat marker且完整五API predicate不形成partial capability；真实依赖缺席时默认与`--dependency-absent`运行同一legacy surface，且该surface执行全部legacy行为case（SessionStart写全局快照、UserPromptSubmit漂移判定、SessionEnd幂等删除快照、compat marker计数），不是零case inert；成功唯一摘要为`RESULT PASS  claude session lifecycle\n`，unknown/extra/flag带值（除上述六值fixture外）返回1且不打印PASS。（依据PLAN.md:54验收命令与摘要、PLAN.md:221「03e/08还必须逐个覆盖foundation/path/snapshot/signals/remove缺席以及aggregator缺席」、PLAN.md:223-234固定回滚验收命令、PLAN v5.7 03e详情测试契约）
+
+R9. [计划] 当03e进入验收时，系统必须在candidate、完整历史checkout和真实`git clone --depth 1 file://...`中分别运行默认lifecycle测试与`bash ./scripts/check.sh --offline`，自动发现本入口恰好一次，且每个checkout的当前tracked上游十二文件（common/.harness/lib/session-state-foundation.sh、common/.harness/lib/session-state-path.sh、tests/lib/session-path-race-driver.py、tests/test-session-path-races.sh、common/.harness/lib/session-state-snapshot.sh、tests/test-session-snapshot.sh、tests/test-session-snapshot-assurance.sh、common/.harness/lib/session-state-signals.sh、tests/test-session-signals.sh、common/.harness/lib/session-state-remove.sh、common/.harness/lib/session-state.sh、tests/test-session-state.sh）SHA-256在测试前后不变。controller必须先逐字验证shfmt `v3.14.0`与ShellCheck version field `0.11.0`，再只对本片exact六文件中五个shell文件运行`shfmt -d -i 2 -ci -bn`、`shellcheck -x --severity=warning`与`bash -n`（settings.json以python3 json解析核验）；execution BASE到accepted HEAD必须exact只变更目标节所列六文件、numstat总和`<=400`，六列review manifest必须与tasks一一对应、首尾/相邻连续、reviewer非空且全PASS，`git diff --check`与worktree clean必须通过。（依据PLAN.md:65-67审查规模与文件边界与DECISIONS.md 2026-09-02 03b1上游集合裁定——上游SHA集为03b1七文件（03b1裁定的基础六文件+03b1自身交付的assurance测试）累加03c两文件与03d三shell交付共十二文件；03d交付的独占coverage fragment为文档性资产，其内容防改由本片exact六文件diff门覆盖（任何fragment改动都会使name-only超出exact集而失败），故不计入SHA上游集）
+
+R10. [计划] 当验证独立回滚与顺序时，系统必须从accepted HEAD建立隔离临时分支，提交一个exact只回退本片六个交付文件的rollback commit（删除两个新增文件、恢复四个修改文件到其BASE版本），在该clean checkout运行03b基础测试、03b1 assurance入口、03c signals入口、03d provider入口与offline并要求全绿、本入口发现0次；验收后丢弃临时checkout，不改变candidate/full/depth-1 checkout。controller只有在03e accepted HEAD、dependency-present active证据、exact6/400与全PASS manifest入ledger后，才可创建规范ID `04-runtime-resource-leases`（日期前缀由创建日决定，本片不预知）的spec目录、同名`spec/`分支/worktree、ledger execution BASE或dispatch记录；此前这五类资产必须物理缺席，以nullglob下`ls -d "$PROJECT"/specs/*04-runtime-resource-leases`缺席、`git show-ref | rg 'refs/heads/spec/.*04-runtime-resource-leases'`零匹配、`git worktree list --porcelain | rg 04-runtime-resource-leases`零匹配与`rg 04-runtime-resource-leases`对ledger/dispatch/execution-base记录零匹配机械核对；requirements/design/tasks等spec文档允许出现NEXT全名，禁令只针对ledger/dispatch/execution-base三类记录；任何inert或legacy-only PASS不得作为本片验收证据或解除该顺序门。（依据PLAN v5.7 spec表04行为本片NEXT、独立回滚矩阵03e行PLAN.md:212与DECISIONS 2026-09-01 PLAN v5.3 P5/P2回流）
 
 ## 验收标准
 
-主验证命令: （一条可复制粘贴的命令）
-期望输出:   （可机械比对的东西，不是「看起来正常」）
+主验证命令: bash ./tests/test-claude-session-lifecycle.sh
+期望输出: dependency-present时退出码为`0`、stderr空，stdout逐字节精确为`RESULT PASS  claude session lifecycle\n`
 
 验收清单:
-- [ ] （可勾的事实陈述。两个不同的人按这条勾，结论应该一样）
+
+- [ ] 三hook各自在完整provider下source aggregator后marker精确为`1`且五public API逐个在场时才启用v1；aggregator缺席与foundation/path/snapshot/signals/remove五模块各自缺席、session_id/source/reason/事件名非法、provider调用以设计外错误码返回的fixture中该hook走legacy、stdout含字面量`compat: session-provider=legacy`恰好一次、退出码0，完整五API predicate不形成partial capability。
+- [ ] v1 SessionStart从stdin JSON解析`session_id`与`source`（五值校验），以权威物理根完整SHA-256为project-id；startup/fork/clear/resume缺失时建立基线、compact缺失报错不创建、基线已在场时任何source不改写、同值重写幂等不视为错误；现状`sync_feature_link`软链同步与人类可读stdout契约逐字保持。
+- [ ] v1 UserPromptSubmit经read取基线与detect_feature当前值比较，漂移时告警文本沿用现状两行措辞且退出码为`2`（阻止prompt）、不写JSON；基线缺席或一致时零输出退出码0。
+- [ ] SessionEnd在v1下经事件名/session ID/reason校验后remove幂等清理（重复调用第二次仍为成功；session ID、reason或事件名非法时不删除任何状态且不执行legacy清理），legacy下幂等删除全局快照文件（缺席不视为错误）；settings.json注册SessionEnd指向`session-end.sh`且python3 json解析通过。
+- [ ] legacy路径行为与现状逐字一致（全局快照文件路径、字符串不等漂移判定、纯文本告警、退出码0不阻断）；v1路径不读写该legacy全局文件。
+- [ ] run-demo.sh在成功、受控失败（某演示步骤预期非零）与HUP/INT/TERM信号三路径退出后：树根`CURRENT_FEATURE`内容逐字未变、`/tmp`全局快照缺席或被清理、自建mktemp目录已删除；demo的hook演示全部在mktemp私有fixture内进行。
+- [ ] 真实dependency-present默认/all与隔离dependency-absent默认/flag均得唯一固定摘要`RESULT PASS  claude session lifecycle\n`，absent surface执行全部legacy行为case而非零case inert，但只有dependency-present active证据计入本片验收；`--session-provider-fixture`六值各自复现对应fixture surface；unknown/extra/flag带非法值rc1且无PASS。
+- [ ] candidate/full/depth-1的默认入口与offline全PASS，offline发现本入口恰好一次，depth-1 commit-count=1且shallow marker非空；每个checkout的上游十二文件SHA-256测试前后不变且clean。
+- [ ] 隔离rollback commit exact只回退本片六个交付文件后，clean checkout中03b基础测试、03b1 assurance入口、03c signals入口、03d provider入口与offline全PASS且本入口发现0次；04的spec/ref/worktree/BASE/dispatch按R10机械查缺席。
+- [ ] review manifest六列、任务序号、execution BASE、相邻base/head、accepted HEAD和全PASS一次机械验证通过；BASE..HEAD exact name-only为上述六文件、numstat总和`<=400`，固定版本断言后对exact六文件中五个shell文件运行shfmt/ShellCheck/bash-n全绿、settings.json经python3 json解析核验，`git diff --check`和clean通过；只有dependency-present active证据入ledger后才可创建04。
 
 不变量（不许劣化，2-4 项）:
-- <项目> ≤ <阈值>，验证: <命令>
+
+- 上游十二tracked文件在execution BASE..HEAD的变更数 ≤ `0`，验证: `git diff --name-only "$BASE" "$HEAD" -- common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh tests/lib/session-path-race-driver.py tests/test-session-path-races.sh common/.harness/lib/session-state-snapshot.sh tests/test-session-snapshot.sh tests/test-session-snapshot-assurance.sh common/.harness/lib/session-state-signals.sh tests/test-session-signals.sh common/.harness/lib/session-state-remove.sh common/.harness/lib/session-state.sh tests/test-session-state.sh`。
+- SessionStart与SessionEnd在任一语义路径（v1/legacy/非法输入/provider设计外错误码）以非零退出码结束的次数 ≤ `0`，且UserPromptSubmit除v1漂移阻止（退出码`2`）外的非零退出次数 ≤ `0`，验证: `bash ./tests/test-claude-session-lifecycle.sh`七类fixture与错误注入行逐个核对退出码与compat marker计数。
+- run-demo.sh退出后mktemp子目录外的净文件变更数 ≤ `0`（树根`CURRENT_FEATURE`逐字未变、`/tmp`全局快照缺席、无残留临时目录），验证: demo成功/受控失败/信号三路径前后对树根与`${TMPDIR:-/tmp}`做inventory比较。
+- 既有Claude、Codex、common与已合入session回归失败数 ≤ `0`，验证: `bash ./scripts/check.sh --offline`。
 
 ## 超出范围
 
-（明确不做的事，防止范围扩张）
+- 不修改codex/侧hooks、common/.claude、common/.harness与任何wrapper/resolver（08独占`harness_client_launch`与wrapper/Codex hook薄适配；本片不动`claude-code/features/.harness/bin/claude-feature`与`feature-common.sh`既有函数契约，除三hook与settings.json外不改`.harness`下其他文件）。
+- 不修改上游十二tracked文件与02的`tests/COVERAGE.md`；不新增coverage fragment（PLAN.md:81对03e未列fragment，与03d不同）；不新增稳定公共API、不改变provider五API契约。
+- 不实现04-runtime-resource-leases的任何资产；04的spec目录、`spec/`分支、worktree、ledger execution BASE、dispatch记录在本片dependency-present active证据入ledger前继续物理缺席。
+- 不承诺跨SessionEnd的漂移检测（DECISIONS已确认「SessionEnd后resume建新基线，不宣称跨结束检测漂移」）、不承诺并发跨客户端复用同一session ID的保证（DECISIONS已确认排除）、不承诺hook对同EUID攻击者并发篡改session状态文件的额外防护（provider自身的verified路径与identity核对已覆盖本片威胁模型）；不调用真实Claude客户端、设备、网络、AOSP build，不push、不清理已有spec/prototype/implementation分支或worktree。
