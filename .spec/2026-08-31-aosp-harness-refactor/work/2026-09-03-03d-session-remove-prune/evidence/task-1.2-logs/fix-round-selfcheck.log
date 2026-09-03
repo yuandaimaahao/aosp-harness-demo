@@ -1,0 +1,13 @@
+present rc=0 out=0 err=0
+present: marker=1, 5 public APIs present
+syntax[syn-snapshot] rc=1 out=0B err=0B
+syntax[syn-remove] rc=1 out=0B err=0B
+syntax[syn-foundation] rc=1 out=0B err=0B
+missing[foundation] rc=1 out=0B err=0B
+missing[path] rc=1 out=0B err=0B
+missing[snapshot] rc=1 out=0B err=0B
+missing[signals] rc=1 out=0B err=0B
+missing[remove] rc=1 out=0B err=0B
+export-missing[remove_core] rc=1 out=0B err=0B
+export-missing detail: src_rc=1 marker_rc=1 apis_missing=4/5
+tmp removed

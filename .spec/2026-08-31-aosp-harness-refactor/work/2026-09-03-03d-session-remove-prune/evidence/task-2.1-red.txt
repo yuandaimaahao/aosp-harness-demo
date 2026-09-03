@@ -1,0 +1,7 @@
+task=task-2.1
+command=test -s $WORK/task-2.1-report.md
+expected=rc1（green 报告缺席，红阶段确认报告尚未存在）
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=报告缺席判定成立，本任务不改变 HEAD、只审计 candidate

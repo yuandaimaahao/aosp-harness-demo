@@ -1,0 +1,6 @@
+remove_core-present
+absent harness_session_state_path
+absent harness_session_state_write
+absent harness_session_state_read
+absent harness_session_state_remove
+marker-unset

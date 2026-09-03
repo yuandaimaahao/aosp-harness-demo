@@ -1,0 +1,4 @@
+swap-attack rc=2
+swap-stderr-ok
+swap-both-dirs-kept
+swap-stdout-empty

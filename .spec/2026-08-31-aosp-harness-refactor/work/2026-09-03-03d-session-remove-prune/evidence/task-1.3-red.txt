@@ -1,0 +1,7 @@
+task=task-1.3
+command=test ! -e tests/test-session-state.sh && bash tests/test-session-state.sh
+expected=rc127 file-absent, stdout contains no PASS
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=02451ae27625980eadf06a16eac02dfa06222c51e43877df1293b0aaeb5b2d8c
+assertion=bash returns 127 because tests/test-session-state.sh is absent; stdout empty (no PASS); stderr names the missing file

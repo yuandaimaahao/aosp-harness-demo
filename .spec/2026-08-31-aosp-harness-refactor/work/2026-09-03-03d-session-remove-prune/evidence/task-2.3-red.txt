@@ -1,0 +1,7 @@
+task=task-2.3
+command=test -s $WORK/task-2.3-report.md
+expected=rc1（green 报告缺席）
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=报告缺席判定成立，本任务零 delta 验证真实 depth-1 checkout

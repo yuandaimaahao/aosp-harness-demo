@@ -1,0 +1,7 @@
+task=task-1.1
+command=test ! -e common/.harness/lib/session-state-remove.sh && bash -c 'source common/.harness/lib/session-state-remove.sh'
+expected=rc1 file-absent, stdout contains no PASS
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=244f021db1c34ecb7274a1ab23146063d53e0e18b81383949f306242f96f7819
+assertion=source fails with rc1 because common/.harness/lib/session-state-remove.sh is absent; stdout empty (no PASS); stderr names the missing file

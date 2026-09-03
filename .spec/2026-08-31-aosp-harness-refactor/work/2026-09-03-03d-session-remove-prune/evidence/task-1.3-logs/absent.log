@@ -1,0 +1,5 @@
+absent default rc=0 stdout_exact=yes stderr_bytes=0
+absent all rc=0 stdout_exact=yes stderr_bytes=0
+absent flag rc=0 stdout_exact=yes stderr_bytes=0
+absent-probe default rc=0 stdout_exact=yes err=checks=0
+absent renamed-signals default rc=0 stdout_exact=yes stderr_bytes=0

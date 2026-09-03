@@ -1,0 +1,5 @@
+argv unknown rc=1 stdout_bytes=0
+argv extra rc=1 stdout_bytes=0
+argv flag-value rc=1 stdout_bytes=0
+argv fixture-no-value rc=1 stdout_bytes=0
+argv fixture-bad-value rc=1 stdout_bytes=0

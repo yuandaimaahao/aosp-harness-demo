@@ -1,0 +1,3 @@
+FAIL swap rc want=2 got=0
+FAIL swap stderr bytes want=0 got=1
+FAIL swap both dirs retained want=yes got=no

@@ -1,0 +1,5 @@
+fixture missing-foundation rc=0 stdout_exact=yes stderr_bytes=0
+fixture missing-path rc=0 stdout_exact=yes stderr_bytes=0
+fixture missing-snapshot rc=0 stdout_exact=yes stderr_bytes=0
+fixture missing-signals rc=0 stdout_exact=yes stderr_bytes=0
+fixture missing-remove rc=0 stdout_exact=yes stderr_bytes=0

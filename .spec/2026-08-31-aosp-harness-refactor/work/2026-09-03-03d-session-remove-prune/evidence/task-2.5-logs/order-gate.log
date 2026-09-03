@@ -1,0 +1,13 @@
+NEXT=<PLAN 第 54 行 03e 片的日期无关规范 ID 片段，间接形式记录，裁定 6>
+shopt -u nullglob（前提：nullglob off，未匹配 glob 按字面传给 ls 由其 rc2 经 ! 判缺席）
+
+gate1: ! ls -d "$PROJECT"/specs/*"$NEXT" 2>/dev/null  → 缺席（PASS）
+gate2: ! ls -d "$PROJECT"/work/*"$NEXT" 2>/dev/null   → 缺席（PASS）
+gate3: test -z "$(git show-ref | rg "refs/heads/spec/.*$NEXT")"  → 零匹配（PASS）
+gate4: test -z "$(git worktree list --porcelain | rg "$NEXT")"   → 零匹配（PASS）
+gate5: files=$(ls "$PROJECT"/specs/*/ledger.md "$PROJECT"/work/*/dispatch.tsv "$PROJECT"/work/*/execution-base.env 2>/dev/null)
+       ls rc=2（部分 glob 无匹配：dispatch.tsv 类全缺，属预期；多参数单列，未用 && 链）
+       scoped 文件 17 个：10 份 ledger.md + 7 份 execution-base.env（dispatch.tsv 零个）
+       rg -l "$NEXT" $files → rc=1 零匹配（PASS）
+
+PLAN/requirements/design/tasks/brief 中的合法规划文字不在搜索域内（裁定 6 豁免）。

@@ -1,0 +1,18 @@
+write rc=0
+setup-ok
+case1-present-remove rc=0
+case1-streams-empty
+case1-full-prune-ok
+case2-all-missing rc=0
+case2-streams-empty
+case3-feature-missing-prune rc=0
+case3-prune-ok
+case4-concurrent-nonempty rc=0
+case4-others-kept
+case5-unsafe-id rc=2
+case5-stderr-ok
+case5-stdout-empty
+case6-arity rc=2
+case7-wrong-mode rc=2
+case7-stderr-ok
+case7-not-deleted
