@@ -6,6 +6,9 @@
     ],
     "UserPromptSubmit": [
       { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-branch-drift.sh" } ] }
+    ],
+    "SessionEnd": [
+      { "hooks": [ { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end.sh" } ] }
     ]
   }
 }
