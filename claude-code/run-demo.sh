@@ -10,13 +10,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-orig="$(cat CURRENT_FEATURE)"
-restore_feature() {
-  printf '%s\n' "$orig" > CURRENT_FEATURE
-}
-trap restore_feature EXIT
+DEMO_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/claude-harness-demo.XXXXXX")
+trap 'rm -rf -- "$DEMO_TMP_DIR"' EXIT
 
-sep() { echo; echo "############################################################"; echo "# $1"; echo "############################################################"; }
+sep() {
+  echo
+  echo "############################################################"
+  echo "# $1"
+  echo "############################################################"
+}
 
 sep "① 上下文：安装器暴露版本化公共 Harness"
 ./features/install-harness.sh
@@ -24,22 +26,43 @@ echo "    .claude → $(readlink .claude)"
 
 sep "① 上下文：启动 wrapper 在 Claude 进程启动前同步 feature 软链"
 ./.claude/bin/claude-feature --dry-run
-echo "{\"cwd\":\"$PWD\",\"hook_event_name\":\"SessionStart\"}" | .claude/hooks/load-feature.sh
 echo
 echo "  —— 结果：Claude 启动前，树根 CLAUDE.md 已指向正确 feature ——"
 echo "    CLAUDE.md → $(readlink CLAUDE.md)"
 echo "    穿软链首个标题: $(grep -m1 '^# ' CLAUDE.md)"
 echo "    含各仓约定小节: $(grep -c '^### ' CLAUDE.md) 个（frameworks/base、frameworks/native）"
 
-sep "① 上下文（漂移检测）：模拟会话中途 repo checkout 切了分支"
+sep "① 上下文（会话生命周期）：私有 fixture 演示 v1 SessionStart/UserPromptSubmit/SessionEnd"
+tree="$DEMO_TMP_DIR/tree"
+mkdir -p "$tree/claude-code/features/dev-sidebar" "$tree/claude-code/features/dev-next" \
+  "$tree/common/.harness/lib" "$DEMO_TMP_DIR/tmp"
+printf '%s\n' dev-sidebar >"$tree/claude-code/CURRENT_FEATURE"
+printf '%s\n' '# demo context: dev-sidebar' >"$tree/claude-code/features/dev-sidebar/CLAUDE.md"
+printf '%s\n' '# demo context: dev-next' >"$tree/claude-code/features/dev-next/CLAUDE.md"
+cp ../common/.harness/lib/session-state*.sh "$tree/common/.harness/lib/"
+hook() {
+  CLAUDE_PROJECT_DIR="$tree/claude-code" TMPDIR="$DEMO_TMP_DIR/tmp" \
+    HARNESS_STATE_ROOT="$DEMO_TMP_DIR/state" "./.claude/hooks/$1.sh"
+}
+
+echo '{"session_id":"demo-session","source":"startup","hook_event_name":"SessionStart"}' | hook load-feature
+echo "  [state 树] $(find "$DEMO_TMP_DIR/state" -type f | sort)"
 echo "  [无漂移时] check-branch-drift.sh 零输出："
-echo '{}' | .claude/hooks/check-branch-drift.sh
+echo '{"session_id":"demo-session"}' | hook check-branch-drift
 echo "  <上面应无告警>"
-echo "  [切到 dev-next 后] 再跑 check-branch-drift.sh："
-echo "dev-next" > CURRENT_FEATURE
-echo '{}' | .claude/hooks/check-branch-drift.sh
-printf '%s\n' "$orig" > CURRENT_FEATURE
-echo "  <已还原 CURRENT_FEATURE=$orig>"
+printf '%s\n' dev-next >"$tree/claude-code/CURRENT_FEATURE"
+echo "  [切到 dev-next 后] 再跑 check-branch-drift.sh（受控失败演示：期望 exit 2 阻止 prompt）："
+set +e
+echo '{"session_id":"demo-session"}' | hook check-branch-drift
+drift_rc=$?
+set -e
+if [[ "$drift_rc" -ne 2 ]]; then
+  echo "[demo] error: 漂移未按预期返回 exit 2（实际 $drift_rc）" >&2
+  exit 1
+fi
+echo "[demo] 已按预期以 exit 2 阻止该 prompt；私有 fixture 之外的真实 CURRENT_FEATURE 始终只读。"
+echo '{"session_id":"demo-session","hook_event_name":"SessionEnd","reason":"clear"}' | hook session-end
+echo "  [SessionEnd 清理后 state 树] $(find "$DEMO_TMP_DIR/state" -type f 2>/dev/null | sort)（应为空）"
 
 sep "① 上下文：涉及仓分支一致性检查（check-branch.sh --demo）"
 if ./features/dev-sidebar/check-branch.sh --demo; then
