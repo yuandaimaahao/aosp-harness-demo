@@ -29,11 +29,11 @@ if (ev != "SessionEnd" or not isinstance(sid, str)
 print(sid)
 ')" || prc=$?
 
-if [[ $prc == 3 ]]; then
+if [[ $prc != 0 ]]; then
+  cat >/dev/null 2>&1 || true
   compat_legacy
   exit 0
 fi
-[[ $prc == 0 ]] || use_v1=0
 
 if [[ $use_v1 == 1 ]]; then
   project_id="$(realpath -- "$ROOT" | sha256sum)"
