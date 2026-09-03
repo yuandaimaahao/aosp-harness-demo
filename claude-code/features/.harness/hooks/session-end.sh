@@ -14,24 +14,26 @@ if source "$ROOT/../common/.harness/lib/session-state.sh" 2>/dev/null \
 fi
 compat_legacy() { printf '%s\n' 'compat: session-provider=legacy'; }
 
+prc=0
 sid="$(python3 -c '
 import json, re, sys
 try:
     d = json.load(sys.stdin)
     ev, sid, reason = d["hook_event_name"], d["session_id"], d["reason"]
 except Exception:
-    sys.exit(1)
+    sys.exit(3)
 if (ev != "SessionEnd" or not isinstance(sid, str)
         or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", sid)
         or reason not in ("clear", "resume", "logout", "prompt_input_exit", "other")):
-    sys.exit(1)
+    sys.exit(3)
 print(sid)
-')" || sid=""
+')" || prc=$?
 
-if [[ -z "$sid" ]]; then
+if [[ $prc == 3 ]]; then
   compat_legacy
   exit 0
 fi
+[[ $prc == 0 ]] || use_v1=0
 
 if [[ $use_v1 == 1 ]]; then
   project_id="$(realpath -- "$ROOT" | sha256sum)"

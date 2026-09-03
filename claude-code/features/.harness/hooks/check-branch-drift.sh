@@ -16,13 +16,13 @@ cur="$(detect_feature "$ROOT" || true)"
 v1_drift() {
   local sid rc project_id snap
   sid="$(python3 -c '
-import json, sys
+import json, re, sys
 try:
     d = json.load(sys.stdin)
     sid = d["session_id"]
 except Exception:
     sys.exit(1)
-if not isinstance(sid, str):
+if not isinstance(sid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", sid):
     sys.exit(1)
 print(sid)
 ')" || return 1
@@ -40,7 +40,7 @@ print(sid)
   fi
   exit 0
 }
-[[ $use_v1 == 1 ]] && v1_drift || true
+if [[ $use_v1 == 1 ]] && v1_drift; then :; fi
 compat_legacy
 cat >/dev/null 2>&1 || true
 snapfile="${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot"

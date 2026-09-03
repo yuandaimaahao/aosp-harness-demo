@@ -19,19 +19,20 @@ feature="$(detect_feature "$ROOT" || true)"
 target="$(feature_context_path "$ROOT" "$feature" || true)"
 if [[ -z "$target" ]]; then
   echo "[load-feature] 未找到当前 feature '${feature:-?}' 的 CLAUDE.md。请退出并用 .claude/bin/claude-feature 启动。" >&2
+  cat >/dev/null 2>&1 || true
   exit 0
 fi
 
 v1_baseline() {
   local out sid src rc project_id
   out="$(python3 -c '
-import json, sys
+import json, re, sys
 try:
     d = json.load(sys.stdin)
     sid, src = d["session_id"], d["source"]
 except Exception:
     sys.exit(1)
-if not isinstance(sid, str) or src not in ("startup", "resume", "clear", "compact", "fork"):
+if not isinstance(sid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", sid) or src not in ("startup", "resume", "clear", "compact", "fork"):
     sys.exit(1)
 print(sid + "\t" + src)
 ')" || return 1
@@ -44,7 +45,7 @@ print(sid + "\t" + src)
   if [[ $rc == 3 && "$src" != compact ]]; then
     rc=0
     harness_session_state_write "$project_id" "$sid" "$feature" >/dev/null 2>&1 || rc=$?
-    [[ $rc == 0 || $rc == 3 ]] || return 1
+    if [[ $rc == 3 ]]; then echo "error: [load-feature] 会话基线已存在且值不同，未改写。" >&2; elif [[ $rc != 0 ]]; then return 1; fi
   elif [[ $rc == 3 ]]; then
     echo "error: [load-feature] compact 会话基线缺失，未创建。" >&2
   elif [[ $rc != 0 ]]; then
