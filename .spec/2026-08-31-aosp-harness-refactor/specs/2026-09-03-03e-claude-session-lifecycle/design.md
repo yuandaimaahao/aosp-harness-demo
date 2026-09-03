@@ -2,68 +2,232 @@
 
 ## 概述
 
-（技术方案一句话 + 2–3 条关键决策。每条写清：选了什么、为什么、放弃的方案是什么）
+exact 六文件：改写 `load-feature.sh`（SessionStart）与 `check-branch-drift.sh`（UserPromptSubmit）为「内联 guard 分流 v1/legacy」双路径形态，新增 `session-end.sh`（SessionEnd）并在 `settings.json` 注册第三事件，`run-demo.sh` 把全部 hook 演示收敛进自建 mktemp 私有树，新增默认发现测试。三 hook 仅当 source aggregator 后 marker 精确为 `1` 且五 public API 逐个 `declare -F` 在场才消费 v1；任一 partial 状态走 legacy 并在 stdout 输出 `compat: session-provider=legacy` 恰好一次、rc0 结束。v1 口径：project-id 为权威物理根（`realpath "$ROOT"`）完整 SHA-256；SessionStart 五 source 永不覆盖已有基线，startup/fork/clear/resume 缺失时建基线、compact 缺失报错不创建；UserPromptSubmit 漂移沿用现状两行措辞告警并 exit 2；SessionEnd 先校验事件名/session ID/reason 再幂等清理。
+
+- 选择「provider guard 内联在三个 hook 各自文本里、aggregator 定位固定为 `$ROOT/../common/.harness/lib/session-state.sh`（`ROOT` 沿用现状 `${CLAUDE_PROJECT_DIR:-$(harness_project_root ...)}` 覆盖语义）」，因为本片 exact 六文件与不新增 `.harness` 下其他文件、不改 `feature-common.sh` 的约束使公共 guard 文件无处可放，接受三份 ~6 行重复；以 `$ROOT/..` 相对定位使 fixture/demo 只需在私有树旁放 `common/.harness/lib` 副本即可切换 v1/legacy，provider 物理缺席自动落 legacy，无需任何开关。放弃：把 aggregator 路径硬编码为仓库绝对路径（fixture 无法重定向）与只验 marker 或只验文件存在（foundation 单独 source 成功等中间态会假阳性发布 v1）。
+- 选择「stdin JSON 用 embedded `python3 -c` 严格解析（codex 两个 hook 的既有先例），逐事件校验字段存在性、类型与值域；非法 JSON/缺字段/非法值与 provider 设计外错误码统一汇入各 hook 唯一 legacy 入口」，因为 bash 正则解析 JSON 不可靠、jq 是新外部依赖；python3 已是 codex 侧与 provider 五模块共同的既有下限，本片不抬高环境要求。放弃：复用 codex 的 `prepare_state_dir`/状态文件布局（v1 状态由 provider 五模块的 verified fd 链全权管理，hook 不直接读写任何 v1 状态文件）。
+- 选择「SessionEnd 把 stdin 校验置于 provider/legacy 分流之后、任何删除之前：非法输入零删除（v1 状态与 legacy 全局快照均不动）只 marker+rc0；校验通过+legacy 才 `rm -f` 全局快照；校验通过+v1 经 remove 幂等清理且 provider 设计外错误码只 marker+rc0、不回退删除 legacy 快照」，因为 R5 要求校验失败不删任何状态、R6 要求 v1 路径不读写 legacy 全局文件，provider 出错时删 legacy 快照会把两条路径的状态语义混在一起。放弃：guard 先于校验短路（provider 缺席时非法输入会误触发 legacy 删除）与 provider 错误回退清理 legacy 文件（违反 R6）。
+- 选择「每个 hook 定义单行 `compat_legacy()` helper，compat 字面量全文恰出现一次，所有 legacy 入口（guard 失败、stdin 非法、provider 设计外错误码）调用它恰好一次后执行 legacy 行为并 rc0」，因为「恰一次」由此获得双重机械保证：测试对每 hook 文本 `rg -o` 计数 ==1（结构），对每 case stdout 出现次数 ==1（行为）。放弃：在每个分支内联 printf（字面量多份，漏改一处即失去恰一次）。
+- 选择「不设 mutant 自反证」，因为 03e 的 guard 合取两个子句各自已被机械覆盖：marker/API 缺席侧由七类 fixture（missing-* 时 aggregator fail-closed，marker 与四状态 API 同生同灭、hook 只能落 legacy）覆盖，且 hook 是全新进程、aggregator 临界区使「API 在场而 marker 缺席」物理不可达，sentinel 注入在 hook 级无对应可达状态；compat 恰一次由上述结构+行为双计数覆盖；v1 各分支（五 source、compact 缺失、漂移 exit 2、remove 幂等）都是直接行为断言。mutant 不新增信息（同 03d 对 aggregator 不设 mutant 的裁定逻辑）。
 
 ## 需求映射
 
-每个组件指向它实现的 R 条目。有 R 没被任何组件覆盖就是缺陷。
-
 | 组件 | 实现的需求 |
 |---|---|
+| 三 hook 内联 provider guard 与 compat marker 单点 | R1, R2 |
+| `load-feature.sh` v1 SessionStart 流程 | R3 |
+| `check-branch-drift.sh` v1 UserPromptSubmit 流程 | R4 |
+| `session-end.sh` 与 `settings.json` SessionEnd 注册 | R5 |
+| 两 hook legacy 段逐字保持与 v1/legacy 文件隔离 | R6 |
+| `run-demo.sh` 私有 fixture 与单 EXIT trap | R7 |
+| 默认发现测试 `tests/test-claude-session-lifecycle.sh` | R8 |
+| controller 验收（candidate/full/depth-1/offline/manifest/exact6） | R9 |
+| controller 独立回滚与 04 顺序门 | R10 |
 
 ## 架构
 
 ```mermaid
 graph TB
+  CL[Claude Code 2.1.234+<br/>settings.json 注册三事件] --> SS[load-feature.sh<br/>SessionStart]
+  CL --> UPS[check-branch-drift.sh<br/>UserPromptSubmit]
+  CL --> SE[session-end.sh<br/>SessionEnd 本片新增]
+  SS --> GD[内联guard: source aggregator<br/>marker精确1 + declare -F五名]
+  UPS --> GD
+  SE --> GD
+  GD -->|完整| V1[v1流程: python3解析stdin<br/>read/write/remove rc分支表]
+  GD -->|任一partial| LG[compat marker恰一次<br/>逐字legacy rc0]
+  V1 --> AGG[common/.harness/lib/session-state.sh<br/>本片只读]
+  LG --> SNAP[TMPDIR全局快照<br/>仅legacy路径读写]
+  DEMO[run-demo.sh 私有mktemp树<br/>lib副本+CLAUDE_PROJECT_DIR+TMPDIR<br/>+HARNESS_STATE_ROOT] --> SS
+  DEMO --> UPS
+  DEMO --> SE
+  T[test-claude-session-lifecycle.sh<br/>七类fixture 固定摘要] --> SS
+  T --> UPS
+  T --> SE
+  K[controller验收 R9/R10<br/>candidate/full/depth-1/rollback/04顺序门] -.验收资产 不入源码.-> T
 ```
 
-（分层、边界、与既有系统的衔接点。技术栈选型写在这里，含版本下限和为什么选它）
+分层与边界：本片是 `session-state-provider-v1` 的第一个 consumer，只读消费 03d aggregator 发布的 marker+五 API，不修改上游十二 tracked 文件、不触碰 codex/common/wrapper/`feature-common.sh`/`.harness/bin`。三 hook 的物理位置仍是 `claude-code/features/.harness/hooks/`，经 `.claude` 软链被 Claude 以 `${CLAUDE_PROJECT_DIR}/.claude/hooks/...` 调用；hook 的 `ROOT` 是 claude-code 树根（现状覆盖语义逐字保留），provider 相对定位于 `$ROOT/../common/.harness/lib/`。技术栈不抬下限：Bash 4.4+（`declare -F` 多名一次核对）、coreutils `realpath`/`sha256sum`（project-id，64 位小写 hex 天然安全单组件）、Python 3.8+（仅 stdin JSON 解析，codex hook 与 provider 五模块同一先例）、最低 Claude Code 2.1.234（SessionEnd reason 五值表——2.1.234 起 `bypass_permissions_disabled` 已移除——与 fork source 的官方事件契约下限，承接 DECISIONS 已确认行）。hook 主流程保持 `set -euo pipefail`；v1 逻辑收进在 `if` 条件中调用的函数，条件调用使 `set -e` 在函数体内抑制，所有 provider rc 以 `|| rc=$?` 显式捕获进分支表，不存在被 `set -e` 截断的隐式出口。
 
 ## 组件与接口
 
-**接口签名必须与 requirements.md frontmatter 的 `产出` / `消费` 逐字一致。**
+### 对外契约（frontmatter 产出，逐字）
 
-### （组件名）
+`claude-session-lifecycle-v1 —— Claude SessionStart/UserPromptSubmit/SessionEnd三hook的生命周期行为契约（marker+五API完整才消费v1 provider，任一partial状态走legacy并输出compat marker `compat: session-provider=legacy`；project-id为权威物理根完整SHA-256；SessionStart按source分级建/读基线；UserPromptSubmit漂移退出2阻止prompt；SessionEnd经事件名/session ID/reason校验后幂等清理）plus tests/test-claude-session-lifecycle.sh固定摘要`RESULT PASS  claude session lifecycle`；不新增稳定公共API`
 
-- 职责：（一句话）
-- 对外接口：（确切签名）
-- 依赖：
+### 消费契约（03d provider，本片只读，逐字）
+
+`session-state-provider-v1的完整capability：marker HARNESS_SESSION_STATE_PROVIDER_VERSION精确为1且五个public API全存在（harness_validate_feature_name <name>；harness_session_state_path <project-id> <session-id>；harness_session_state_write <project-id> <session-id> <feature>；harness_session_state_read <project-id> <session-id>；harness_session_state_remove <project-id> <session-id>；path成功path+LF/0，write/read常规0|1|2|3、write异值冲突与read缺失3、write信号129|130|143，remove缺失幂等0、OS错1、协议/安全错2）；03d accepted ledger中的03e启动门（dependency-present active证据checks=72、exact4/400、full/depth-1/rollback与03e顺序门证据，无其他运行时API）`
+
+本片只消费其中 validate/read/write/remove 四名与 marker；`harness_session_state_path` 不参与 hook 流程但必须在 guard 中点名（完整 capability 合取的一项）。
+
+### 三 hook 内联 provider guard 与 compat marker 单点
+
+- 职责：每个 hook 开头以同一段 ~6 行内联 guard 判定 `use_v1`：`source "$ROOT/../common/.harness/lib/session-state.sh" 2>/dev/null` 成功、`HARNESS_SESSION_STATE_PROVIDER_VERSION` 精确为 `1`、`declare -F harness_validate_feature_name harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove` 单条多名核对全在场，三者合取才置 1；`source` 失败天然覆盖 aggregator 文件缺席，无需单独 `-f` 检查。
+- 对外接口：无新公共接口。`compat_legacy() { printf '%s\n' 'compat: session-provider=legacy'; }` 单行 helper，字面量每 hook 文本恰一次；所有 legacy 入口（guard 失败、stdin 非法、provider 设计外错误码）调用恰一次后执行该 hook 的 legacy 行为并以 rc0 结束。marker 一律写 stdout。
+- 依赖：aggregator 的 fail-closed 契约（partial 时 marker 与四状态 API 同灭）；`ROOT` 的现状覆盖语义。
+
+### `load-feature.sh` v1 SessionStart 流程
+
+- 职责：guard 通过时按 source 分级建/读基线；guard 失败或 v1 内 partial 时落 legacy。
+- 对外接口：无；hook 协议（stdin JSON、stdout 文案、exit code）为本片产出的组成部分。
+- 精确流程：v1 函数 `v1_baseline` 在 `if` 条件中调用——(1) `python3 -c` 从 stdin 解析 `session_id`/`source`：JSON 非法、字段缺失/非字符串、`source` 非 startup/fork/clear/resume/compact 五值之一 → return 1；(2) `harness_validate_feature_name "$sid" 2>/dev/null` 安全单组件校验，rc 非 0 → return 1；(3) `project_id=$(printf '%s' "$(realpath -- "$ROOT")" | sha256sum)` 取 `%% *` 截断；(4) `read` rc 分支表：rc0 → 基线已在场，任何 source 只读、根本不 write（同值幂等由此自然成立，不视为错误）；rc3 → source=compact 时报 stderr 固定一行报错、不创建、继续走 sync+messages 以 rc0 结束，其余四 source 进入 write；rc 其他 → return 1（设计外错误码落 legacy）；(5) `write` rc 分支表：rc0 → 基线建立；rc3 → 异值冲突，stderr 报错、不改写（五 source 永不覆盖），继续 rc0；rc 其他 → return 1；(6) 随后与 legacy 共用的尾部：`sync_feature_link "$ROOT" "$target"` 与现状两条人类可读 stdout 文案逐字保持，v1 全程不读写 legacy 全局快照文件、不输出 compat marker。return 1 时主流程 `compat_legacy` 一次后执行逐字 legacy 段（含 `cat >/dev/null` 排水、`printf '%s'` 覆盖写全局快照、sync、messages）rc0。`feature`/`target` 探测与「未找到 feature 上下文」stderr 文案+exit 0 分支为两路径共用现状逻辑，逐字保留。错误保证只到「不创建/注入状态并报错」，不宣称阻止会话，任何语义路径 rc0。
+- 依赖：guard 组件的肯定结论、provider read/write rc 契约、`feature-common.sh` 既有 `detect_feature`/`feature_context_path`/`sync_feature_link`（本片不修改）。
+
+### `check-branch-drift.sh` v1 UserPromptSubmit 流程
+
+- 职责：guard 通过时 read 基线与 `detect_feature` 当前值做字符串比较；否则落 legacy。
+- 对外接口：无；hook 协议同上。
+- 精确流程：v1 函数在 `if` 条件中调用——(1) `python3 -c` 仅解析 `session_id`（同样的类型/值域校验）+ `harness_validate_feature_name` → 非法 return 1；(2) project-id 同 SessionStart；(3) `read` rc 分支表：rc3 基线缺席 → 静默 exit 0；rc 其他非 0 → return 1 落 legacy；rc0 → 与 `detect_feature "$ROOT"` 当前值字符串比较，一致静默 exit 0，漂移则输出与现状逐字相同的两行告警（首行 `⚠️ [分支漂移] 会话注入时在 '<基线>'，现在切到了 '<当前>'。`，次行 `   当前会话仍含旧上下文；退出后用 .claude/bin/claude-feature 重启，别拿旧分支约定改新分支。`）并 `exit 2` 阻止该 prompt，不写 JSON。return 1 时 `compat_legacy` 一次后执行逐字 legacy 段（读全局快照、字符串不等告警、rc0 不阻断）。不宣称跨 SessionEnd 漂移检测（SessionEnd 后 resume 已按 R3 建新基线）。
+- 依赖：guard 组件、provider read rc 契约、`detect_feature`。
+
+### `session-end.sh` 与 `settings.json` SessionEnd 注册
+
+- 职责：校验事件名/session ID/reason 后按 v1/legacy 幂等清理；`settings.json` 新增 `SessionEnd` 事件指向 `${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end.sh`（与既有两事件同一 schema）。
+- 对外接口：无；hook 协议同上。
+- 精确流程：(1) 内联 guard 置 `use_v1`；(2) `python3 -c` 解析并一次性校验 stdin：`hook_event_name` 必须精确为 `SessionEnd`、`session_id` 必须 1–128 长度且匹配安全单组件形态 `[A-Za-z0-9][A-Za-z0-9._-]*`（legacy 路径无 provider 可用，故校验内嵌于解析器，规则与 foundation 同源）、`reason` 必须属于 `clear`/`resume`/`logout`/`prompt_input_exit`/`other` 五值（依据官方 SessionEnd reason 表（最低版本 2.1.234 起，`bypass_permissions_disabled` 已移除）与 DECISIONS 已确认行；requirements 为最高约束）——任一非法：`compat_legacy` 一次、rc0、零删除（v1 状态与 legacy 全局快照均不动）；(3) 校验通过+v1：project-id 同前，`harness_session_state_remove` rc 分支表：rc0（含状态缺失幂等 0）→ 静默 rc0；rc 其他（1/2/3 均视为设计外）→ `compat_legacy` 一次、rc0、不删 legacy 快照；(4) 校验通过+legacy：`compat_legacy` 一次后 `rm -f -- "${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot" 2>/dev/null || true`（缺席幂等、`rm` 失败也不破坏 rc0 不变量）。只保证 hook 被执行且未超时时的幂等清理。
+- 依赖：guard 组件、provider remove rc 契约；`settings.json` 以 python3 json 解析核验。
+
+### legacy 段与 v1/legacy 文件隔离
+
+- 职责：两既有 hook 的 legacy 段行为与现状逐字一致；v1 路径与 legacy 全局快照互不触碰。
+- 对外接口：无。
+- 精确口径：`load-feature.sh` legacy 段保留 `printf '%s'` 覆盖写 `${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot`、`sync_feature_link` 与两条 stdout 文案；`check-branch-drift.sh` legacy 段保留 `tr -d '[:space:]'` 读快照、字符串不等判定、纯文本两行告警、rc0 不阻断。两段文本尽量逐字保留在原相对顺序以压缩 numstat；唯一新增输出是段首 compat marker 一行。v1 路径不读写该全局文件（测试以 TMPDIR 重定向后断言文件缺席做行为证明）。`session-end.sh` 的 legacy 清理是本片新增行为，无现状可比。
+- 依赖：现状两 hook 文本（设计基线）。
+
+### `run-demo.sh` 私有 fixture 与单 EXIT trap
+
+- 职责：demo 全部 hook 演示在自建 mktemp 私有树进行；成功/受控失败/HUP/INT/TERM 三路径退出只改 mktemp 子目录。
+- 对外接口：无。
+- 精确结构：开头 `DEMO_TMP_DIR=$(mktemp -d)`，单一 EXIT trap 只 `rm -rf -- "$DEMO_TMP_DIR"`——新设计不暂改任何树根状态（真实 `CURRENT_FEATURE` 全程零写入、只读都不需要），故 trap 无恢复动作，三退出路径共用同一清理点；现状 `orig`/`restore_feature` 整段删除。fixture 布局：`$DEMO_TMP_DIR/tree/claude-code/`（`CURRENT_FEATURE`、`features/dev-sidebar/CLAUDE.md`、`features/dev-next/CLAUDE.md`）+ `$DEMO_TMP_DIR/tree/common/.harness/lib/`（`cp` 仓库 `common/.harness/lib/session-state*.sh` 副本）+ 私有 `TMPDIR="$DEMO_TMP_DIR/tmp"` 与 `HARNESS_STATE_ROOT="$DEMO_TMP_DIR/state"`。hook 演示以 `CLAUDE_PROJECT_DIR=$tmp/tree/claude-code TMPDIR=... HARNESS_STATE_ROOT=...` 调用真实 hook 文件：aggregator 相对定位命中 lib 副本 → 演示 v1 全生命周期——SessionStart（startup payload）建基线并展示 state 树、UPS 无漂移零输出、改写私有 `CURRENT_FEATURE` 后 UPS exit 2 两行告警（此即受控失败演示：demo 断言 rc==2 后继续）、SessionEnd（reason=clear）清理并展示 state 树消失。install-harness、wrapper dry-run、分支一致性、流程层、verify、回归各节保留现状。
+- 依赖：三 hook 的 `CLAUDE_PROJECT_DIR` 覆盖语义与 provider 的 `HARNESS_STATE_ROOT` 根选择；codex/run-demo.sh 的同构形态（mktemp+drift-root，本片对齐）。
+
+### 默认发现测试
+
+- 职责：实现 `bash ./tests/test-claude-session-lifecycle.sh` 的 CLI 分流、v1 生命周期矩阵、七类 fixture、legacy surface 与固定摘要。
+- 对外接口：无参数或 `all` 按依赖探测分流；唯一 `--dependency-absent` 强制 legacy surface；唯一 `--session-provider-fixture <missing-foundation|missing-path|missing-snapshot|missing-signals|missing-remove|absent>` 单跑对应 fixture；成功 stdout 逐字 `RESULT PASS  claude session lifecycle\n`、stderr 空、rc0；unknown 参数、extra 参数、flag 带值、fixture 缺值/非法值均 rc1 且不打印 PASS。
+- 依赖：本片六文件、上游十二 tracked 文件只读、固定 shfmt `v3.14.0`/ShellCheck `0.11.0`、`bash/python3/rg/find/stat/sha256sum/realpath/mktemp/git`。
+
+### controller 验收与 04 顺序门（验收资产，不进入源码文件）
+
+- 职责：执行 R9/R10 的机器核对，全部证据入 ledger 后才允许创建 04-runtime-resource-leases 的任何资产。
+- 验收动作：candidate、完整历史 checkout、真实 `git clone --depth 1 file://...` 分别运行默认 lifecycle 测试与 `bash ./scripts/check.sh --offline`，offline 发现本入口恰好一次，depth-1 commit-count=1 且 shallow marker 非空；每个 checkout 的上游十二 tracked 文件 SHA-256 测试前后不变且 clean；逐字验证 shfmt `v3.14.0` 与 ShellCheck version field `0.11.0` 后只对本片 exact 六文件中五个 shell 文件运行 `shfmt -d -i 2 -ci -bn`、`shellcheck -x --severity=warning`、`bash -n`，`settings.json` 以 python3 json 解析核验；execution BASE 到 accepted HEAD exact 只变更目标节六文件、numstat 总和 ≤400、六列 review manifest 与 tasks 一一对应、首尾/相邻连续、reviewer 非空且全 PASS、`git diff --check` 与 worktree clean 通过；从 accepted HEAD 建隔离临时分支提交 exact 只回退本片六文件的 rollback commit（删两新增、恢复四修改），clean checkout 中 03b 基础测试、03b1 assurance 入口、03c signals 入口、03d provider 入口与 offline 全绿、本入口发现 0 次；04-runtime-resource-leases 的 spec 目录/分支/worktree/ledger BASE/dispatch 记录按 R10 以 `ls -d` 缺席、`git show-ref` 零匹配、`git worktree list --porcelain` 零匹配与 `rg` 对 ledger/dispatch/execution-base 记录零匹配机械查缺席（requirements/design/tasks 文档允许出现 NEXT 全名，禁令只针对 ledger/dispatch/execution-base 三类记录）。
+- 依赖：本片 accepted HEAD、dependency-present active 证据、exact6/400 与全 PASS manifest 入 ledger；inert 或 legacy-only PASS 不作为本片验收证据，也不解除该顺序门。
 
 ## 数据模型
 
-（数据结构 / schema / 状态管理。有实体关系时用 mermaid `erDiagram`。
- 没有持久化数据的 spec 写「不适用: 理由」）
+不新增 schema 或跨进程数据库。v1 状态树的物理布局、安全属性与转换全部由 provider 五模块拥有，hook 只经五 API 触发转换；本片涉及的对象：
+
+| 对象 | 位置/生命周期 | 本片允许的转换 |
+|---|---|---|
+| v1 session 基线 | provider 状态树 `<root>/<project-id>/<session-id>/feature` | SessionStart：缺席+startup/fork/clear/resume → write 建立；缺席+compact → 不创建；在场 → 任何 source 只读不改写。SessionEnd：remove 幂等删除（缺失 0） |
+| project-id | 内存值，`realpath "$ROOT"` 的完整 SHA-256（64 位小写 hex） | 每次 hook 调用重新计算，天然安全单组件，不持久化 |
+| legacy 全局快照 | `${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot` 单文件 | 仅 legacy 路径：SessionStart `printf '%s'` 覆盖写、UserPromptSubmit 读、SessionEnd `rm -f` 幂等删；v1 路径零读写 |
+| hook stdin JSON | 每事件一帧 | SessionStart 取 `session_id`/`source`（五值）；UserPromptSubmit 取 `session_id`；SessionEnd 取 `hook_event_name`（精确 `SessionEnd`）/`session_id`/`reason`（clear/resume/logout/prompt_input_exit/other） |
+
+状态转换不变量：五种 SessionStart source 永不覆盖已有基线（已在场根本不 write；write 仅在 read 报缺失后发起，异值冲突 rc3 只报错不改写）；compact 永不创建基线；非法输入零删除、零创建；SessionEnd 幂等（重复调用第二次仍 rc0）；不宣称跨 SessionEnd 漂移检测。
 
 ## 数据流
 
-1–3 条主流程的时序图。挑跨组件的、时序敏感的、错误路径复杂的，不要全画。
+### SessionStart v1 分级建/读基线与 legacy 回退
 
 ```mermaid
 sequenceDiagram
+  participant H as load-feature.sh
+  participant AG as aggregator
+  participant P as provider read/write
+  participant L as legacy段
+  H->>AG: source + marker精确1 + declare-F五名
+  alt guard不通过
+    H->>L: compat一次; 排水; 覆盖写全局快照; sync; messages; rc0
+  else guard通过
+    H->>H: python3解析session_id/source; validate校验; 非法则return1落legacy
+    H->>P: read project_id sid
+    P-->>H: rc0 基线在场: 任何source只读 根本不write
+    P-->>H: rc3 缺失
+    alt source等于compact
+      H->>H: stderr报错 不创建; sync+messages; rc0
+    else startup/fork/clear/resume
+      H->>P: write project_id sid feature
+      P-->>H: rc0建基线 / rc3异值冲突只报错不改写 / 其他rc落legacy
+    end
+    P-->>H: read其他rc: return1 落legacy
+    H->>H: sync_feature_link + 现状messages; rc0; 全程不碰legacy全局文件
+  end
 ```
+
+### SessionEnd 校验先行的幂等清理
+
+```mermaid
+sequenceDiagram
+  participant H as session-end.sh
+  participant AG as aggregator
+  participant P as provider remove
+  participant F as legacy全局快照
+  H->>AG: source + marker精确1 + declare-F五名
+  H->>H: python3校验事件名/session_id/reason
+  alt 任一非法
+    H->>H: compat一次; rc0; 零删除(v1状态与快照均不动)
+  else 校验通过且v1
+    H->>P: remove project_id sid
+    P-->>H: rc0含缺失幂等0: 静默rc0
+    P-->>H: 其他rc: compat一次; rc0; 不删快照
+  else 校验通过且legacy
+    H->>F: rm -f 幂等(缺席或rm失败均rc0)
+    H->>H: compat一次; rc0
+  end
+```
+
+UserPromptSubmit 的漂移路径结构简单（read rc0 比较 → 漂移两行告警 exit 2 / 一致静默 / rc3 静默 / 其他落 legacy），以组件节分支表为准，不另画图。
 
 ## 错误处理
 
-只写 happy path 的 design 是没写完的 design。
-
 | 错误场景 | 恢复策略 | 校验位置 | 日志 | 用户可见 |
 |---|---|---|---|---|
+| aggregator 缺席/source 非零/marker 非精确 1/五 API 任一缺席 | 该 hook 本次走 legacy，不形成 partial capability | 内联 guard 三合取 | 无 | stdout compat marker 恰一次、rc0 |
+| stdin 非 JSON/缺字段/类型错 | 落 legacy（SessionEnd 为零删除 legacy） | hook 内 python3 解析器 | 无 | compat 恰一次、rc0 |
+| SessionStart `source` 非五值 / `session_id` 非安全单组件 | 落 legacy | 解析器值域检查 + `harness_validate_feature_name` | 无 | compat 恰一次、rc0 |
+| SessionEnd 事件名/session ID 非法或 reason 非 `clear`/`resume`/`logout`/`prompt_input_exit`/`other` 五值之一 | 零删除（v1 状态与 legacy 快照均不动），不执行 legacy 清理 | 解析器一次性校验 | 无 | compat 恰一次、rc0 |
+| v1 SessionStart read rc0（基线在场） | 任何 source 只读，根本不 write | read rc 分支表 | 无 | 现状 sync+messages、rc0 |
+| v1 SessionStart compact 且 read rc3 | 不创建基线，报错后继续 sync+messages | read rc 分支表 | stderr 固定一行 | 现状 stdout 文案、rc0 |
+| v1 SessionStart write rc3（异值冲突） | 不改写（五 source 永不覆盖），报错后 rc0 | write rc 分支表 | stderr 固定一行 | 现状 stdout 文案、rc0 |
+| provider 任一调用设计外错误码（read/write rc1/2、remove rc1/2/3 等） | 落 legacy（SessionEnd 不删 legacy 快照） | 各 rc 分支表 `*) return 1` | 无 | compat 恰一次、rc0 |
+| v1 UserPromptSubmit 基线缺席（read rc3） | 静默通过 | read rc 分支表 | 无 | 零输出、rc0 |
+| v1 UserPromptSubmit 漂移 | 现状两行措辞告警，exit 2 阻止 prompt，不写 JSON | 字符串比较 | 无 | 两行告警、exit 2 |
+| legacy UserPromptSubmit 漂移 | 现状行为：同样两行告警但 rc0 不阻断 | legacy 段逐字 | 无 | 两行告警、rc0 |
+| SessionEnd 重复调用/状态已缺席 | remove 缺失幂等 0；legacy `rm -f` 缺席幂等 | remove rc 分支表 / `rm -f \|\| true` | 无 | 静默/compat、rc0 |
+| SessionEnd legacy `rm` 自身失败 | `\|\| true` 吸收，保持 rc0 不变量 | legacy 清理行 | 无 | compat 恰一次、rc0 |
+| demo 成功/受控失败/HUP/INT/TERM 退出 | 单 EXIT trap 删除 mktemp 目录，树根零净变更 | run-demo.sh trap | 无 | 三路径均净零 |
+| CLI unknown/extra/flag 带值/fixture 缺值/非法值 | 拒绝且不进入任何分支 | 测试入口参数解析 | 无 | rc1、无 PASS |
+| 真实依赖缺席或 `--dependency-absent` | 运行同一 legacy surface（全部 legacy 行为 case，非零 case inert） | 测试入口依赖探测 | 无 | 同一固定摘要、rc0 |
+| 任一 case 失败 | 累计 failures，末行不打印 PASS | 统一 check/failures 计数器 | 失败详情到 stderr | rc1、无 PASS |
 
 ## 测试策略
 
-这一节和 requirements 的判据必须对得上——判据说要跑某条命令，这里要说清它测哪一层。
-
 | 层 | 测什么 | 用什么工具 |
 |---|---|---|
-| 单元 | | |
-| 集成 | | |
-| 端到端 | | |
-| 性能 | | |
+| 单元/结构 | CLI 四态（无参数/all 接受，unknown/extra/flag 带值/fixture 缺值/非法值 rc1 无 PASS）；三 hook 文本结构核对：compat 字面量 `rg -o` 恰 1 处、guard 含 marker 精确比较与 `declare -F` 五名（各 `rg` 锚定）；测试文件自身固定摘要 printf 调用恰 2 处（同 03d 裁定）；`settings.json` python3 json 解析且 SessionEnd 注册指向 `session-end.sh`；project-id 行为核对：fixture 树的预期 SHA-256 目录名在 HARNESS_STATE_ROOT 下出现 | `bash`、`rg`、`python3`、`sha256sum`、`realpath` |
+| 集成（v1 生命周期，dependency-present 主体） | SessionStart：startup/fork/clear/resume 循环各建基线（状态文件在场、内容==feature）；compact 缺失报错不创建（rc0、stderr 一行、状态缺席）；已在场+任意 source 不改写（内容逐字不变）；同值幂等 rc0 无错；非法 session_id/source/ malformed JSON 三行各落 legacy（marker 恰一次、全局快照按 legacy 写入、v1 状态缺席）；v1 后 `CLAUDE.md` 软链指向私有 feature 上下文且 TMPDIR 无全局快照。UserPromptSubmit：无漂移零输出 rc0；漂移 exit 2 且两行告警与期望逐字相等；基线缺席静默 rc0；非法 session_id 落 legacy。SessionEnd：reason=clear 清理后状态树消失、重复调用仍 rc0；reason=resume 合法清理一行（五值集覆盖）；事件名/session ID 非法与 reason 值集外（如 `bogus`）三行各零删除（v1 状态与预置 legacy 快照均在场）+marker 恰一次；provider 设计外错误码注入（`HARNESS_STATE_ROOT=/` 触发 rc2）落 legacy | `bash ./tests/test-claude-session-lifecycle.sh`（主验证命令）、mktemp fixture 树、`env CLAUDE_PROJECT_DIR/TMPDIR/HARNESS_STATE_ROOT` |
+| fixture（七类） | 完整 provider（即上条 v1 矩阵）；`absent`（无 aggregator）与 missing-foundation/path/snapshot/signals/remove：mktemp 内建 `tree/claude-code` + `tree/common/.harness/lib` 副本并按类删模块文件，三 hook 各以合法 stdin 运行——rc0、stdout compat marker 出现次数 ==1、执行对应 legacy 行为、v1 状态树缺席/为空；missing-* 时 aggregator fail-closed 使完整五 API predicate 为 false（hook 只能落 legacy，无任何 partial capability 可观测量） | 同上入口 + `--session-provider-fixture` 六值、隔离 fixture shell |
+| legacy/absent surface | `absent` fixture 与 `--dependency-absent` 执行全部 legacy 行为 case（非零 case inert）：SessionStart 覆盖写全局快照（内容==feature）+sync+messages+marker 恰一次；UserPromptSubmit 漂移两行告警 rc0 不阻断（与 v1 的 exit 2 对照）、无漂移静默；SessionEnd 幂等删除全局快照、重复 rc0；真实依赖缺席时默认/all 自动分流到同一 surface、同一固定摘要 | 同上入口 + `--dependency-absent` |
+| mutant 自反证 | 不设置（论证见「概述」末条：guard 两子句由七类 fixture 与结构核对机械覆盖，compat 恰一次由结构+行为双计数覆盖，v1 分支全是直接行为断言，mutant 不新增信息） | 不适用 |
+| 端到端/收敛（demo + controller 验收资产） | demo 成功路径：真实 `CURRENT_FEATURE` 字节不变、`${TMPDIR:-/tmp}` 全局快照缺席、无残留 `claude-harness-demo.*` 目录、rc0；受控失败路径由 demo 内 UPS exit 2 断言自证；信号路径由单 EXIT trap 结构核对（`rg` 锚定唯一 trap 与 `rm -rf`）覆盖，不做非确定性中途注信号。candidate/full/depth-1 各跑默认入口与 offline（发现本入口恰好一次）；上游十二 tracked 文件 SHA-256 前后不变；rollback commit exact 回退六文件后 03b/03b1/03c/03d 入口与 offline 全绿、本入口发现 0 次；04 五类资产机械查缺席 | `bash claude-code/run-demo.sh`、inventory 比较、`git clone --depth 1 file://...`、`rg`、`ls -d` |
+| 静态与 sizing | 固定版本断言后对 exact 六文件中五个 shell 文件 `shfmt -d -i 2 -ci -bn`、`shellcheck -x --severity=warning`、`bash -n`；settings.json python3 json 核验；execution BASE..HEAD exact name-only 六文件、numstat 总和 ≤400；六列 manifest 机械验证；`git diff --check` 与 clean 通过 | shfmt `v3.14.0`、ShellCheck `0.11.0`、`bash -n`、Git/awk controller 命令 |
+| 性能 | 不适用：hook 为会话事件级单次调用，无吞吐/延迟 SLO；`timeout` 仅作测试防挂死兜底 | `timeout` |
+
+测试必须将 stdout/stderr 落文件后按字节比较，禁止用会吞尾随 LF 的 command substitution 验证成功流；成功唯一摘要为 `RESULT PASS  claude session lifecycle\n`（PASS 后两个空格）。只有 dependency-present active 证据计入本片验收并解除 04 顺序门；legacy-only PASS 不计入。
+
+sizing 承诺：execution diff exact6 且 `git diff --numstat` 总和 ≤400（修改文件新增+删除均计入）。这是**纯分解预算**，无 runnable prototype；分解依据是现状文件实测行数（load-feature.sh 27、check-branch-drift.sh 18、run-demo.sh 63、settings.json 11）与同构实际尺寸（03d 测试 204 行、codex 两 hook 的 python3 解析段）。行数预算分解：`load-feature.sh` ≤52（保留现状 ~22 行逐字：header/ROOT/detect/target/排水/快照写/sync/messages；新增 guard 6、compat 1、`v1_baseline` ~30、分派 ~6、注释 ~3，删除过期注释 ~5）；`check-branch-drift.sh` ≤42（保留 ~18 行逐字；新增 guard 6、compat 1、v1 函数 ~24、分派 4）；`session-end.sh` ≤52（新增文件：header/ROOT 8、compat 1、python3 校验解析 ~10、guard 6、remove 分支+legacy 清理 ~12、结构注释 ~6）；`settings.json` ≤6（SessionEnd 注册块 +4）；`run-demo.sh` ≤62（保留 install/wrapper/一致性/流程/验证/回归 ~45 行；新增 mktemp+trap ~10、私有树+lib 副本 ~12、v1 hook 演示 ~20；删除 orig/restore_feature/旧漂移段 ~16）；`tests/test-claude-session-lifecycle.sh` ≤176（CLI 与引导 12、helper 24、fixture 构建 12、v1 SessionStart 26、v1 UPS 14、v1 SessionEnd 20、legacy/absent surface 20、七类 fixture 循环 14、结构核对 12、argv 表 8、demo 10、摘要 4）；合计 ≤390，保留 ≥10 行余量。若 tasks 或执行期预计/实际超出，立即回 PLAN 拆片（备选：`run-demo.sh` 收敛与 hook 生命周期无代码耦合，可拆为独立小片），不压缩任何 oracle 语义。
 
 ## 文件清单
 
-拆解决策在这里锁定，不在 tasks 里临时决定。说不出一句话职责的文件，说明它做的事
-还没想清楚。
-
 | 文件 | 创建/修改 | 职责（一句话） |
 |---|---|---|
+| `claude-code/features/.harness/hooks/load-feature.sh` | 修改 | SessionStart：内联 guard 分流，v1 按 source 分级建/读基线，legacy 段逐字保留，compat marker 单点 |
+| `claude-code/features/.harness/hooks/check-branch-drift.sh` | 修改 | UserPromptSubmit：内联 guard 分流，v1 read 基线比较漂移 exit 2，legacy 段逐字保留 |
+| `claude-code/features/.harness/hooks/session-end.sh` | 创建 | SessionEnd：校验事件名/session ID/reason 后 v1 remove 幂等清理或 legacy 幂等删除全局快照，非法输入零删除 |
+| `claude-code/features/.harness/settings.json` | 修改 | 新增 SessionEnd 事件注册指向 `session-end.sh`（既有两事件不动） |
+| `claude-code/run-demo.sh` | 修改 | demo 收敛到自建 mktemp 私有树演示 v1 全生命周期，单 EXIT trap 清理，真实 `CURRENT_FEATURE` 只读 |
+| `tests/test-claude-session-lifecycle.sh` | 创建 | 默认发现的 shfmt-clean 入口：CLI 分流、v1 生命周期矩阵、七类 fixture、legacy surface 与固定摘要 |
+
+验收资产（不纳入源码文件清单）：逐 task review 报告、六列 review manifest、candidate/full/depth-1/rollback 运行日志与 inventory 比较记录、accepted HEAD 与 ledger execution BASE 证据、04-runtime-resource-leases 五类资产（spec 目录/分支/worktree/ledger BASE/dispatch 记录）缺席的机械核对记录。门③通过前不创建 implementation worktree 或固定 execution BASE；dependency-present active 证据、exact6/400 与全 PASS manifest 入 ledger 前不创建 04 的 spec 目录/分支/worktree/BASE/dispatch 记录。
