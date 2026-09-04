@@ -71,3 +71,7 @@
 ## v6.0 — 2026-09-04
 
 由`specs/2026-09-04-05-verifier-contract/reviews/requirements-05-verifier-contract-round-1.md`的B1触发：05详情要求同一mock矩阵验证三入口，但文件边界只把common verifier归05，并把三个薄入口归09；同时现有三脚本共607行，若05直接改三入口再新增文档/矩阵，没有additions+deletions≤400的可运行sizing证据。round2 P-B1继续指出，若05补写既有common feature入口，09后续薄化同一路径仍会重叠，05 exact rollback还可能覆盖09 hunks且无法区分弱legacy内容。最终切口改为：05新增独立`common/.harness/bin/verify-sidebar.sh` canonical physical provider并独占contract文档/单入口矩阵，三个旧入口完全不改；09消费05/06/07后独占dispatcher、三旧入口薄化、legacy fallback和三入口parity，并永不修改05 provider。05 rollback只移除自身exact3，09以provider物理缺席切fallback，不读取内容猜版本也不覆盖自身hunks。依赖图与顺序不变；门③前必须用完整fixed-format runnable exact3 prototype证明≤400，否则再回PLAN拆片。
+
+## v6.1 — 2026-09-05
+
+由`specs/2026-09-04-05-verifier-contract/reviews/design-05-verifier-contract-round-1.md`触发：B1证明05内部直接ADB且丢弃stderr时，09在永不修改05的owner边界下无法把06逐query timeout/retry/diagnostics组合进来；05新增私有`HARNESS_VERIFIER_QUERY_RUNNER`，预检绝对路径/EUID owner/普通非symlink/可执行，以`query-key -- adb -s serial argv...`传递分离参数，捕获stdout、继承stderr并保留rc，默认仍直接ADB。B2–B4/I1–I2又证明原fixed-format exact3=368/400的测试缺完整五detail/summary/argv/case manifest、repo外cleanup门和完整contract表，provider还错分前导空白/Unicode digit并与`[[:space:]]`含义不一致；补齐全部承重oracle无法进入余32行。按P5拆成05 exact3 core（provider+完整doc+代表性base test）与新增05a exact1 assurance（完整matrix、case manifest、mutant自反证），两片不叠改；修订core prototype fixed-format实测202+67+102=371/400且base test逐字PASS。05a dependency-present完整证据前禁止06/09启动，inert PASS不能替代。
