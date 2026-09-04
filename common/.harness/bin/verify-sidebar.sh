@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+exec python3 - "$@" <<'PY'
+import os
+import re
+import stat
+import subprocess
+import sys
+
+USAGE = "Usage: verify-sidebar.sh [--demo] [--since EPOCH] [--allow-skip]"
+EPOCH = re.compile(r"^([0-9]+)(?:[.]([0-9]{1,9}))?$")
+SERIAL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+PID_LIST = re.compile(r"^[1-9][0-9]*(?:[ \t]+[1-9][0-9]*)*$")
+SERVICE = re.compile(rb"^[0-9]+[ \t]+([^ \t]+):[ \t]+\[[^][\r\n]+\][ \t]*$")
+PACKAGE = re.compile(rb"^package:[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$")
+
+
+def usage_error():
+    print(USAGE, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def parse(argv):
+    demo = allow = False
+    since = None
+    seen = set()
+    index = 0
+    while index < len(argv):
+        arg = argv[index]
+        if arg == "--help":
+            if len(argv) != 1:
+                usage_error()
+            print(USAGE)
+            raise SystemExit(0)
+        if arg in ("--demo", "--allow-skip"):
+            if arg in seen:
+                usage_error()
+            seen.add(arg)
+            demo |= arg == "--demo"
+            allow |= arg == "--allow-skip"
+            index += 1
+            continue
+        if arg == "--since":
+            if arg in seen or index + 1 >= len(argv) or not EPOCH.fullmatch(argv[index + 1]):
+                usage_error()
+            seen.add(arg)
+            since = argv[index + 1]
+            index += 2
+            continue
+        usage_error()
+    if allow and not demo:
+        print("error: --allow-skip requires --demo", file=sys.stderr)
+        raise SystemExit(2)
+    serial = os.environ.get("ANDROID_SERIAL", "")
+    if not demo and not SERIAL.fullmatch(serial):
+        print("error: set ANDROID_SERIAL to a safe, explicit target serial", file=sys.stderr)
+        raise SystemExit(2)
+    runner = os.environ.get("HARNESS_VERIFIER_QUERY_RUNNER")
+    if not demo and runner:
+        try:
+            info = os.lstat(runner)
+            valid = os.path.isabs(runner) and stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+            valid = valid and not stat.S_ISLNK(info.st_mode) and os.access(runner, os.X_OK)
+        except OSError:
+            valid = False
+        if not valid:
+            print("error: invalid query runner", file=sys.stderr)
+            raise SystemExit(2)
+    return demo, allow, since, serial, runner
+
+
+def epoch(value):
+    match = EPOCH.fullmatch(value)
+    if not match:
+        return None
+    return int(match.group(1)), int((match.group(2) or "").ljust(9, "0"))
+
+
+def lines(data):
+    return [line[:-1] if line.endswith(b"\r") else line for line in data.split(b"\n")]
+
+
+demo, allow_skip, baseline, serial, runner = parse(sys.argv[1:])
+results = []
+
+
+def mark(status, detail):
+    results.append((status, detail))
+
+
+def query(key, value, default, args):
+    if demo:
+        rc = int(os.environ.get("DEMO_" + key + "_QUERY_FAIL", "0"))
+        return rc, os.environ.get("DEMO_" + value, default).encode("utf-8")
+    command = ["adb", "-s", serial] + args
+    if runner:
+        command = [runner, key.lower(), "--"] + command
+    try:
+        run = subprocess.run(command, stdout=subprocess.PIPE, stderr=None if runner else subprocess.DEVNULL)
+        return (128 - run.returncode if run.returncode < 0 else run.returncode), run.stdout
+    except OSError:
+        print("query runner execution failed", file=sys.stderr)
+        return 126, b""
+
+
+rc, output = query("BOOT", "BOOT_COMPLETED", "1", ["shell", "getprop", "sys.boot_completed"])
+value = b"\n".join(lines(output)).strip(b" \t\n")
+if rc:
+    mark("FAIL", "boot query failed")
+elif value == b"1":
+    mark("PASS", "boot completed")
+elif value == b"0":
+    mark("FAIL", "boot incomplete")
+else:
+    mark("FAIL", "boot parse failed")
+
+rc, output = query("SYSTEM_SERVER", "SYSTEM_SERVER", "1423", ["shell", "pidof", "system_server"])
+value = b"\n".join(lines(output)).strip(b" \t\n")
+if rc:
+    mark("FAIL", "system_server query failed")
+elif not value:
+    mark("FAIL", "system_server missing")
+elif PID_LIST.fullmatch(value.decode("ascii", "replace")):
+    mark("PASS", "system_server alive")
+else:
+    mark("FAIL", "system_server parse failed")
+
+baseline_ok = baseline is not None
+if not baseline_ok:
+    rc, output = query("BOOT_TIME", "BOOT_TIME", "btime 100", ["shell", "cat", "/proc/stat"])
+    valid = []
+    malformed = False
+    if not rc:
+        for line in lines(output):
+            match = re.fullmatch(rb"btime[ \t]+([0-9]+)[ \t]*", line)
+            if match:
+                valid.append(match.group(1).decode("ascii"))
+            elif re.match(rb"btime(?:[ \t]|$)", line):
+                malformed = True
+    if rc:
+        mark("FAIL", "crash baseline query failed")
+    elif len(valid) != 1 or malformed:
+        mark("FAIL", "crash baseline parse failed")
+    else:
+        baseline, baseline_ok = valid[0], True
+if baseline_ok:
+    normalized = epoch(baseline)
+    since = "%d.%09d" % normalized
+    rc, output = query("CRASH", "CRASH_LOG", "", ["logcat", "-b", "crash", "-d", "-v", "epoch,nsec", "-T", since])
+    found = malformed = False
+    if not rc:
+        for line in lines(output):
+            if not line or line[:1] not in b"0123456789":
+                continue
+            token = re.match(rb"[^ \t]+", line).group(0)
+            stamp = epoch(token.decode("ascii", "replace"))
+            if stamp is None:
+                malformed = True
+            elif stamp >= normalized:
+                found = True
+    if rc:
+        mark("FAIL", "crash query failed")
+    elif malformed:
+        mark("FAIL", "crash buffer parse failed")
+    elif found:
+        mark("FAIL", "crash found since baseline")
+    else:
+        mark("PASS", "crash-free since baseline")
+
+rc, output = query("SERVICE", "SERVICE_LIST", "42 sidebar: [android.os.ISidebar]", ["shell", "service", "list"])
+records = [SERVICE.fullmatch(line) for line in lines(output) if line]
+if rc:
+    mark("FAIL", "service query failed")
+elif any(match is None for match in records):
+    mark("FAIL", "service list parse failed")
+elif any(match.group(1) == b"sidebar" for match in records):
+    mark("PASS", "sidebar service registered")
+else:
+    mark("FAIL", "sidebar service missing")
+
+rc, output = query("PACKAGE", "PACKAGE_LIST", "package:com.android.sidebar", ["shell", "pm", "list", "packages"])
+records = [line for line in lines(output) if line]
+if rc:
+    mark("FAIL", "package query failed")
+elif any(not PACKAGE.fullmatch(line) for line in records):
+    mark("FAIL", "package list parse failed")
+elif b"package:com.android.sidebar" in records:
+    mark("PASS", "sidebar package installed")
+else:
+    mark("SKIP", "sidebar package missing")
+
+counts = {key: sum(status == key for status, _ in results) for key in ("PASS", "FAIL", "SKIP")}
+for status, detail in results:
+    print(status + "  " + detail)
+print("SUMMARY PASS=%d FAIL=%d SKIP=%d" % (counts["PASS"], counts["FAIL"], counts["SKIP"]))
+if counts["FAIL"]:
+    print("RESULT FAIL")
+    raise SystemExit(1)
+if counts["SKIP"] and not allow_skip:
+    print("RESULT INCOMPLETE")
+    raise SystemExit(2)
+print("RESULT PASS" + (" (SKIP allowed)" if counts["SKIP"] else ""))
+PY
