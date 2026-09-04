@@ -1,12 +1,13 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 03e 复盘五问均否：未推翻后序前提、无计划外工作、后序片未变大、依赖顺序不调、无未决新问题；PLAN v5.7 不变
-updated: '2026-09-04T10:51:25+08:00'
-current_spec: null
-spec_stage: null
+basis: 7个任务全部完成；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243；七行review manifest连续且全PASS；fixed
+  static、candidate/full/depth1/rollback、exact3=400、后序五类缺席门和clean全绿
+updated: '2026-09-04T18:07:55+08:00'
+current_spec: 2026-09-04-04-runtime-resource-leases
+spec_stage: accept
 mode: standard
 workflow: requirements-first
 ---
@@ -137,6 +138,11 @@ workflow: requirements-first
 | 2026-09-04T10:28:16+08:00 | spec/execute | spec/accept | 03e 八任务全部 DONE 且独立 review PASS；manifest 八行 awk rc0；终门 check-tasks/check-req/check-criteria/check-analyze、default 逐字、offline 发现恰1次、diff --check、clean、04 顺序门全绿；accepted HEAD 5b2e66b3 exact6=367≤400 |
 | 2026-09-04T10:48:37+08:00 | spec/accept | retro | 03e 验收通过：accepted HEAD 5b2e66b3 exact6=367≤400 FF 合入 main；本消息主验证/offline/full/depth-1/rollback/顺序门/隔离 converge 全绿；簿记 267f18c+60be2ba；post-merge 回归 default 逐字+offline 发现恰1次 |
 | 2026-09-04T10:51:25+08:00 | retro | select | 03e 复盘五问均否：未推翻后序前提、无计划外工作、后序片未变大、依赖顺序不调、无未决新问题；PLAN v5.7 不变 |
+| 2026-09-04T11:19:42+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-04-04-runtime-resource-leases |
+| 2026-09-04T11:49:08+08:00 | spec/requirements | spec/design | 门② autopilot：requirements 三轮独立 review 最终 PASS（0/0/0），agent+human/autopilot 结构化 review policy 通过；owner/完全独占/bundle publish-unpublish/规范 request/状态根/错误表与门③ sizing 回流责任闭合，check-req/check-criteria/check-analyze/diff-check 全绿 |
+| 2026-09-04T15:11:08+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v5.8回流design三轮审查达熔断后由同reviewer只读融合验证最终PASS（0/0/0）；stored lexical canonical、capture安全生命周期、helper固定协议与publish后rollback、assurance反证全部闭合，core exact3=400/400、04a exact1=398/400，固定工具/运行/机械检查全绿 |
+| 2026-09-04T15:31:20+08:00 | spec/tasks | spec/execute | 门④ autopilot：tasks三轮独立审查最终PASS（0/0/0）；7任务/68字面验收资产/源码独占与零delta边界/R1-R10并集/产消链/checkout+rollback+04a五类缺席门/七行manifest闭合，机械检查全绿 |
+| 2026-09-04T18:07:55+08:00 | spec/execute | spec/accept | 7个任务全部完成；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243；七行review manifest连续且全PASS；fixed static、candidate/full/depth1/rollback、exact3=400、后序五类缺席门和clean全绿 |
 
 ## SKIPPED 记录
 
