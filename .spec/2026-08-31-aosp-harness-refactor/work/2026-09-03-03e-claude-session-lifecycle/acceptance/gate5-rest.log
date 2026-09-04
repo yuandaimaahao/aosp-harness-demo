@@ -1,0 +1,74 @@
+===== order gate (bash, no nullglob) =====
+bash: line 2: set: nullglob: invalid option name
+specs_absent_rc=0
+work_absent_rc=0
+branch_absent_rc=0
+wt_absent_rc=0
+files_count=18
+files_breakdown:
+      7 execution-base.env
+     11 ledger.md
+files_nonempty_rc=0
+scoped_rg_absent_rc=0
+===== converge isolated clone + listed assets =====
+Cloning into '/tmp/tmp.Qr7wLbemFQ/converge'...
+5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+cp: cannot stat '/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.1-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.1-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.2-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.2-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.3-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.3-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.1-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.1-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.2-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.2-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.3-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.3-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.4-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.4-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.5-red.txt'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.5-report.md'$'\n''.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/acceptance/acceptance-report.md'$'\n': No such file or directory
+missing: 欠账: path 在文件清单里但 BASE..HEAD 未改
+missing: 欠账: path:行号 在文件清单里但 BASE..HEAD 未改
+converge_isolated_rc=1
+===== full clone =====
+Cloning into '/tmp/tmp.3H1tXC8Kvc/full'...
+full_HEAD=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+full_count=208
+full_default_rc=0
+full_default_exact True
+full_stderr_bytes 0
+full_offline_rc=0
+full_offline_tail=RESULT PASS  aosp-harness offline quality gate
+full_discover=1
+full_stderr_bytes=0
+===== depth-1 clone =====
+Cloning into '/tmp/tmp.VLRuxFHMgN/d1'...
+d1_HEAD=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+d1_count=1
+d1_shallow_lines=1
+d1_default_rc=0
+d1_default_exact True
+d1_stderr_bytes 0
+d1_offline_rc=0
+d1_offline_tail=RESULT PASS  aosp-harness offline quality gate
+d1_discover=1
+===== rollback clone =====
+Cloning into '/tmp/tmp.U8jCT2Jx4l/rollback'...
+rm 'claude-code/features/.harness/hooks/session-end.sh'
+rm 'tests/test-claude-session-lifecycle.sh'
+[spec/2026-09-03-03e-claude-session-lifecycle 37029cc] revert: roll back 03e claude session lifecycle to execution BASE
+ 6 files changed, 20 insertions(+), 347 deletions(-)
+ delete mode 100755 claude-code/features/.harness/hooks/session-end.sh
+ delete mode 100644 tests/test-claude-session-lifecycle.sh
+rollback_name_status:
+M	claude-code/features/.harness/hooks/check-branch-drift.sh
+M	claude-code/features/.harness/hooks/load-feature.sh
+D	claude-code/features/.harness/hooks/session-end.sh
+M	claude-code/features/.harness/settings.json
+M	claude-code/run-demo.sh
+D	tests/test-claude-session-lifecycle.sh
+rollback_vs_base_bytes=0
+rb_snap_rc=0
+b'RESULT PASS  session snapshot safety\n'
+rb_as_rc=0
+b'RESULT PASS  session snapshot assurance\n'
+rb_sig_rc=0
+b'RESULT PASS  session write interrupts\n'
+rb_st_rc=0
+b'RESULT PASS  session state\n'
+rb_off_rc=0
+rb_off_tail=RESULT PASS  aosp-harness offline quality gate
+rb_discover=
+rb_session_end_absent=0
+rb_test_absent=0
+rb_porcelain=0
+===== worktree still clean =====
+wt_HEAD=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+porcelain_lines=0

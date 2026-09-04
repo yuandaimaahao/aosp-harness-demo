@@ -1,0 +1,102 @@
+===== HEAD/porcelain =====
+wt_HEAD=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+expected_HEAD=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+porcelain_lines=0
+===== exact6 name-only =====
+claude-code/features/.harness/hooks/check-branch-drift.sh
+claude-code/features/.harness/hooks/load-feature.sh
+claude-code/features/.harness/hooks/session-end.sh
+claude-code/features/.harness/settings.json
+claude-code/run-demo.sh
+tests/test-claude-session-lifecycle.sh
+===== numstat sum =====
+38	3	claude-code/features/.harness/hooks/check-branch-drift.sh
+46	3	claude-code/features/.harness/hooks/load-feature.sh
+47	0	claude-code/features/.harness/hooks/session-end.sh
+3	0	claude-code/features/.harness/settings.json
+37	14	claude-code/run-demo.sh
+176	0	tests/test-claude-session-lifecycle.sh
+NUMSTAT_SUM=367
+===== UPSTREAM12 =====
+upstream_changed_lines=0
+===== tools =====
+shfmt=v3.14.0
+version: 0.11.0
+===== shfmt -d =====
+shfmt_rc=0
+===== shellcheck =====
+shellcheck_rc=0
+===== bash -n =====
+bash_n_rc=0
+===== settings.json =====
+json_ok
+===== compat count =====
+claude-code/features/.harness/hooks/load-feature.sh 1
+claude-code/features/.harness/hooks/check-branch-drift.sh 1
+claude-code/features/.harness/hooks/session-end.sh 1
+===== diff --check =====
+diff_check_rc=0
+===== manifest awk =====
+awk_NR=8
+awk_prev=5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+manifest_awk_rc=0
+===== checkers =====
+check-tasks_rc=0
+check-req_rc=0
+check-criteria_rc=0
+check-analyze_rc=0
+===== check-converge worktree =====
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/acceptance/acceptance-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.1-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.2-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.3-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.1-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.2-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.3-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.4-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.5-red.txt
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.1-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.2-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.3-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.1-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.2-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.3-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.4-report.md
+missing: 验收资产不可用: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.5-report.md
+converge_wt_rc=1
+===== check-converge primary =====
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/STATE.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/acceptance/gate5-mechanical.log 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-5b2e66b3-5b2e66b3.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-a8d03d1d-5b2e66b3.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.3-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.3-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.1-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.1-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.2-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.2-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.3-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.3-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.4-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.4-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.5-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.5-review-r1.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/worktree 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/PLAN.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/STATE.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/specs/2026-09-03-01-module-probe/evidence/task-2.1-red.txt 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/specs/2026-09-03-01-module-probe/evidence/task-2.2-red.txt 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/specs/2026-09-03-01-module-probe/evidence/task-2.3-red.txt 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/specs/2026-09-03-01-module-probe/ledger.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.1-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.1-report.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.2-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.2-report.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.3-brief.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/task-2.3-report.md 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: .spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/worktree/ 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: common/.harness/closure/v1/lib/__pycache__/closure_probe.cpython-312.pyc 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: common/.harness/closure/v1/lib/__pycache__/module_probe.cpython-312.pyc 在 BASE..HEAD 里但不在文件清单
+missing: 范围扩张: common/.harness/closure/v1/lib/closure_probe.py 在 BASE..HEAD 里但不在文件清单
+converge_primary_rc=1

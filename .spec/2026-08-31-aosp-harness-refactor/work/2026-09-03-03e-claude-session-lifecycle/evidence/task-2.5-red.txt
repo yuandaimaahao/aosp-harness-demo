@@ -1,0 +1,12 @@
+=== 步骤 1：红阶段核对（task-2.5） ===
+$ test -s "$WORK/acceptance/acceptance-report.md"
+rc=1
+
+$ git -C "$IMPLEMENTATION_WORKTREE" rev-parse HEAD
+5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+
+$ git -C "$IMPLEMENTATION_WORKTREE" status --porcelain | wc -l
+0
+
+ACCEPTED_HEAD 预期值: 5b2e66b3be9079aa31b4b6eba2da88888a3aaeba
+核对结果: HEAD 与 ACCEPTED_HEAD 逐字相等, porcelain 空行数=0, 均通过

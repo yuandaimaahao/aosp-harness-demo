@@ -1,0 +1,2 @@
+红阶段: test -s "$WORK/task-2.2-report.md" → rc=1（报告缺席，stdout/stderr 双流空）
+HEAD 核对: implementation worktree `git rev-parse HEAD` = 5b2e66b3be9079aa31b4b6eba2da88888a3aaeba = ACCEPTED_HEAD（逐字相等）

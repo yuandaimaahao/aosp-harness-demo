@@ -1,0 +1,31 @@
+===== candidate default =====
+default_rc=0
+default_stdout= 52 45 53 55 4c 54 20 50 41 53 53 20 20 63 6c 61
+ 75 64 65 20 73 65 73 73 69 6f 6e 20 6c 69 66 65
+ 63 79 63 6c 65 0a
+default_stdout_text=RESULT PASS  claude session lifecycle
+default_stderr_bytes=0
+default_cmp_rc=1
+===== candidate all =====
+all_rc=0
+all_cmp_rc=1
+all_stderr_bytes=0
+default_all_stdout_cmp=0
+===== candidate absent flag =====
+absent_rc=0
+absent_cmp_rc=1
+absent_stderr_bytes=0
+===== upstream sha after =====
+upstream_sha_cmp=0
+===== porcelain after tests =====
+porcelain_lines=0
+===== offline =====
+offline_rc=0
+offline_stderr_bytes=0
+offline_tail:
+RESULT PASS  session snapshot assurance
+RESULT PASS  session snapshot safety
+RESULT PASS  session state foundation
+RESULT PASS  session state
+RESULT PASS  aosp-harness offline quality gate
+lifecycle_discover_count=1

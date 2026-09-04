@@ -1,0 +1,15 @@
+task=task-1.1
+command=bash claude-code/features/.harness/hooks/session-end.sh </dev/null
+expected=file absent, rc127, stdout empty (no compat marker), stderr reports "No such file or directory"
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=b92823cb3f452d36603f6d34daeaf54f6b74887022d8cc609c7c6fda60642e84
+assertion=test ! -e claude-code/features/.harness/hooks/session-end.sh passed before invocation; invocation rc=127 confirms hook file absence (command-not-found), stdout is empty (sha256 of empty string), so no "compat: session-provider=legacy" marker is present -- red baseline for R5/session-end.sh creation.
+
+task=task-1.1
+command=rg -q 'SessionEnd' claude-code/features/.harness/settings.json
+expected=rc1 (no SessionEnd registration present in settings.json yet)
+rc=1
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=rg -q exits 1 (no match) because settings.json at BASE only registers SessionStart and UserPromptSubmit -- red baseline for R5/settings.json SessionEnd registration.

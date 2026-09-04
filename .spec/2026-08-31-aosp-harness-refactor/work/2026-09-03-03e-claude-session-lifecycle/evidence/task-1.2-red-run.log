@@ -1,0 +1,113 @@
+=== task-1.2 red evidence run (R7: demo writes escape the mktemp subtree) ===
+date_utc=2026-09-03T15:45:05Z
+worktree=/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/worktree
+worktree_HEAD=b2fab1905278fd523134a8ac656fa152a0824669
+run_demo_sha256_worktree=8ed580c4261b7f74b4788fe9996897d2a45a1a00510d5c3fd1f9bfc3626e03b3
+
+--- step A: git clone --no-local . "$tmp/democlone" ---
+Cloning into '/tmp/tmp.rxMq6tp9mW/democlone'...
+clone_HEAD=b2fab1905278fd523134a8ac656fa152a0824669
+run_demo_sha256_clone=8ed580c4261b7f74b4788fe9996897d2a45a1a00510d5c3fd1f9bfc3626e03b3
+
+--- step B: mkdir -p "$tmp/demotmp" (MUST precede the run) ---
+demotmp_before:
+/tmp/tmp.rxMq6tp9mW/demotmp
+
+--- step C: main command -> TMPDIR="$tmp/demotmp" bash claude-code/run-demo.sh (cwd=$tmp/democlone) ---
+
+############################################################
+# ① 上下文：安装器暴露版本化公共 Harness
+############################################################
+[install-harness] 已安装：.claude -> features/.harness
+    .claude → features/.harness
+
+############################################################
+# ① 上下文：启动 wrapper 在 Claude 进程启动前同步 feature 软链
+############################################################
+[claude-feature] CLAUDE.md -> features/dev-sidebar/CLAUDE.md
+compat: session-provider=legacy
+[load-feature] 当前 feature=dev-sidebar，CLAUDE.md 已由启动 wrapper 预同步。
+
+  —— 结果：Claude 启动前，树根 CLAUDE.md 已指向正确 feature ——
+    CLAUDE.md → features/dev-sidebar/CLAUDE.md
+    穿软链首个标题: # 树根 CLAUDE.md（① 上下文层 · 启动前同步）
+    含各仓约定小节: 2 个（frameworks/base、frameworks/native）
+
+############################################################
+# ① 上下文（漂移检测）：模拟会话中途 repo checkout 切了分支
+############################################################
+  [无漂移时] check-branch-drift.sh 零输出：
+compat: session-provider=legacy
+  <上面应无告警>
+  [切到 dev-next 后] 再跑 check-branch-drift.sh：
+compat: session-provider=legacy
+⚠️ [分支漂移] 会话注入时在 'dev-sidebar'，现在切到了 'dev-next'。
+   当前会话仍含旧上下文；退出后用 .claude/bin/claude-feature 重启，别拿旧分支约定改新分支。
+  <已还原 CURRENT_FEATURE=dev-sidebar>
+
+############################################################
+# ① 上下文：涉及仓分支一致性检查（check-branch.sh --demo）
+############################################################
+OK      frameworks/base @ dev-sidebar
+OK      frameworks/native @ dev-sidebar
+OK      packages/apps/SidebarApp @ dev-sidebar
+DRIFT   build/make @ main (应为 dev-sidebar)
+OK      system/sepolicy @ dev-sidebar
+[demo] 已按预期识别样本分支漂移。
+
+############################################################
+# ② 流程：离线自检编译 / 部署 skill 工件
+############################################################
+PASS  build-services-jar skill 工件完整
+PASS  build-sepolicy skill 工件完整
+RESULT PASS
+[demo] 离线模式验证 skill 的结构和关键流程；实际调用发生在 Claude 会话中。
+
+############################################################
+# ③ 验证闭环：verify-sidebar.sh --demo 四步确定性断言
+############################################################
+===== verify dev-sidebar (demo=1 crash_since=0) =====
+PASS  sys.boot_completed = 1
+PASS  system_server 存活
+PASS  crash buffer 自 0 起无崩溃
+PASS  系统服务 sidebar 已注册
+PASS  边栏 app com.android.sidebar 已安装
+-------------------------------------------
+PASS=5  FAIL=0  SKIP=0
+RESULT PASS
+
+############################################################
+# 回归测试
+############################################################
+PASS  demo harness startup, process layer, and strict verification
+
+############################################################
+# 三层演示完毕
+############################################################
+对应关系见 README.md『三层与文中章节对应』表。
+demo_rc=0
+demo_stdout_sha256=030ae87b22a7307e7a6a4c0b7a79104f046d8cde222219e1dc585d6439bb6263
+demo_stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  (empty-string sha256 = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
+demo_stderr_bytes=0
+
+--- step D: primary red assertion -> global snapshot was created under the private TMPDIR ---
+demotmp_after:
+/tmp/tmp.rxMq6tp9mW/demotmp
+/tmp/tmp.rxMq6tp9mW/demotmp/.aosp-harness-demo.feature-snapshot
+SNAPSHOT_PRESENT=yes
+snapshot_cat_A=dev-sidebar
+snapshot_sha256=fe576e609991dd9ea603b8d23980816c9242a93bcda5406e0b268400e6304562
+oracle_printf_dev_sidebar_sha256=fe576e609991dd9ea603b8d23980816c9242a93bcda5406e0b268400e6304562
+
+--- step E: second conjunct (source-level, post-run unobservable because EXIT trap restores it) ---
+$ rg -n 'echo "dev-next" > CURRENT_FEATURE' claude-code/run-demo.sh
+39:echo "dev-next" > CURRENT_FEATURE
+rg_devnext_count=1
+$ rg -n 'trap restore_feature EXIT' claude-code/run-demo.sh
+17:trap restore_feature EXIT
+rg_trap_count=1
+
+--- step F: real /tmp must be unpolluted (double isolation held) ---
+REAL_TMP_CLEAN=yes
+
+=== end of red evidence run ===

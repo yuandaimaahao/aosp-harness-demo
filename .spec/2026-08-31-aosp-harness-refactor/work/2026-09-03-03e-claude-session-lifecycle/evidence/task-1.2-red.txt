@@ -1,0 +1,7 @@
+task=task-1.2
+command=TMPDIR="$tmp/demotmp" bash claude-code/run-demo.sh（cwd=$tmp/democlone，clone 由 `git clone --no-local .` 自 worktree HEAD b2fab1905278fd523134a8ac656fa152a0824669 生成，clone_HEAD 逐字相同；$tmp/demotmp 已先 mkdir -p）
+expected=快照生成即 R7 缺陷在场：现状 demo 以 rc0 结束却往 ${TMPDIR:-/tmp} 写下全局快照文件 .aosp-harness-demo.feature-snapshot，内容为 dev-sidebar（clone + 私有 TMPDIR 双重隔离，真实 /tmp 零污染）
+rc=0
+stdout_sha256=030ae87b22a7307e7a6a4c0b7a79104f046d8cde222219e1dc585d6439bb6263
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=rc0（demo 正常结束，stderr 逐字空、0 字节，sha256 等于空串 sha256）；快照路径 $tmp/demotmp/.aosp-harness-demo.feature-snapshot 经 test -e 确认 SNAPSHOT_PRESENT=yes，内容经 cat -A 核为 dev-sidebar 且无尾随 LF，快照内容 sha256=fe576e609991dd9ea603b8d23980816c9242a93bcda5406e0b268400e6304562，与 oracle `printf '%s' dev-sidebar | sha256sum` 逐字相等；第二合取项「demo 期间树根 CURRENT_FEATURE 被改写后才由 restore_feature 还原」在 run 结束后已被 EXIT trap 还原、事后不可观测，故改为源码级观察：`rg -n 'echo "dev-next" > CURRENT_FEATURE' claude-code/run-demo.sh` 命中行号 39、`rg -n 'trap restore_feature EXIT' claude-code/run-demo.sh` 命中行号 17，各恰一行（rg -c 均为 1）；clone 内与 worktree 内 claude-code/run-demo.sh 的 sha256 同为 8ed580c4261b7f74b4788fe9996897d2a45a1a00510d5c3fd1f9bfc3626e03b3，证明红是对现状文件所跑；真实 /tmp 下 .aosp-harness-demo.feature-snapshot 事后仍缺席（REAL_TMP_CLEAN=yes），双重隔离成立；本条红因证明现状 run-demo.sh 把全局快照写入 ${TMPDIR:-/tmp} 并临时改写树根 CURRENT_FEATURE，即 R7 待修复缺陷；完整命令与逐段输出见日志 evidence/task-1.2-red-run.log

@@ -1,0 +1,7 @@
+task=task-1.3
+command=test ! -e tests/test-claude-session-lifecycle.sh && bash tests/test-claude-session-lifecycle.sh（cwd=worktree，HEAD=a8d03d1d59b42f2503a2dc3a2e906c9204efafb3，双流落 mktemp 目录后按字节取 sha256）
+expected=file absent, rc127, stdout empty (no PASS summary), stderr reports "No such file or directory"
+rc=127
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=be64cf55a6858e6858847166cf3f2ef89c5c45506b27b64fee9545be9aaed5ee
+assertion=前置 test ! -e tests/test-claude-session-lifecycle.sh 在调用前通过（默认发现入口物理缺席）；bash 调用 rc=127 即 command-not-found，证明 R8 要求的默认发现测试入口尚不存在；stdout 0 字节（sha256 等于空串 sha256 e3b0c442...），故固定摘要 `RESULT PASS  claude session lifecycle` 出现 0 次、grep -c PASS 为 0；stderr 逐字为 `bash: tests/test-claude-session-lifecycle.sh: No such file or directory\n`（sha256=be64cf55a6858e6858847166cf3f2ef89c5c45506b27b64fee9545be9aaed5ee）——这是 R1–R8 的 red baseline：三 hook 与 settings.json（任务 1.1）、run-demo.sh（任务 1.2）已在场且已提交，但把 v1 生命周期矩阵、七类 fixture、legacy/absent surface 与 CLI 分流机械化的可运行 oracle 缺席，无任何自动化断言能证明其行为，故本任务创建该入口。
