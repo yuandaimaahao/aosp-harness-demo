@@ -1,0 +1,10 @@
+task=2 red phase
+worktree=/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree
+base=3ab44a5430d9038d20ec143ebe2c0846349f584e
+command=cmp -s tests/test-resource-leases-assurance.sh /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-04-04a-runtime-resource-lease-assurance/prototypes/tests/test-resource-leases-assurance.sh
+result=rc 2 (target entry absent)
+stdout=
+stderr=
+prototype_sha256=0bf21e8f9d29e5a87cdcc8e962ede20143ccbf49fcb742756923f519b327690b
+prototype_bytes=24945
+prototype_lines=396

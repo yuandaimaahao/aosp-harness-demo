@@ -1,0 +1,47 @@
+command: source-verified four-file external tree; timeout 180 bash tests/test-resource-leases-assurance.sh
+commit: 3ab44a5430d9038d20ec143ebe2c0846349f584e
+assurance_source_path: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-04-04a-runtime-resource-lease-assurance/prototypes/tests/test-resource-leases-assurance.sh
+assurance_source_sha256: 0bf21e8f9d29e5a87cdcc8e962ede20143ccbf49fcb742756923f519b327690b
+assurance_source_bytes: 24945
+assurance_source_lines: 396
+temp_path: /tmp/aosp-harness-lease-assurance-task1-source-green.Jjtby9
+temp_before_absent: PASS
+assurance_copy_path: /tmp/aosp-harness-lease-assurance-task1-source-green.Jjtby9/tests/test-resource-leases-assurance.sh
+assurance_copy_sha256: 0bf21e8f9d29e5a87cdcc8e962ede20143ccbf49fcb742756923f519b327690b
+assurance_copy_bytes: 24945
+assurance_copy_lines: 396
+assurance_cmp_source_copied_rc: 0
+provider_source_path: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree/common/.harness/lib/resource-leases.sh
+provider_source_sha256: fa6784af1824ae4dc79dca2af01b7edab3392f3e96b4d326a089273b1c228bac
+provider_source_bytes: 14725
+provider_source_lines: 336
+provider_copy_path: /tmp/aosp-harness-lease-assurance-task1-source-green.Jjtby9/common/.harness/lib/resource-leases.sh
+provider_copy_sha256: fa6784af1824ae4dc79dca2af01b7edab3392f3e96b4d326a089273b1c228bac
+provider_copy_bytes: 14725
+provider_copy_lines: 336
+provider_cmp_source_copied_rc: 0
+docs_source_path: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree/docs/resource-leases.md
+docs_source_sha256: f16ea8af762fc9dfc65b5d8e96c9c42db9b9253a1c64aae5703a6cc3f5963dea
+docs_source_bytes: 2228
+docs_source_lines: 7
+docs_copy_path: /tmp/aosp-harness-lease-assurance-task1-source-green.Jjtby9/docs/resource-leases.md
+docs_copy_sha256: f16ea8af762fc9dfc65b5d8e96c9c42db9b9253a1c64aae5703a6cc3f5963dea
+docs_copy_bytes: 2228
+docs_copy_lines: 7
+docs_cmp_source_copied_rc: 0
+base-test_source_path: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree/tests/test-resource-leases.sh
+base-test_source_sha256: d2f324a3f9ae0efef805a8cae7297d996bd7804e119b65e8cc922d69fa2a0983
+base-test_source_bytes: 3672
+base-test_source_lines: 57
+base-test_copy_path: /tmp/aosp-harness-lease-assurance-task1-source-green.Jjtby9/tests/test-resource-leases.sh
+base-test_copy_sha256: d2f324a3f9ae0efef805a8cae7297d996bd7804e119b65e8cc922d69fa2a0983
+base-test_copy_bytes: 3672
+base-test_copy_lines: 57
+base-test_cmp_source_copied_rc: 0
+layout: provider assurance docs base-test; repo-external ordinary files
+rc: 0
+stdout_bytes: 38
+stderr_bytes: 0
+stream_oracle: PASS exact fixed summary and empty stderr
+monotonic_oracle: PASS assurance source executes ASSURANCE_CLOCK final-attempt case and flock-count assertion; green rc0
+temp_after_absent: PASS

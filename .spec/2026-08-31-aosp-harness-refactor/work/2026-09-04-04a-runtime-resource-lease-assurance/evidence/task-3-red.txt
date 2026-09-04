@@ -1,0 +1,6 @@
+task-3 red-stage evidence
+command: test -s "/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/task-3-report.md"
+rc: 1
+stdout: <empty>
+stderr: <empty>
+result: expected failure: task-3-report.md was absent before task-3 verification began.

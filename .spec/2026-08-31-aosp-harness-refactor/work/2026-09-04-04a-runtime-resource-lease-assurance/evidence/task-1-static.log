@@ -1,0 +1,14 @@
+command: /tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn common/.harness/lib/resource-leases.sh
+exit: 0
+command: /tmp/aosp-harness-tools-04/shellcheck -x --severity=warning common/.harness/lib/resource-leases.sh
+exit: 0
+command: bash -n common/.harness/lib/resource-leases.sh
+exit: 0
+provider_numstat:
+2	2	common/.harness/lib/resource-leases.sh
+prototype_cmp:
+PASS
+public_api_count:
+2
+seam_count:
+1

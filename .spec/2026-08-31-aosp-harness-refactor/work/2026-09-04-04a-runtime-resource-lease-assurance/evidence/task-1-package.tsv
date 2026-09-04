@@ -1,0 +1,9 @@
+artifact	status	sha256_or_detail	bytes
+red	PASS	633a0e234bf66c7a2a923179a716142f1bfea8232ecec0e4464ec72adcdfbfff; rc1; first failure FAIL monotonic attempt count	407
+static	PASS	eb368c2664d43329fe22287903021e7e0bf70ed5ec8c6d2e3a4d0b0a0a70a56b; shfmt/shellcheck/bash-n all rc0; provider cmp PASS; exact numstat 2/2	400
+green	PASS	stdout exact RESULT PASS  resource lease assurance; stderr empty; rc0; matrix oracle completed	38
+green.out	PASS	0efda5495dd5fa42489228b3267f9adf88a97d038370adad9f9e17b386d30855; exact fixed summary; rc0	38
+green.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; empty stderr; rc0	0
+green-command.log	PASS	24c7fa67062c70c0bd7a33047e390d4e4649150b6f5492455a27dd617c066d09; rc0; source/copy paths, SHA/bytes/lines, cmp rc0 for four inputs; monotonic oracle; temp before/after absent	3050
+provider	PASS	fa6784af1824ae4dc79dca2af01b7edab3392f3e96b4d326a089273b1c228bac; 336 lines; prototype cmp PASS; API count 2; seam count 1	14725
+commit	PASS	BASE=ffb05899c33d04b4c3d1c6605b3d39b1e6a05204; HEAD=3ab44a5430d9038d20ec143ebe2c0846349f584e; exact one file; numstat 2/2; clean	-

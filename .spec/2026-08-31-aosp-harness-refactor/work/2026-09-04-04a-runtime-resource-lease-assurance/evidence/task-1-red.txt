@@ -1,0 +1,9 @@
+command: bash tests/test-resource-leases-assurance.sh
+fixture: repo-external mktemp tree with provider, assurance, docs, and base-test
+provider: accepted production provider (before deadline final-attempt patch)
+exit: 1
+stdout:
+stderr:
+FAIL monotonic attempt count
+assertion: deadline path performed only one flock attempt; no PASS output was emitted
+cleanup: temporary tree physically absent after cleanup

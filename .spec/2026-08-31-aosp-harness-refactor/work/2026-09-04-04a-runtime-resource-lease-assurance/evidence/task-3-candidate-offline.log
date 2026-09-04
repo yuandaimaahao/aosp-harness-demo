@@ -1,0 +1,77 @@
+task-3 candidate verification
+implementation: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree
+BASE=ffb05899c33d04b4c3d1c6605b3d39b1e6a05204
+ACCEPTED_HEAD=3f17cf66c1a13296d77ed1f900109fc1feb633c6
+
+command: /tmp/aosp-harness-tools-04/shfmt --version
+rc: 0
+stdout: v3.14.0
+command: /tmp/aosp-harness-tools-04/shellcheck --version
+rc: 0
+stdout version field: version: 0.11.0
+command: /tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn common/.harness/lib/resource-leases.sh tests/test-resource-leases-assurance.sh
+rc: 0
+stdout: <empty>
+stderr: <empty>
+command: /tmp/aosp-harness-tools-04/shellcheck -x --severity=warning common/.harness/lib/resource-leases.sh tests/test-resource-leases-assurance.sh
+rc: 0
+stdout: <empty>
+stderr: <empty>
+command: bash -n common/.harness/lib/resource-leases.sh tests/test-resource-leases-assurance.sh
+rc: 0
+stdout: <empty>
+stderr: <empty>
+
+command: cmp -s candidate/common/.harness/lib/resource-leases.sh prototype/common/.harness/lib/resource-leases.sh
+rc: 0
+command: cmp -s candidate/tests/test-resource-leases-assurance.sh prototype/tests/test-resource-leases-assurance.sh
+rc: 0
+command: git diff --name-status "$BASE" "$ACCEPTED_HEAD"
+rc: 0
+stdout:
+M	common/.harness/lib/resource-leases.sh
+A	tests/test-resource-leases-assurance.sh
+command: git diff --numstat "$BASE" "$ACCEPTED_HEAD"
+rc: 0
+stdout:
+2	2	common/.harness/lib/resource-leases.sh
+396	0	tests/test-resource-leases-assurance.sh
+computed additions/deletions/total-churn: 398/2/400
+command: git diff --name-only "$BASE" "$ACCEPTED_HEAD" -- docs/resource-leases.md tests/test-resource-leases.sh
+rc: 0
+stdout: <empty>
+command: git diff --check "$BASE" "$ACCEPTED_HEAD"
+rc: 0
+stdout: <empty>
+
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./tests/test-resource-leases-assurance.sh
+rc: 0
+stdout:
+RESULT PASS  resource lease assurance
+stderr: <empty>
+fixed-summary-occurrences: 1
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./scripts/check.sh --offline
+rc: 0
+stdout:
+RESULT PASS  claude session lifecycle
+PASS  demo harness startup, process layer, and strict verification
+PASS  Codex feature context selection and branch checks
+RESULT PASS  shared Harness regression suite
+RESULT PASS  device safety
+RESULT PASS  offline quality gate child
+RESULT PASS  resource lease assurance
+RESULT PASS  resource leases
+RESULT PASS  session path race assurance
+RESULT PASS  session path safety
+RESULT PASS  session write interrupts
+RESULT PASS  session snapshot assurance
+RESULT PASS  session snapshot safety
+RESULT PASS  session state foundation
+RESULT PASS  session state
+RESULT PASS  aosp-harness offline quality gate
+stderr: <empty>
+offline fixed-summary-occurrences: 1
+offline last line: RESULT PASS  aosp-harness offline quality gate
+command: git status --porcelain
+rc: 0
+stdout: <empty>

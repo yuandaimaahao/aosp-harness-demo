@@ -1,0 +1,8 @@
+task=4 red phase
+command: test -s "/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/acceptance/acceptance-report.md"
+rc: 1
+stdout: <empty>
+stderr: <empty>
+result: expected failure; acceptance/acceptance-report.md was absent before task-4 aggregation began.
+implementation_HEAD: 3f17cf66c1a13296d77ed1f900109fc1feb633c6
+implementation_status_porcelain_bytes: 0

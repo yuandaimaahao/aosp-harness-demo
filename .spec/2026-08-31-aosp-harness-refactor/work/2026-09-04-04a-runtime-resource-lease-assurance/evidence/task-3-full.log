@@ -1,0 +1,32 @@
+task-3 full-history checkout verification
+temporary root: /tmp/aosp-task3-checkouts.2GbKJT (removed after verification)
+command: git clone --no-local "$IMPLEMENTATION_WORKTREE" full
+rc: 0
+full HEAD: 3f17cf66c1a13296d77ed1f900109fc1feb633c6
+command: git diff --name-only ffb05899c33d04b4c3d1c6605b3d39b1e6a05204 3f17cf66c1a13296d77ed1f900109fc1feb633c6
+rc: 0
+stdout:
+common/.harness/lib/resource-leases.sh
+tests/test-resource-leases-assurance.sh
+command: git diff --numstat BASE HEAD
+rc: 0
+stdout:
+2	2	common/.harness/lib/resource-leases.sh
+396	0	tests/test-resource-leases-assurance.sh
+computed additions/deletions/total-churn: 398/2/400
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./tests/test-resource-leases-assurance.sh
+rc: 0
+stdout: RESULT PASS  resource lease assurance
+stderr: <empty>
+fixed-summary-occurrences: 1
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./scripts/check.sh --offline
+rc: 0
+key exact stdout lines:
+RESULT PASS  resource lease assurance
+RESULT PASS  resource leases
+RESULT PASS  aosp-harness offline quality gate
+stderr: <empty>
+offline fixed-summary-occurrences: 1
+command: git diff --check BASE HEAD; git status --porcelain
+rc: 0
+stdout: <empty>

@@ -1,0 +1,41 @@
+task=4 NEXT / 05-verifier-contract physical-absence gate (round-1 evidence correction)
+shell: independent bash --noprofile --norc
+shell_option_set_e: enabled
+nullglob: disabled (executed `shopt -u nullglob`; shell reported `shopt -u nullglob`)
+project: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor
+implementation: /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree
+
+command[spec-dir]: find "$PROJECT/specs" -mindepth 1 -maxdepth 1 -type d -name '*-05-verifier-contract' -print
+captured_path[spec-dir]: <none>
+rc[spec-dir]: 0 observed empty-result assertion
+
+command[branch]: git -C "$IMPLEMENTATION" branch --list 'spec/*-05-verifier-contract'
+captured_path[branch]: <none>
+rc[branch]: 0 observed empty-result assertion
+
+command[worktree]: git -C "$IMPLEMENTATION" worktree list --porcelain | rg -n --fixed-strings '05-verifier-contract'
+captured_path[worktree]: <none>
+rc[worktree]: 1 observed no-match result
+
+command[target-list]: find "$PROJECT" -path "$IMPLEMENTATION/.git" -prune -o -type f \( -name ledger.md -o -name execution-base.env -o -name dispatch.tsv \) -print0
+ledger_target_count: 27
+execution_base_target_count: 16
+dispatch_target_count: 0
+rc[target-list]: 0 observed
+
+command[ledger-execution]: rg -n --fixed-strings '05-verifier-contract' "${ledger_files[@]}"
+captured_path[ledger-execution]: <none>
+rc[ledger-execution]: 1 observed no-match result; rc=0 would be a forbidden 05 execution record and rc>1 a tool failure
+
+command[execution-base]: rg -n --fixed-strings '05-verifier-contract' "${execution_files[@]}"
+captured_path[execution-base]: <none>
+rc[execution-base]: 1 observed no-match result; rc=0 would be a forbidden 05 execution BASE and rc>1 a tool failure
+
+command[dispatch-input-identity]: test ! -L /dev/null; stat -Lc '%F:%s' /dev/null
+captured_path[dispatch-input]: /dev/null
+dispatch_input_identity: character special file:0 (non-symlink; 0 bytes)
+command[dispatch]: set +e; rg -n --fixed-strings '05-verifier-contract' /dev/null; observed_dispatch_rc=$?; set -e
+input[dispatch]: /dev/null
+rc[dispatch]: 1 observed no-match result; rc captured only while errexit was temporarily disabled and `set -e` was restored before the assertion; rc=0 would be a forbidden dispatch and rc>1 a tool failure
+
+NEXT: 05-verifier-contract creation remains forbidden. The controller must first independently review this corrected task-4 evidence, append its own manifest row 4, and perform the final prescribed rerun. This absence result is only a sequence gate; it is not dependency-present assurance evidence and creates no 05/06/08 asset.

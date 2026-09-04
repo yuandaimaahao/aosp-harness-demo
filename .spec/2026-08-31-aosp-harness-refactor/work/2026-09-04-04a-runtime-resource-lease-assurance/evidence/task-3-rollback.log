@@ -1,0 +1,36 @@
+task-3 isolated rollback verification
+temporary root: /tmp/aosp-task3-checkouts.2GbKJT/full (removed after verification)
+temporary branch: task3-rollback-3f17cf66 (deleted after verification)
+command: git switch -c task3-rollback-3f17cf66 3f17cf66c1a13296d77ed1f900109fc1feb633c6; git checkout ffb05899c33d04b4c3d1c6605b3d39b1e6a05204 -- common/.harness/lib/resource-leases.sh; git rm tests/test-resource-leases-assurance.sh; git commit
+rc: 0
+temporary rollback commit: 147052cfd2d4469b24f81602d19c564d9571c7c8
+command: git diff --name-status ACCEPTED_HEAD rollback
+rc: 0
+stdout:
+M	common/.harness/lib/resource-leases.sh
+D	tests/test-resource-leases-assurance.sh
+command: git diff --numstat ACCEPTED_HEAD rollback
+rc: 0
+stdout:
+2	2	common/.harness/lib/resource-leases.sh
+0	396	tests/test-resource-leases-assurance.sh
+command: git diff BASE rollback -- . ':(exclude).spec'
+rc: 0
+stdout: <empty> (rollback source diff relative to BASE is empty)
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./tests/test-resource-leases.sh
+rc: 0
+stdout: RESULT PASS  resource leases
+stderr: <empty>
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./tests/test-claude-session-lifecycle.sh
+rc: 0
+stdout: RESULT PASS  claude session lifecycle
+stderr: <empty>
+command: PATH=/tmp/aosp-harness-tools-04:$PATH bash ./scripts/check.sh --offline
+rc: 0
+key exact stdout lines:
+RESULT PASS  resource leases
+RESULT PASS  aosp-harness offline quality gate
+stderr: <empty>
+assurance entry discovery count in offline stdout: 0
+UPSTREAM relative-to-BASE diff: <empty>
+checkout clean before cleanup: yes

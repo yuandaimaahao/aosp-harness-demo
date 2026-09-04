@@ -1,0 +1,21 @@
+task=2 dependency-absent lifecycle-fault probes
+worktree=/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04a-runtime-resource-lease-assurance/worktree
+fixture_root=/tmp/aosp-harness-task2-lifecycle.IzE9Z1
+fixture_root_properties=repo-external,euid-owned,0700,directory
+cleanup_boundary=fixture_root is intentionally retained for controller prefix verification and deletion; only this /tmp/aosp-harness-task2-lifecycle. prefix is authorized.
+command=PATH=/tmp/aosp-harness-task2-lifecycle.IzE9Z1/mktemp-bin:$PATH bash ./tests/test-resource-leases-assurance.sh --dependency-absent
+mktemp_fault_rc=1
+mktemp_fault_stdout_bytes=0
+mktemp_fault_stderr_bytes=28
+mktemp_fault_stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+mktemp_fault_stderr_sha256=ce258fb8991810b3e15bc0d2457fa997d9f7663164a12893a41e0deebae3e814
+mktemp_fault_stderr=FAIL temporary tree fixture\n
+mktemp_fault_contains_pass=false
+command=PATH=/tmp/aosp-harness-task2-lifecycle.IzE9Z1/rm-bin:$PATH bash ./tests/test-resource-leases-assurance.sh --dependency-absent
+rm_fault_rc=1
+rm_fault_stdout_bytes=0
+rm_fault_stderr_bytes=28
+rm_fault_stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+rm_fault_stderr_sha256=1d6d09991b802c27bb93cb2c91613357d8f100fcf73f8d0e4455324897eddcf5
+rm_fault_stderr=FAIL temporary tree cleanup\n
+rm_fault_contains_pass=false
