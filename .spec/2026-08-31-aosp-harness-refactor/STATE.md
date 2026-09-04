@@ -1,13 +1,13 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: spec
+phase: retro
 phase_status: in_progress
-basis: 门③ design round2 PASS（reviews/design-03e-claude-session-lifecycle-round-2.md），ledger
-  已记 round1/round2 与自动通过行
-updated: '2026-09-03T11:40:44+08:00'
-current_spec: 2026-09-03-03e-claude-session-lifecycle
-spec_stage: tasks
+basis: 03e 验收通过：accepted HEAD 5b2e66b3 exact6=367≤400 FF 合入 main；本消息主验证/offline/full/depth-1/rollback/顺序门/隔离
+  converge 全绿；簿记 267f18c+60be2ba；post-merge 回归 default 逐字+offline 发现恰1次
+updated: '2026-09-04T10:48:37+08:00'
+current_spec: null
+spec_stage: null
 mode: standard
 workflow: requirements-first
 ---
@@ -134,6 +134,9 @@ workflow: requirements-first
 | 2026-09-03T09:54:52+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-03-03e-claude-session-lifecycle |
 | 2026-09-03T10:55:00+08:00 | spec/requirements | spec/design | 门② requirements round3 PASS(0/0/2)，check-req/check-criteria/check-analyze/diff --check 全 rc0，自动通过已记ledger |
 | 2026-09-03T11:40:44+08:00 | spec/design | spec/tasks | 门③ design round2 PASS（reviews/design-03e-claude-session-lifecycle-round-2.md），ledger 已记 round1/round2 与自动通过行 |
+| 2026-09-03T20:32:11+08:00 | spec/tasks | spec/execute | 门④ tasks round3 PASS（reviews/tasks-03e-claude-session-lifecycle-round-3.md，reviewer 明确「门④可放行」）；三轮独立 review 1/4/7→0/3/2→0/0/3 累计 17 条全闭合零挂账；八任务、exact6 sizing 390≤400、需求并集 R1–R10、manifest 八行 awk 经实跑反证；裁定 9（任务数硬门 8，合并两 checkout 任务）与裁定 10（demo mktemp 前缀，design 冻结专项裁决）已记 ledger；check-tasks（绝对路径）/check-req/check-criteria/check-analyze/diff --check 全 rc0 |
+| 2026-09-04T10:28:16+08:00 | spec/execute | spec/accept | 03e 八任务全部 DONE 且独立 review PASS；manifest 八行 awk rc0；终门 check-tasks/check-req/check-criteria/check-analyze、default 逐字、offline 发现恰1次、diff --check、clean、04 顺序门全绿；accepted HEAD 5b2e66b3 exact6=367≤400 |
+| 2026-09-04T10:48:37+08:00 | spec/accept | retro | 03e 验收通过：accepted HEAD 5b2e66b3 exact6=367≤400 FF 合入 main；本消息主验证/offline/full/depth-1/rollback/顺序门/隔离 converge 全绿；簿记 267f18c+60be2ba；post-merge 回归 default 逐字+offline 发现恰1次 |
 
 ## SKIPPED 记录
 
