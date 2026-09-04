@@ -246,8 +246,8 @@ def acquire(pid, pwd, session, wait, request_path):
                     return
             finally:
                 fcntl.flock(lock_fd, fcntl.LOCK_UN)
-            if not occupied or wait_value == 0 or test_seam("monotonic", time.monotonic()) >= deadline:
-                die(BUSY, 3)
+            if not occupied or wait_value == 0: die(BUSY, 3)
+            if test_seam("monotonic", time.monotonic()) >= deadline: continue
             time.sleep(min(0.05, max(0.0, deadline - time.monotonic())))
     finally:
         os.close(lock_fd)
