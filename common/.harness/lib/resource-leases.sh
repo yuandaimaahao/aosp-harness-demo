@@ -30,8 +30,7 @@ def test_seam(_point, value=None): return value
 FAIL = b"error: resource lease operation failed\n"
 BUSY = b"error: resource lease unavailable\n"
 SAFE = re.compile(rb"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
-class LeaseError(Exception):
-    pass
+class LeaseError(Exception): pass
 def die(message=FAIL, rc=2):
     os.write(2, message)
     raise SystemExit(rc)
@@ -108,10 +107,8 @@ def root_and_lock():
     encoded = os.fsencode(root)
     if not os.path.isabs(root) or any(ch < 32 or ch == 127 for ch in encoded):
         raise LeaseError()
-    try:
-        os.mkdir(root, 0o700)
-    except FileExistsError:
-        pass
+    try: os.mkdir(root, 0o700)
+    except FileExistsError: pass
     info = test_seam("root-owner", os.lstat(root))
     if (not stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)
             or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
@@ -201,7 +198,10 @@ def acquire(pid, pwd, session, wait, request_path):
     try:
         while True:
             occupied = False
-            test_seam("flock"); fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            try: test_seam("flock"); fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                if wait_value == 0 or test_seam("monotonic", time.monotonic()) >= deadline: die(BUSY, 3)
+                time.sleep(min(0.05, max(0.0, deadline - time.monotonic()))); continue
             try:
                 recover_trash(root)
                 records = []
