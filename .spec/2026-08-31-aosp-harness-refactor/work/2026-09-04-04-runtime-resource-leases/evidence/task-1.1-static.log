@@ -1,0 +1,40 @@
+task=task-1.1
+base=692d52d00b56df9609760aa33a6f9aa3c38095a3
+prototype=/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-04-04-runtime-resource-leases/prototypes/common/.harness/lib/resource-leases.sh
+target=common/.harness/lib/resource-leases.sh
+command=cmp -s common/.harness/lib/resource-leases.sh "$SPEC/prototypes/common/.harness/lib/resource-leases.sh"
+rc=0
+command=test "$(wc -l <common/.harness/lib/resource-leases.sh)" = 336
+rc=0
+line_count=336
+command=/tmp/aosp-harness-tools-04/shfmt --version
+rc=0
+stdout=v3.14.0
+command=/tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn common/.harness/lib/resource-leases.sh
+rc=0
+stdout_bytes=0
+stderr_bytes=0
+command=/tmp/aosp-harness-tools-04/shellcheck --version
+rc=0
+version_field=0.11.0
+command=/tmp/aosp-harness-tools-04/shellcheck -x --severity=warning common/.harness/lib/resource-leases.sh
+rc=0
+stdout_bytes=0
+stderr_bytes=0
+command=bash -n common/.harness/lib/resource-leases.sh
+rc=0
+command=bash -c 'source "$1"' bash common/.harness/lib/resource-leases.sh
+rc=0
+source_out_bytes=0
+source_err_bytes=0
+source_out_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+source_err_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+command=bash -c 'source "$1"; compgen -A function | LC_ALL=C sort | awk "/^harness_/ {print}"' bash common/.harness/lib/resource-leases.sh
+rc=0
+public_functions=harness_lease_acquire,harness_lease_release
+command=bash -c 'unset HARNESS_SESSION_STATE_PROVIDER_VERSION; source "$1"; test -z "${HARNESS_SESSION_STATE_PROVIDER_VERSION+x}"' bash common/.harness/lib/resource-leases.sh
+rc=0
+session_state_provider_marker=absent
+command=rg -o -F HARNESS_RESOURCE_LEASE_TEST_SEAM common/.harness/lib/resource-leases.sh | wc -l
+rc=0
+seam_count=1

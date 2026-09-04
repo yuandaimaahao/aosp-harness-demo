@@ -1,0 +1,8 @@
+commands:
+- /tmp/aosp-harness-tools-04/shfmt --version => v3.14.0
+- /tmp/aosp-harness-tools-04/shellcheck --version => version: 0.11.0
+- /tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn tests/test-resource-leases.sh common/.harness/lib/resource-leases.sh => rc=0, stdout/stderr empty
+- /tmp/aosp-harness-tools-04/shellcheck -x --severity=warning tests/test-resource-leases.sh common/.harness/lib/resource-leases.sh => rc=0, stdout/stderr empty
+- bash -n tests/test-resource-leases.sh common/.harness/lib/resource-leases.sh => rc=0, stdout/stderr empty
+- cmp -s tests/test-resource-leases.sh prototype => rc=0
+- test "$(wc -l <tests/test-resource-leases.sh)" = 57 => rc=0

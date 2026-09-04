@@ -1,0 +1,3 @@
+command: test -s "$WORK/task-2.2-report.md"
+rc: 1
+result: expected RED; task-2.2-report.md was absent before this task created it.

@@ -1,0 +1,13 @@
+task=task-1.1-fix2
+base=23ca68fe5e3c39a25d90d92b879e215045702a99
+scenario=with a separate live Python owner holding the valid 0700 state-root .lock for 1.2 seconds, start a wait=1 acquire, stop the entire requester process group after 250ms, resume it after both the deadline and lock release, then inspect stdout and active records
+command=python3 deadline-resume harness using bash -c 'source "$1"; harness_lease_acquire review-session 1 "$2"'
+expected=after a missed deadline, resumption must return rc3 before record read or publish, stdout empty, and active count zero
+rc=0
+elapsed_ms=1518
+active_count=1
+stdout_bytes=33
+stderr_bytes=0
+stdout_sha256=f7a8ea3b983880229c54916ebe72e88adb4a2ce0e10a53a7d9eb5d914ff80e21
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=the current retry loop acquired the now-free lock after resumption and published a token after the monotonic deadline, reproducing the reviewer Blocking R7 finding before the repair.

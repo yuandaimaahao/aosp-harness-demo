@@ -1,0 +1,18 @@
+artifact	status	sha256_or_detail	bytes
+red	PASS	47cbcc58740d12d8ec7e3631dcc82cc954794038505146eaa95c3b5186684eca; acceptance report absent; test -s rc1	214
+next-specs	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; find rc0; exact 0B	0
+next-work	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; find rc0; exact 0B	0
+next-refs	PASS	a2acfaa0ed010e23e4d7f3ec1c825a137bd63d5b43fac7995c2ae4caf7c2171b; dated canonical NEXT ref no_match rc1	642
+next-worktrees	PASS	2d9b429c1ccc40bd580864f2f5b2202638bb57b1edcce651c7f0ca3c2c8cac38; dated canonical NEXT branch/path no_match rc1	2902
+next-records	PASS	9ae0beeb49ffa1450871de65466e747ebad4111bcc4dce9c1137a2195a2d8e14; positive list 27; each ledger/dispatch/execution-base no_match rc1	4655
+fixed-tools	PASS	shfmt v3.14.0; ShellCheck version field 0.11.0; two-shell shfmt/shellcheck/bash-n rc0	0 diagnostics
+execution-diff	PASS	exact3; numstat 336+7+57=400/400; diff-check rc0	3 files
+prototype	PASS	provider 011d4804...; docs f16ea8af...; test d2f324a3...; all cmp rc0	400 lines
+candidate-runtime	PASS	default/all rc0 exact 29B summary; 3 invalid rc1 empty; offline rc0 discovery=1	-
+candidate-evidence	PASS	task-2.1 default/all/invalid/offline/static/package cross-checked	-
+full-history	PASS	task-2.2 full default/offline; accepted HEAD; exact3; clean	-
+depth-1	PASS	task-2.2 depth1 default/offline; accepted HEAD; commits=1; shallow marker nonempty	-
+rollback	PASS	f8d815829c90619926ab08fa90d7a386993de89a exact3 delete; BASE zero diff; 03e/offline pass; lease=0	-
+review-manifest	PASS	63511bc11481264b96e967c09f58d0a85cf41b57563d8a006b0d7fc4c06c23d5; six reviewed rows through task-2.3; task-2.4 row intentionally absent	6 rows
+implementation	PASS	HEAD before=after=f7cfcb202d1fd2934d07cc90e333a4205b563243; status/diff/cached-diff clean	0 source delta
+scope	PASS	no manifest/ledger/mark/review mutation; no later 04a asset created	0

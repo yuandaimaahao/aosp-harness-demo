@@ -1,0 +1,6 @@
+surface: temporary directory containing only tests/test-resource-leases.sh and no common/.harness/lib/resource-leases.sh
+command: bash <temporary>/tests/test-resource-leases.sh
+rc: 1
+stdout: 0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr: 0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+PASS: absent

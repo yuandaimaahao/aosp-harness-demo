@@ -1,0 +1,13 @@
+refs/heads/spec/2026-08-31-01-device-safety
+refs/heads/spec/2026-09-01-02-offline-quality-gate
+refs/heads/spec/2026-09-01-03-session-state-safety
+refs/heads/spec/2026-09-01-03a-session-path-safety
+refs/heads/spec/2026-09-01-03a1-session-path-race-assurance
+refs/heads/spec/2026-09-02-03a2-session-path-race-matrix
+refs/heads/spec/2026-09-03-00-closure-probe
+refs/heads/spec/2026-09-03-01-module-probe
+refs/heads/spec/2026-09-04-04-runtime-resource-leases
+refs/heads/spec/aosp-minimal-00a-delivery
+refs/heads/spec/aosp-minimal-00b-workspace
+refs/heads/spec/aosp-minimal-failed-merge-052ecb9d
+refs/heads/spec/aosp-minimal-terminal-7b46dfba287f

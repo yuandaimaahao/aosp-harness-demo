@@ -1,0 +1,11 @@
+artifact	status	detail
+red	PASS	task-1.3-red.txt: missing entry rc127, no PASS
+static	PASS	shfmt 3.14.0; shellcheck 0.11.0; shfmt/shellcheck/bash-n rc0
+default	PASS	rc0; exact RESULT PASS  resource leases LF; stderr 0B
+all	PASS	rc0; exact RESULT PASS  resource leases LF; stderr 0B
+invalid	PASS	all extra/unknown/flag-value each rc1 and both streams empty
+dependency-absent	PASS	temporary test-only surface rc1 and no PASS
+matrix	PASS	base contract matrix executed by default entry
+prototype	PASS	three final files cmp-equal; 336+7+57=400
+execution-diff	CONCERN	TASK_BASE..HEAD only adds 57-line test by task scope; see report
+clean	PASS	worktree git status --short is empty

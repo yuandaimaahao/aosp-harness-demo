@@ -1,0 +1,5 @@
+BASE: 2fae1505f9d995edbc4a5cb5909075b56a06ba77
+reentry product mutant: rc=0; stdout=29B sha256=91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS present
+stale product mutant: rc=0; stdout=29B sha256=91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS present
+TMPDIR=. default: rc=2; stdout=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS absent
+Mutants: reentry returns 32 zero hex instead of the active record token; stale/fresh returns the deleted stale token without publish.

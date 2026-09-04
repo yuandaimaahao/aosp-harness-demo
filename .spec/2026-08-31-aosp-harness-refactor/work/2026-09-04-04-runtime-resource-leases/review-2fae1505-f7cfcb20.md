@@ -1,0 +1,82 @@
+# review 包 2fae1505..f7cfcb20
+
+## commit 列表
+
+```
+f7cfcb2 test(harness): harden resource lease matrix
+```
+
+## diff --stat
+
+```
+ tests/test-resource-leases.sh | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+```
+
+## diff
+
+```diff
+diff --git a/tests/test-resource-leases.sh b/tests/test-resource-leases.sh
+index 78d4274..9c4e1e3 100644
+--- a/tests/test-resource-leases.sh
++++ b/tests/test-resource-leases.sh
+@@ -1,49 +1,49 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ [[ $# == 0 || ($# == 1 && $1 == all) ]] || exit 1
+ HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+ LIB=$HERE/../common/.harness/lib/resource-leases.sh
+ [[ -f $LIB ]] || exit 1
+-tmp=$(mktemp -d)
++tmp=$(cd -- "$(mktemp -d)" && pwd -P)
++unset TMPDIR
+ trap 'rm -rf -- "$tmp"' EXIT
+-export HARNESS_RESOURCE_LEASE_ROOT=$tmp/state
+-mkdir -m 700 "$HARNESS_RESOURCE_LEASE_ROOT" "$tmp/a" "$tmp/b"
++export HARNESS_RESOURCE_LEASE_ROOT=$tmp/state && mkdir -m 700 "$HARNESS_RESOURCE_LEASE_ROOT" "$tmp/a" "$tmp/b"
+ # shellcheck source=/dev/null
+ source "$LIB"
+ [[ $(declare -F | awk '$3 ~ /^harness_/ {print $3}' | sort) == $'harness_lease_acquire\nharness_lease_release' && -z ${HARNESS_SESSION_STATE_PROVIDER_VERSION+x} ]]
+-printf 'workspace\t%s\tsource\nandroid\tunit\tdevice\n' "$tmp/a" >"$tmp/a.tsv"
+-printf 'android\tunit\tdevice\nworkspace\t%s\tsource\n' "$tmp/a" >"$tmp/reverse.tsv"
+-printf 'workspace\t%s\tbuild\n' "$tmp/b" >"$tmp/disjoint.tsv"
+-printf 'android\tunit\tcvd\n' >"$tmp/cvd.tsv"
++printf 'workspace\t%s\tsource\nandroid\tunit\tdevice\n' "$tmp/a" >"$tmp/a.tsv" && printf 'android\tunit\tdevice\nworkspace\t%s\tsource\n' "$tmp/a" >"$tmp/reverse.tsv"
++printf 'workspace\t%s\tbuild\n' "$tmp/b" >"$tmp/disjoint.tsv" && printf 'android\tunit\tcvd\n' >"$tmp/cvd.tsv"
+ fail() {
+   local expected=$1 message='operation failed'
+   shift
+   set +e
+   "$@" >"$tmp/out" 2>"$tmp/err"
+   rc=$?
+   set -e
+   [[ $rc == "$expected" && ! -s $tmp/out ]]
+   [[ $expected == 3 ]] && message=unavailable
+   cmp -s "$tmp/err" <(printf 'error: resource lease %s\n' "$message")
+ }
+ harness_lease_acquire owner 0 "$tmp/a.tsv" >"$tmp/token" 2>"$tmp/token.err"
+ [[ ! -s $tmp/token.err && $(wc -c <"$tmp/token") == 33 ]] && IFS= read -r token <"$tmp/token" || exit 1
+ harness_lease_acquire owner 0 "$tmp/reverse.tsv" >"$tmp/reentry" 2>"$tmp/reentry.err"
+-cmp -s "$tmp/reentry" "$tmp/token" && [[ ! -s $tmp/reentry.err && $token =~ ^[0-9a-f]{32}$ ]]
++cmp -s "$tmp/reentry" "$tmp/token"
++[[ ! -s $tmp/reentry.err && $token =~ ^[0-9a-f]{32}$ ]]
+ fail 2 harness_lease_acquire changed 0 "$tmp/a.tsv"
+ fail 3 env HARNESS_RESOURCE_LEASE_ROOT="$HARNESS_RESOURCE_LEASE_ROOT" bash -c 'source "$1"; harness_lease_acquire other 0 "$2"' _ "$LIB" "$tmp/a.tsv"
+ HARNESS_RESOURCE_LEASE_ROOT=$HARNESS_RESOURCE_LEASE_ROOT bash -c 'source "$1"; t=$(harness_lease_acquire child 0 "$2"); harness_lease_release "$t"' _ "$LIB" "$tmp/disjoint.tsv"
+ harness_lease_release "$token"
+ stale=$(HARNESS_RESOURCE_LEASE_ROOT=$HARNESS_RESOURCE_LEASE_ROOT bash -c 'source "$1"; harness_lease_acquire stale 0 "$2"' _ "$LIB" "$tmp/cvd.tsv")
+ fresh=$(harness_lease_acquire fresh 0 "$tmp/cvd.tsv")
+-[[ $stale != "$fresh" ]] && harness_lease_release "$fresh"
++[[ $stale != "$fresh" ]]
++harness_lease_release "$fresh"
+ : >"$tmp/bad.tsv"
+ fail 2 harness_lease_acquire bad 0 "$tmp/bad.tsv"
+ guard=$(harness_lease_acquire guard 0 "$tmp/a.tsv")
+ active=$HARNESS_RESOURCE_LEASE_ROOT/active-$guard
+ python3 -c 'import base64,hashlib,json,os,sys;p=sys.argv[1];d=json.load(open(p));r=b"android\tbad\tbogus";d["request"]=base64.b64encode(r).decode();d["hash"]=hashlib.sha256(r).hexdigest();b=json.dumps([d["owner"],d["session"],d["hash"],d["nonce"]],separators=(",",":")).encode();d["token"]=hashlib.sha256(b).hexdigest()[:32];t=os.path.join(os.path.dirname(p),"active-"+d["token"]);json.dump(d,open(t,"w"),sort_keys=True,separators=(",",":"));os.chmod(t,0o600);os.unlink(p)' "$active"
+ fail 2 harness_lease_acquire next 0 "$tmp/disjoint.tsv"
+ rm "$HARNESS_RESOURCE_LEASE_ROOT"/active-*
+ tomb=$(harness_lease_acquire tomb 0 "$tmp/cvd.tsv")
+ mv "$HARNESS_RESOURCE_LEASE_ROOT/active-$tomb" "$HARNESS_RESOURCE_LEASE_ROOT/.trash-$tomb"
+ clean=$(harness_lease_acquire clean 0 "$tmp/disjoint.tsv")
+```

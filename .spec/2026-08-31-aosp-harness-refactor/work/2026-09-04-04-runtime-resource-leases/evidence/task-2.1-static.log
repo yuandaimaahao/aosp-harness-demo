@@ -1,0 +1,68 @@
+fixed_tools:
+  command: /tmp/aosp-harness-tools-04/shfmt --version
+  stdout: v3.14.0
+  rc: 0
+  command: /tmp/aosp-harness-tools-04/shellcheck --version
+  version_field: 0.11.0
+  rc: 0
+candidate:
+  actual_head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+  expected_head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+  head_match_rc: 0
+  worktree_clean_before_rc: 0
+shell_static:
+  common/.harness/lib/resource-leases.sh:
+    shfmt_command: /tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn common/.harness/lib/resource-leases.sh
+    shfmt_rc: 0
+    shellcheck_command: /tmp/aosp-harness-tools-04/shellcheck -x --severity=warning common/.harness/lib/resource-leases.sh
+    shellcheck_rc: 0
+    bash_n_command: bash -n common/.harness/lib/resource-leases.sh
+    bash_n_rc: 0
+  tests/test-resource-leases.sh:
+    shfmt_command: /tmp/aosp-harness-tools-04/shfmt -d -i 2 -ci -bn tests/test-resource-leases.sh
+    shfmt_rc: 0
+    shellcheck_command: /tmp/aosp-harness-tools-04/shellcheck -x --severity=warning tests/test-resource-leases.sh
+    shellcheck_rc: 0
+    bash_n_command: bash -n tests/test-resource-leases.sh
+    bash_n_rc: 0
+prototype_identity:
+  common/.harness/lib/resource-leases.sh:
+    cmp_rc: 0
+    final_sha256: 011d4804129420ff99b37115d8df0ebc605214fb3c1ecfc937cdbefb4ce746af
+    prototype_sha256: 011d4804129420ff99b37115d8df0ebc605214fb3c1ecfc937cdbefb4ce746af
+    final_lines: 336
+    prototype_lines: 336
+  docs/resource-leases.md:
+    cmp_rc: 0
+    final_sha256: f16ea8af762fc9dfc65b5d8e96c9c42db9b9253a1c64aae5703a6cc3f5963dea
+    prototype_sha256: f16ea8af762fc9dfc65b5d8e96c9c42db9b9253a1c64aae5703a6cc3f5963dea
+    final_lines: 7
+    prototype_lines: 7
+  tests/test-resource-leases.sh:
+    cmp_rc: 0
+    final_sha256: d2f324a3f9ae0efef805a8cae7297d996bd7804e119b65e8cc922d69fa2a0983
+    prototype_sha256: d2f324a3f9ae0efef805a8cae7297d996bd7804e119b65e8cc922d69fa2a0983
+    final_lines: 57
+    prototype_lines: 57
+  final_total_lines: 400
+  prototype_total_lines: 400
+execution_diff:
+  base: 692d52d00b56df9609760aa33a6f9aa3c38095a3
+  head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+  name_only_count: 3
+  name_only:
+    - common/.harness/lib/resource-leases.sh
+    - docs/resource-leases.md
+    - tests/test-resource-leases.sh
+  numstat:
+    - 336\t0\tcommon/.harness/lib/resource-leases.sh
+    - 7\t0\tdocs/resource-leases.md
+    - 57\t0\ttests/test-resource-leases.sh
+  numstat_total: 400
+scope_guards:
+  assurance_final_absent_rc: 0
+  provider_seam_count: 1
+  test_seam_count: 0
+  provider_session_marker_count: 0
+  git_diff_check_rc: 0
+  worktree_clean_after_static_rc: 0

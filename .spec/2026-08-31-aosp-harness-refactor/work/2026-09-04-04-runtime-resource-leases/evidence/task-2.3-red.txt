@@ -1,0 +1,7 @@
+command: test -s "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04-runtime-resource-leases/task-2.3-report.md"
+rc: 1
+observed: task-2.3-report.md is physically absent (test -e rc=1) and therefore not non-empty (test -s rc=1)
+expected RED: report must already be non-empty
+implementation HEAD: f7cfcb202d1fd2934d07cc90e333a4205b563243
+accepted HEAD: f7cfcb202d1fd2934d07cc90e333a4205b563243
+implementation status --short: empty

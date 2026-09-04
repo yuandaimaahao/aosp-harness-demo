@@ -1,0 +1,8 @@
+task=task-1.1
+base=692d52d00b56df9609760aa33a6f9aa3c38095a3
+command=cmp -s common/.harness/lib/resource-leases.sh "$SPEC/prototypes/common/.harness/lib/resource-leases.sh"
+expected=target absent; cmp nonzero; stdout empty; stderr empty
+rc=2
+stdout_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=test ! -e common/.harness/lib/resource-leases.sh returned 0 before invocation; prototype exists; cmp returned 2 because the target file is absent, establishing the required RED baseline before prototype installation.

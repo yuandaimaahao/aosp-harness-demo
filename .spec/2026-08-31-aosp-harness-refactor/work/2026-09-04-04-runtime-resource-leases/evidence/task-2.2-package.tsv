@@ -1,0 +1,13 @@
+artifact	status	sha256_or_detail	bytes
+red	PASS	13195b2866299e114f34e35cdf38aa411c662929e431353017dd85442963d1b0; report-absence test rc1	131
+full-default.out	PASS	91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b; rc0; exact fixed summary	29
+full-default.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; rc0; empty	0
+full-offline	PASS	2c58ffd67925744312239804178e80401c2376395528499ea1c7e2c756da7a2a; rc0; resource-leases summary=1	603
+full-checkout	PASS	HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243; exact3=3; diff/cached-diff/status clean	-
+depth1-default.out	PASS	91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b; rc0; exact fixed summary	29
+depth1-default.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; rc0; empty	0
+depth1-offline	PASS	2c58ffd67925744312239804178e80401c2376395528499ea1c7e2c756da7a2a; rc0; resource-leases summary=1	603
+depth1-checkout	PASS	HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243; commits=1; .git/shallow nonempty; exact3=3; clean	-
+temporary-clones	PASS	/tmp/tmp.mhjCUgPYbN deleted and verified absent	0
+implementation-unchanged	PASS	HEAD before=after=f7cfcb202d1fd2934d07cc90e333a4205b563243; status/diff/cached-diff clean	0
+scope	PASS	no source delta, no commit, no review/ledger/manifest/follow-up mutation	0

@@ -1,0 +1,2 @@
+test_absent rc=0
+cmp_missing rc=2

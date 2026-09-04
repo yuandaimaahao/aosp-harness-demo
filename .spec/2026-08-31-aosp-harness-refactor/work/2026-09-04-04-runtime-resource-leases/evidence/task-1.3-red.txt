@@ -1,0 +1,8 @@
+command: bash ./tests/test-resource-leases.sh
+worktree: /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04-runtime-resource-leases/worktree
+entry-exists: no
+rc: 127
+stdout-bytes: 0
+stdout-PASS: absent
+stderr-bytes: 65
+stderr: 'bash: ./tests/test-resource-leases.sh: No such file or directory'

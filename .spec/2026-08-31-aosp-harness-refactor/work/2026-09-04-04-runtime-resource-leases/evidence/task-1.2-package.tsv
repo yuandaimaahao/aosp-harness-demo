@@ -1,0 +1,9 @@
+task\t1.2
+base\t569bb221aca20451706b0a6399683a71255bd7d1
+head\tc226a238189fda96e7130cf5cedc9e1bdbe6f8fa
+file\tdocs/resource-leases.md
+lines\t7
+numstat\t7 0
+cmp\tPASS
+doc-check\tPASS
+clean\tPASS

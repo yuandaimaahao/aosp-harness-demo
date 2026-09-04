@@ -1,0 +1,56 @@
+worktree /home/zzh0838/CareerDevelop/.repo/projects/AI2D/aosp-harness-demo.git
+HEAD 9221c5ce950e61c0d46b03b8a53655ce45bc8a28
+detached
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-01-device-safety
+HEAD bcd0c9b0b675c384c346dcd0171a055b67a2712c
+branch refs/heads/spec/2026-08-31-01-device-safety
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-02-offline-quality-gate
+HEAD 83eac79c013cd50216b8638005105fb98bcd2977
+branch refs/heads/spec/2026-09-01-02-offline-quality-gate
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03-session-state-safety
+HEAD ac985df39effd937b11ddb436593b33e7eadc248
+branch refs/heads/spec/2026-09-01-03-session-state-safety
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a-session-path-safety
+HEAD f91f54d3d9832c803097bf171e9628b8d1adedab
+branch refs/heads/spec/2026-09-01-03a-session-path-safety
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a1-session-path-race-assurance
+HEAD 1c6e14f0e8d74b223956f605d41d719b6c9fc5c6
+branch refs/heads/spec/2026-09-01-03a1-session-path-race-assurance
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03a2-session-path-race-matrix
+HEAD b9582e51ab5769bee90016e7e3aadb9d895ffd12
+branch refs/heads/spec/2026-09-02-03a2-session-path-race-matrix
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo-03b-snapshot-prototype
+HEAD 9f0dfbc5bca35df8fe9ea9ba249050a8aa4547fd
+branch refs/heads/prototype/2026-09-02-03b-snapshot-state-model
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04-runtime-resource-leases/worktree
+HEAD f7cfcb202d1fd2934d07cc90e333a4205b563243
+branch refs/heads/spec/2026-09-04-04-runtime-resource-leases
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-01-aosp-feature-minimal-checkout/work/2026-09-02-00b-environment-seed-probe/worktree
+HEAD d6d46f910e4992ba1ad1f3e8f96884832ccccd9d
+branch refs/heads/spec/aosp-minimal-00b-workspace
+prunable gitdir file points to non-existent location
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-00-closure-probe/worktree
+HEAD c199a3d9c3601af483264d584a88de00a9e72345
+branch refs/heads/spec/2026-09-03-00-closure-probe
+
+worktree /home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-09-03-aosp-minimal-git-checkout/work/2026-09-03-01-module-probe/worktree
+HEAD a9d234831c27a6491520a5f515913f2065a71779
+branch refs/heads/spec/2026-09-03-01-module-probe
+

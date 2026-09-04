@@ -1,0 +1,12 @@
+task=task-1.1-fix1
+base=23cb18918583a9e3c2f19e97e4f89382c86ef7d7
+scenario=hold a valid 0700 state-root .lock with an independent live Python owner for 1.2 seconds, then acquire an otherwise free valid android request with wait-seconds=0
+command=HARNESS_RESOURCE_LEASE_ROOT=/tmp/aosp-harness-lease-fix1-red.nt45OZ bash -c 'source "$1"; harness_lease_acquire review-session 0 "$2"' bash common/.harness/lib/resource-leases.sh /tmp/aosp-harness-lease-fix1-red.nt45OZ/request.tsv
+expected=R7 requires one immediate attempt; a held coordination lock must return rc3 without waiting or publishing
+rc=0
+elapsed_ms=1216
+stdout_bytes=33
+stderr_bytes=0
+stdout_sha256=1ef8ace062b2d0208b3046f576d46202864ae0ebd2d44802072d21eceaa078b3
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+assertion=the pre-fix blocking flock waited for the holder and then published a token, reproducing the reviewer Blocking R7 finding before the repair.

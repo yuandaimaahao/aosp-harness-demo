@@ -1,0 +1,14 @@
+artifact	status	sha256_or_detail	bytes
+red	PASS	4414bccd961f3de61ddc741616744e0be31d6dbb039b0e72796729e29a0ce59c; report absent; test -s rc1	487
+rollback-commit	PASS	f8d815829c90619926ab08fa90d7a386993de89a; parent=f7cfcb202d1fd2934d07cc90e333a4205b563243	-
+rollback-name-status	PASS	exactly 3 D; path set equals EXACT3	-
+rollback-base-diff	PASS	HEAD vs EXEC_BASE 692d52d00b56df9609760aa33a6f9aa3c38095a3 has zero diff	0
+rollback-lifecycle.out	PASS	d82576f80324213355380079d3e34e911bcb7d005a4b767cab2b43a4ca8ba16e; rc0; exact fixed summary	38
+rollback-lifecycle.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; rc0; empty	0
+rollback-offline	PASS	071b0476836d42654102fdcf089493d2b3dfb03ab2f9a19a546380dbcc97a047; rc0; PASS=12; FAIL=0; lease=0; 03e=1	574
+exact3-absence	PASS	all three paths physically absent in rollback checkout	0
+upstream03e	PASS	six paths vs EXEC_BASE have zero diff	0
+rollback-clean	PASS	git status --short empty before cleanup	0
+temporary-rollback	PASS	/tmp/aosp-harness-task-2.3-rollback.XPE7ZG deleted and verified absent	0
+implementation-unchanged	PASS	HEAD before=after=f7cfcb202d1fd2934d07cc90e333a4205b563243; worktree/index/status clean	0
+scope	PASS	zero source delta; no implementation commit; no review/ledger/manifest/follow-up mutation	0

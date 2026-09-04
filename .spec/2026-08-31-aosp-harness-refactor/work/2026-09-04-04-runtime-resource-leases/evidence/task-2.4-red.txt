@@ -1,0 +1,5 @@
+command: test -s "$WORK/acceptance/acceptance-report.md"
+rc: 1
+expected: nonzero because acceptance report is absent or empty
+implementation-head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+implementation-clean: yes

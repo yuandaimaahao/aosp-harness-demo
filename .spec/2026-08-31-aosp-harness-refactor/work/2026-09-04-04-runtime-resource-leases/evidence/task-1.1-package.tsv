@@ -1,0 +1,2 @@
+task	base	head	file	prototype_sha256	line_count	red_rc	green_cmp_rc	shfmt_rc	shellcheck_rc	bash_n_rc	clean
+task-1.1	692d52d00b56df9609760aa33a6f9aa3c38095a3	23cb18918583a9e3c2f19e97e4f89382c86ef7d7	common/.harness/lib/resource-leases.sh	d7c0015fde97e55accbad5e31634b295749ae2c0e25b343c402337dbeb7af1fa	336	2	0	0	0	0	0

@@ -1,0 +1,8 @@
+command: test -s "$WORK/task-2.1-report.md"
+resolved: test -s "/home/zzh0838/CareerDevelop/AI2D/aosp-harness-demo/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-04-runtime-resource-leases/task-2.1-report.md"
+rc: 1
+reason: task-2.1-report.md absent
+report_exists: no
+implementation_head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+expected_candidate_head: f7cfcb202d1fd2934d07cc90e333a4205b563243
+implementation_worktree_clean: yes

@@ -1,0 +1,3 @@
+all extra: command=bash ./tests/test-resource-leases.sh all extra; rc=1; stdout=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS absent
+unknown: command=bash ./tests/test-resource-leases.sh unknown; rc=1; stdout=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS absent
+flag value: command=bash ./tests/test-resource-leases.sh --x value; rc=1; stdout=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; stderr=0B sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; PASS absent

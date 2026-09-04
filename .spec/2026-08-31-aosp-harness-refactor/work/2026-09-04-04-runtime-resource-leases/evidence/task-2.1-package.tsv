@@ -1,0 +1,17 @@
+artifact	status	sha256_or_detail	bytes
+red	PASS	ce02ef89bd6aed7c67f1d578537ff3498908df6b93f429c4eb19c830d19fec3a	437
+static	PASS	6ec4b2bec81da638b8eca956ef44680aada7d10e11daa4fb47b154fc3eef3014	2590
+default.out	PASS	91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b	29
+default.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+all.out	PASS	91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b	29
+all.err	PASS	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855	0
+invalid	PASS	e2117ff76234347e955e59dd278630e305577b54d09a8227fbabb239c473d0b2	750
+offline	PASS	2c58ffd67925744312239804178e80401c2376395528499ea1c7e2c756da7a2a	603
+candidate-head	PASS	f7cfcb202d1fd2934d07cc90e333a4205b563243	40-hex; before=after
+execution-diff	PASS	exact3; 336+7+57=400	3 files
+prototype	PASS	all three cmp rc0	400 lines
+assurance-final	PASS	absent	0
+diff-check	PASS	working rc0; BASE..HEAD rc0	0 diagnostics
+implementation-clean	PASS	git status --porcelain=v1 empty	0 lines
+source-delta-task-2.1	PASS	zero; audit only	0 commits
+scope	PASS	no review/ledger/manifest/follow-up mutation	0
