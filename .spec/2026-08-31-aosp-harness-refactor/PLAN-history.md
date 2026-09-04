@@ -63,3 +63,7 @@
 ## v5.8 — 2026-09-04
 
 由`specs/2026-09-04-04-runtime-resource-leases/reviews/design-04-runtime-resource-leases-round-1.md`的B1/I1-I4触发：原exact3=387/400原型的测试对`all extra`假绿，且生产原型未实现strict stored record/global overlap、工具与输出I/O固定协议、Python3.8兼容和tombstone恢复，完整R9矩阵无法进入余13行。按已稳定的`resource-leases-v1` public API切为04 core与04a assurance：04保留全部生产正确性、协议文档和每类机制至少一个基础回归；04a exact只新增默认发现的穷举mutation/I/O/concurrency/adapter测试，不改04文件或发布API。修复四项后的04 runnable fixed-shfmt原型实测336+7+57=400/400，04a runnable exact1原型398/400；core以捕获文件和白名单内部结果协议收敛伪Python/输出异常，assurance机械断言并只替换唯一test seam，覆盖完整record字段、TSV/root、反向bundle barrier、PID复用/monotonic最终尝试、flock/open/write/fsync/publish+unpublish replace/unlink、closed output、双adapter与overlap/unpublish/bundle/adapter四类mutant自反证；两者default/all逐字、extra拒绝、bash-n/ShellCheck/shfmt均全绿。05/06/08同时等待04a dependency-present验收证据；严格串行NEXT由05改为04a，再由04a守住05。
+
+## v5.9 — 2026-09-04
+
+由`specs/2026-09-04-04a-runtime-resource-lease-assurance/reviews/requirements-prototype-boundary.md`触发：04a requirements起草前在已合入04 provider上实跑398行转交assurance，稳定失败于`monotonic attempt count`且隔离日志只有一次`flock`；资源扫描后首次观测deadline到达时直接返回，没有进入既定最后一次无sleep锁尝试。隔离provider把相邻两行替换为“到期continue，下一轮拿锁后由既有锁后deadline检查返回”；requirements round1又指出原口径漏计两行删除且缺多项承重负向oracle，随后把assurance收敛到fixed-shfmt 396行并补齐七类damaged provider、三种真实absent入口、同owner异mode、tracked hash/repo外fixture与mutant双流。修订原型default/all/dependency-absent三路均逐字PASS，exact churn为`2+2+396=400`。04a因此由exact1 assurance片收窄为exact2/400相邻修复+保证；public API、文档、基础测试、顺序图与consumer依赖不变，回滚两文件即回到已验收04基线。

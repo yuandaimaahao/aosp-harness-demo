@@ -1,10 +1,10 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: retro
 phase_status: in_progress
-basis: 04复盘五问均否：PLAN v5.8无需调整；下一片仍为04a-runtime-resource-lease-assurance
-updated: '2026-09-04T20:22:51+08:00'
+basis: 04a验收通过并fast-forward合入main；work证据已归档，post-merge default assurance与offline回归全绿，PLAN/DECISIONS已更新
+updated: '2026-09-04T23:29:43+08:00'
 current_spec: null
 spec_stage: null
 mode: standard
@@ -144,6 +144,12 @@ workflow: requirements-first
 | 2026-09-04T18:07:55+08:00 | spec/execute | spec/accept | 7个任务全部完成；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243；七行review manifest连续且全PASS；fixed static、candidate/full/depth1/rollback、exact3=400、后序五类缺席门和clean全绿 |
 | 2026-09-04T20:22:32+08:00 | spec/accept | retro | 04验收通过并以78759603f319f2ff72d3f59d9877cc42fbed0041快进合入main；post-merge lease/offline回归与祖先核验全PASS；feature worktree和分支已普通清理 |
 | 2026-09-04T20:22:51+08:00 | retro | select | 04复盘五问均否：PLAN v5.8无需调整；下一片仍为04a-runtime-resource-lease-assurance |
+| 2026-09-04T20:23:55+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-04-04a-runtime-resource-lease-assurance |
+| 2026-09-04T21:22:02+08:00 | spec/requirements | spec/design | 门②通过：04a requirements经三轮评审、熔断裁定与最终只读融合验证PASS，机械门和runnable exact2/400原型通过 |
+| 2026-09-04T21:32:16+08:00 | spec/design | spec/tasks | 门③通过：04a design首轮独立review PASS，八节、接口、时序、两文件边界与原型证据通过 |
+| 2026-09-04T21:44:08+08:00 | spec/tasks | spec/execute | 门④通过：04a tasks round2独立review PASS，四任务粒度、依赖、验证与exact2边界通过 |
+| 2026-09-04T23:22:37+08:00 | spec/execute | spec/accept | 04a四任务最终review PASS；controller终验收R1-R10、四不变量、exact2/400、四行manifest、converge、candidate/full/depth1/rollback与NEXT门全通过 |
+| 2026-09-04T23:29:43+08:00 | spec/accept | retro | 04a验收通过并fast-forward合入main；work证据已归档，post-merge default assurance与offline回归全绿，PLAN/DECISIONS已更新 |
 
 ## SKIPPED 记录
 
