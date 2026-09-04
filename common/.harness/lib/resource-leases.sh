@@ -189,8 +189,7 @@ def acquire(pid, pwd, session, wait, request_path):
     if not safe_component(session_bytes) or not re.fullmatch(r"(?:0|[1-9][0-9]{0,2})", wait):
         raise LeaseError()
     wait_value = int(wait)
-    if wait_value > 300:
-        raise LeaseError()
+    if wait_value > 300: raise LeaseError()
     canonical, digest, wanted = normalize(request_path, pwd)
     current = owner(pid)
     root, lock_fd = root_and_lock()
@@ -202,6 +201,7 @@ def acquire(pid, pwd, session, wait, request_path):
             except BlockingIOError:
                 if wait_value == 0 or test_seam("monotonic", time.monotonic()) >= deadline: die(BUSY, 3)
                 time.sleep(min(0.05, max(0.0, deadline - time.monotonic()))); continue
+            if wait_value and test_seam("monotonic", time.monotonic()) >= deadline: die(BUSY, 3)
             try:
                 recover_trash(root)
                 records = []
