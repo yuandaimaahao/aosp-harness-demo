@@ -1,10 +1,10 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: retro
+phase: select
 phase_status: in_progress
-basis: 04a验收通过并fast-forward合入main；work证据已归档，post-merge default assurance与offline回归全绿，PLAN/DECISIONS已更新
-updated: '2026-09-04T23:29:43+08:00'
+basis: 04a复盘五问均否：无计划变更；下一片仍为05-verifier-contract
+updated: '2026-09-04T23:30:36+08:00'
 current_spec: null
 spec_stage: null
 mode: standard
@@ -150,6 +150,7 @@ workflow: requirements-first
 | 2026-09-04T21:44:08+08:00 | spec/tasks | spec/execute | 门④通过：04a tasks round2独立review PASS，四任务粒度、依赖、验证与exact2边界通过 |
 | 2026-09-04T23:22:37+08:00 | spec/execute | spec/accept | 04a四任务最终review PASS；controller终验收R1-R10、四不变量、exact2/400、四行manifest、converge、candidate/full/depth1/rollback与NEXT门全通过 |
 | 2026-09-04T23:29:43+08:00 | spec/accept | retro | 04a验收通过并fast-forward合入main；work证据已归档，post-merge default assurance与offline回归全绿，PLAN/DECISIONS已更新 |
+| 2026-09-04T23:30:36+08:00 | retro | select | 04a复盘五问均否：无计划变更；下一片仍为05-verifier-contract |
 
 ## SKIPPED 记录
 
