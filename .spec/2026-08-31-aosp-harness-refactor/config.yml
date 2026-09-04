@@ -15,3 +15,4 @@ isolation: worktree          # worktree | branch | none
 question_budget: 15          # requirements 阶段提问总上限
 question_rounds_max: 2       # 提问轮次上限
 notify_on_noop_review: false # 复盘无变更时是否通知用户
+brief_max_bytes: 65536       # 覆盖 balanced 默认 32768：03e 任务 1.1 的切片简报实测 55809 bytes（详见 03e ledger 裁定）

@@ -1,27 +1,203 @@
 # 2026-09-03-03e-claude-session-lifecycle 实现计划
 
-每个任务四条判据全部满足才算拆到位：
-一个 subagent 一次上下文装得下 / 有一条命令或可自查事实能判成败 /
-失败能独立回滚 / 人 review < 10 分钟。
+03b/03c 多轮 tasks review 证明逐函数拼装中间代码会制造假红；本片六交付文件中两个为整段改写、两个为新增、两个为小段修改，无 prototype blob——design sizing 节明确为纯分解预算（现状文件实测行数与同构实际尺寸外推），候选文件以 design「组件与接口」节为唯一权威结构。熔断裁定：任务 1.1 一次性交付三 hook 与 settings.json（修改 load-feature.sh ≤52 numstat、修改 check-branch-drift.sh ≤42 numstat、新增 session-end.sh ≤52 行、SessionEnd 注册块 ≤6 numstat，单任务落地）、任务 1.2 一次性交付 run-demo.sh 私有 fixture 改造（≤62 numstat，单任务落地）、任务 1.3 一次性交付完整默认发现生命周期测试（≤176 行，不设 mutant——design 概述末条已论证），禁止逐段拼装；随后 candidate/checkout（完整历史+depth-1 合并，裁定 9）/rollback/order/terminal 五个零 delta controller 验证任务；共八个任务严格串行。实现提交使用普通 Conventional Commit。每个任务均保存 red 记录、green 报告和 evidence package，交全新独立 agent review；Blocking/Important 修复后必须由另一全新 agent re-review。
 
-编号最多两级：任务少（≤5）时用 `任务 1`，多时用二级标题分组 + `任务 1.1`。
-**不许出现三级**（`1.2.3` 说明这个 spec 该拆成两个）。
+固定变量与工具门：
 
-所有任务的「需求」并起来，必须等于 requirements 里 R 的全集。
-每个「产出」要么被某个后续任务「消费」，要么是本 spec 的终交付物。
+```bash
+PROJECT=.spec/2026-08-31-aosp-harness-refactor
+SPEC=$PROJECT/specs/2026-09-03-03e-claude-session-lifecycle
+WORK=$PROJECT/work/2026-09-03-03e-claude-session-lifecycle
+TASKS=$SPEC/tasks.md
+LEDGER=$SPEC/ledger.md
+MANIFEST=$WORK/review-manifest.tsv
+TOOLS=/tmp/claude-1000/-home-zzh0838-CareerDevelop-AI2D-aosp-harness-demo/bdc6e669-9154-4030-a9db-78dc599ab491/scratchpad/tools/bin
+UPSTREAM12="common/.harness/lib/session-state-foundation.sh common/.harness/lib/session-state-path.sh tests/lib/session-path-race-driver.py tests/test-session-path-races.sh common/.harness/lib/session-state-snapshot.sh tests/test-session-snapshot.sh tests/test-session-snapshot-assurance.sh common/.harness/lib/session-state-signals.sh tests/test-session-signals.sh common/.harness/lib/session-state-remove.sh common/.harness/lib/session-state.sh tests/test-session-state.sh"
+EXACT6="claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/session-end.sh claude-code/features/.harness/settings.json claude-code/run-demo.sh tests/test-claude-session-lifecycle.sh"
+test "$("$TOOLS/shfmt" --version)" = "v3.14.0"
+"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'
+```
 
----
+controller 在门④通过后固定 `IMPLEMENTATION_WORKTREE` 与 `TASK_BASE`（execution BASE，即任务 1.1 提交前的 clean HEAD），并令 `BASE_SHA=$TASK_BASE`；任务 1.2 开始时重取 `TASK_BASE=$(git rev-parse HEAD)` 为任务 1.1 的 `TASK_HEAD`，任务 1.3 同理衔接任务 1.2，保证 manifest 相邻连续。
 
-### 任务 1: （名字）
+red记录固定六行：`task=`、`command=`、`expected=`、`rc=`、`stdout_sha256=`、`stderr_sha256=`，末加`assertion=`；green报告固定含task/base/head/files/commands/results。报告契约（03c 执行期教训，定死）：报告中「红阶段证据: 」一行的路径必须独占一行、行尾零尾随字符（`cat -A` 核）。evidence package为TSV三列`path<TAB>sha256<TAB>bytes`，列出brief、report和全部日志；package 生成后其中收录的任何文件再被改动（含 fix round 更新 report 或追加日志），必须重算并更新对应行，不得留下陈旧 sha256/bytes。reviewer拿这三个路径，而不是依赖base=head的空diff。
 
-文件: 创建 `path` / 修改 `path:行号` / 测试 `path`
-消费: （前序任务产出的确切签名，无则写「无」）
-产出: （后续任务要用的确切签名，无则写「无」）
-需求: （本任务实现的 R 条目，逗号分隔，如 R1, R2.1）
+manifest固定六列`seq<TAB>task-id<TAB>base<TAB>head<TAB>reviewer<TAB>PASS`，manifest 行一律由 controller 在该任务独立 review PASS 后追加（实现者不预知 review 结果，03c 报告契约），task-id 列带 `task-` 前缀。任务简报由 controller 以 `python3 /home/zzh0838/.agents/skills/spec/scripts/task-brief.py "$TASKS" <任务号> --out "$PROJECT/work"` 生成，任务号格式为 `1.1` 样式（不带 `task-` 前缀）；review 包真实签名为 4 参：`/home/zzh0838/.agents/skills/spec/scripts/review-package.sh <BASE> <HEAD> "$PROJECT/work" 2026-09-03-03e-claude-session-lifecycle`。每个任务 PASS 后先追加本行，再分别执行：
+
+```bash
+python3 /home/zzh0838/.agents/skills/spec/scripts/mark-task-done.py "$TASKS" TASK_ID
+# controller用apply_patch向ledger增加：- 任务 TASK_ID: 完成 commits=[TASK_HEAD]
+python3 /home/zzh0838/.agents/skills/spec/scripts/sync-ledger.py "$LEDGER" --repo "$IMPLEMENTATION_WORKTREE"
+```
+
+裁定（定死，依据随条给出）：
+
+1. 落地策略：任务 1.1/1.2/1.3 各以单任务一次性交付完整候选文件，禁止逐段拼装。依据：03b/03c 教训——拼装中间代码制造未定义引用与假红；本片无 prototype blob，候选文件以 design「组件与接口」节为唯一权威结构。组1 拆三个交付任务而非两个的理由：三 hook 共享同一段 ~6 行内联 guard 与单行 `compat_legacy()` helper，settings.json 的 SessionEnd 注册只与 session-end.sh 同生同灭，四文件构成同一 hook 契约层、一次 review 可整体核对 guard 一致性；run-demo.sh 改造有独立的三路径验收命令（成功/受控失败/信号）与独立失败域，不阻塞 hook 红绿；测试有独立的 argv/摘要/fixture 契约。合并 1.1 与 1.3 会让实现者在无中间验证下连写 hook 层与 ≤176 行测试、单任务 review 面超过 10 分钟。sizing 预算分解：52+42+52+6+62+176=390，对 exact6/400 门保留 ≥10 行余量；三处顶格/偏紧的纸面复核结论与停手纪律见裁定 8。
+2. compat marker printf 字面量恰 3 处前提：字面量 `compat: session-provider=legacy` 在三个 hook 文本中各自恰 1 处 printf 位点（共 3 处）；每个 hook 定义单行 `compat_legacy() { printf '%s\n' 'compat: session-provider=legacy'; }` helper，所有 legacy 入口（guard 失败、stdin 非法、provider 设计外错误码）调用它恰好一次后执行该 hook 的 legacy 行为并以 rc0 结束，marker 一律写 stdout。「恰一次」双保险：测试对每 hook 文本 `rg -o` 计数 ==1（结构），对每 case stdout 出现次数 ==1（行为）。注意与本片裁定 3 区分：裁定 3 的「恰 2 处」讲的是**摘要**字面量（legacy surface 出口 + active 出口），本条讲的是**compat marker**字面量，两个不同字面量、不同口径，不得混读；03d 无 compat marker，故与 03d 裁定 2 没有可比对象。结构注释只写摘要文字，不得逐字包含该 printf 调用字面量，否则计数与定位失效（03b1 M1/03c 裁定 2/03d 裁定 2 同款约束）。
+3. 摘要探针字面量前提：测试文件中 `printf 'RESULT PASS  claude session lifecycle\n'` 调用字面量恰 2 处——dependency-absent/真实依赖缺席 legacy surface 出口（第 1 处）与 dependency-present active 出口（末行，第 2 处）。dependency-present 实跑用 rindex 定位末处、在其前插入 `printf 'checks=%d\n' "$checks" >&2` 探针；legacy/absent 实跑用 index 定位首处、插入 `  printf 'checks=%d\n' "${checks:-0}" >&2` 探针（两空格缩进与该分支一致，`${checks:-0}` 防御形式沿用，防止分支重排后未初始化引用崩溃——03b1/03c/03d 同款约束）。本片与 03d 的关键差异：absent surface 执行全部 legacy 行为 case、非零 case inert，探针期望 `checks=N`（N>0）而非 03d 的 `checks=0`。结构注释只写摘要文字，不得逐字包含该 printf 调用字面量。
+4. mutant 不设置（design 概述末条已论证，不另设 hook guard mutant）：guard 合取两个子句各自已被机械覆盖——marker/API 缺席侧由七类 fixture（missing-* 时 aggregator fail-closed，marker 与四状态 API 同生同灭、hook 只能落 legacy）覆盖，且 hook 是全新进程、aggregator 临界区使「API 在场而 marker 缺席」物理不可达，sentinel 注入在 hook 级无对应可达状态；compat 恰一次由裁定 2 的结构+行为双计数覆盖；v1 各分支（五 source、compact 缺失、漂移 exit 2、remove 幂等）都是直接行为断言。mutant 不新增信息（同 03d 对 aggregator 不设 mutant 的裁定逻辑）。
+5. 终交付锚点 `claude-session-lifecycle-v1` 记入本文、ledger 完成锚点与 acceptance 报告；任务 2.5 的「产出」字段写 `tests/test-claude-session-lifecycle.sh`。依据：check-tasks 的孤儿产出检查只认 requirements 验收标准节正文，该路径在「主验证命令」行逐字出现，而锚点名只出现在 requirements frontmatter（03b1/03c/03d 裁定 5 同款）。
+6. `04-runtime-resource-leases` 字面全名的硬禁令只覆盖 scoped rg 实际搜索的文件——`$PROJECT/specs/*/ledger.md`、`$PROJECT/work/*/dispatch.tsv`、`$PROJECT/work/*/execution-base.env`；这些文件只写「04 顺序门」字样，本片自身 ledger 若含该字面全名，任务 2.5 终门重跑顺序门会自命中制造假红。requirements/design/tasks 等 spec 文档允许出现 NEXT 全名（R10）。green/red 报告与运行日志不在 rg 域内、不受硬禁令约束，但任务 2.4 的报告与日志中命令一律以步骤 2 已定义的 `"$NEXT"` 间接形式记录、不内联字面全名，以降低误写扩散风险。
+7. inert 或 legacy-only PASS 不作为本片验收证据，也不解除 04 顺序门；只有 dependency-present active 证据、exact6/400 与全 PASS manifest 入 ledger 后才可创建 04 的 spec 目录/分支/worktree/ledger BASE/dispatch 记录（R10）。本片与 03d 裁定 7 的关键差异：本片 dependency-absent surface 执行全部 legacy 行为 case、非零 case inert（03d 是零 case inert），故 absent/legacy PASS 是真实行为证据、必须全绿，但其性质仍是 legacy-only，同样不计入本片验收、不解除顺序门。
+8. sizing 三处顶格/偏紧的纸面复核（design sizing 节为唯一预算权威）：(a) settings.json ≤6 numstat——现状 11 行、既有两事件块各 3 行同构，SessionEnd 注册块同构插入为新增 3 行加 1 行逗号改动（或前置于 SessionStart 块插入则零改动纯新增 3 行），实测分解 ≤5，6 行预算顶格但成立；(b) run-demo.sh ≤62 numstat——design 分解新增 ~42（mktemp+单 EXIT trap ~10、私有树+lib 副本 ~12、v1 hook 演示 ~20）+ 删除 ~16（orig/restore_feature 段 5 行、旧漂移演示段 ~9 行、SessionStart 旧 payload 行改写），实测分解 ~58，余量 4 行，顶格但成立；(c) 测试 ≤176——03d 同构测试实测 204 行，但其中双 mutant 与双 anchor 注入区段（嵌入式 python 注入块与 mutant 构造）本片不设（裁定 4），置换为三 hook×七类 fixture 表驱动循环与 SessionStart 五 source 矩阵。诚实口径：03d 的注入区段（`tests/test-session-state.sh:173–192`）实测仅约 20 行，204−20≈184 仍高于 176，且 design 分解恰为 176/176 零余量、本片覆盖面比 03d 更宽——因此 176 是**偏紧且未被证明够用**的预算，不是承诺；成立与否由下面的 M2 停手纪律兜底，实现者一旦触顶必须停手上报，禁止以压缩 oracle 换行数。M2 纪律（必须正面落实，沿 03d 任务 1.3 同款）：任务 1.1/1.2/1.3 的实现者必须最先落定本任务最高行数风险区段的真实消耗——1.1 为 session-end.sh 校验解析段与 settings.json 注册块、1.2 为 v1 hook 演示段、1.3 为七类 fixture 表驱动循环与 v1 SessionStart 矩阵——候选落定后立即核行数并把该区段实际起止行号与行数记入 green 报告；若任一区段迫使对应文件超预算或 numstat 总和预计超过 400，立即停手上报 controller 回 PLAN 拆片（备选：run-demo.sh 收敛与 hook 生命周期无代码耦合，可拆为独立小片），禁止压缩任何 oracle 语义。
+9. 任务数硬门（`max_tasks_per_spec=8`，profile=balanced）：起草稿的九个任务经 `check-tasks.py` 判定超限。裁定为把原「验证完整历史 checkout」与「验证真实 depth-1 checkout」合并为任务 2.2，其余 2.x 顺次前移，manifest 由九行改为八行。依据：两者同以 `ACCEPTED_HEAD` 为唯一输入、同在 `mktemp` 临时 clone 内跑同一组断言（十二上游文件 SHA 前后一致、default 摘要逐字、offline 发现恰一次、clean），零源码 delta、无独立回滚对象，合并后单任务仍在一个 subagent 上下文内、review < 10 分钟，四条粒度判据全满足；两个 clone 的日志分别落盘逐一比对，oracle 语义零删减。不按细则「拆成多个 spec」处置的理由：2.x 是同一份交付（exact6/400 单一提交链）的验收装置，拆片会把同一个 accepted HEAD 的验收证据割裂到两个 spec 的 ledger，反而破坏 manifest 相邻连续与顺序门口径。如果错了代价：合并后单任务失败时定位面从一次 clone 扩大到两次 clone，但因两次 clone 日志分别落盘、断言逐条独立，定位成本增量有限。
+
+10. demo 私有树的 mktemp 前缀：`DEMO_TMP_DIR` 用带前缀模板 `mktemp -d "${TMPDIR:-/tmp}/claude-harness-demo.XXXXXX"`，残留断言用 `claude-harness-demo.*` 前缀 glob 零匹配。依据：design「组件与接口」写的是无模板 `mktemp -d`、「测试策略」要求「无残留 `claude-harness-demo.*` 目录」，两节内部不一致；无前缀时目录名与同机任何其他进程的临时目录不可区分，残留 oracle 只能退化成 `${TMPDIR:-/tmp}` 全量 inventory 比较，而该断言最终会在 `scripts/check.sh --offline` 自动发现的入口里跑（candidate/full/depth-1 三处），同机并发会让它随机红绿。取前缀模板同时满足两节（仍是 `mktemp -d`）并把 oracle 定死在可定位的一侧，同构先例见 `codex/run-demo.sh:13`。如果错了代价：前缀字面量与 design 测试策略节不一致会让实现者两处取名不同——已在本文两处（任务 1.2 权威结构、任务 1.3 候选结构）逐字统一。
+
+
+### 任务 1.1: 一次性交付三hook与settings.json注册
+
+文件: 修改 `claude-code/features/.harness/hooks/load-feature.sh` / 修改 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 创建 `claude-code/features/.harness/hooks/session-end.sh` / 修改 `claude-code/features/.harness/settings.json`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.1-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.1-report.md` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: 无
+产出: claude-hook-lifecycle-contract-v1
+需求: R1, R2, R3, R4, R5, R6
 必需: 是
+状态: 完成
 
-- [ ] 步骤 1: 写验证（内容直接给出，不写「补上测试」）
-- [ ] 步骤 2: 跑一次，确认它现在是失败的（期望: 具体报错）
-- [ ] 步骤 3: 最小实现
-- [ ] 步骤 4: 跑，确认通过
-- [ ] 步骤 5: 提交
+候选文件权威结构（design「组件与接口」节）：三 hook 各自开头内联同一段 ~6 行 guard——`source "$ROOT/../common/.harness/lib/session-state.sh" 2>/dev/null` 成功、`HARNESS_SESSION_STATE_PROVIDER_VERSION` 精确为 `1`、`declare -F harness_validate_feature_name harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove` 单条多名核对全在场，三合取才置 `use_v1=1`（`ROOT` 沿用现状 `${CLAUDE_PROJECT_DIR:-$(harness_project_root ...)}` 覆盖语义，`source` 失败天然覆盖 aggregator 文件缺席）；每 hook 定义单行 `compat_legacy()` helper（裁定 2），guard 失败/stdin 非法/provider 设计外错误码统一调用恰一次后走 legacy 段 rc0。`load-feature.sh` v1 函数 `v1_baseline` 在 `if` 条件中调用：`python3 -c` 从 stdin 解析 `session_id`/`source`（JSON 非法、字段缺失/非字符串、source 非 startup/resume/clear/compact/fork 五值之一 → return 1）、`harness_validate_feature_name "$sid" 2>/dev/null` 安全单组件校验（stderr 抑制，与 design 错误处理表该行「日志: 无」一致）、project-id 取 `realpath "$ROOT"` 完整 SHA-256（`%% *` 截断）；read rc 分支表——rc0 基线在场任何 source 只读根本不 write，rc3 时 compact 报 stderr 固定一行不创建、其余四 source 进 write（write rc0 建基线、rc3 异值冲突只报错不改写、其他 return 1），read 其他 rc return 1；随后与 legacy 共用的尾部 `sync_feature_link` 与现状两条 stdout 文案逐字保持，v1 全程不读写 legacy 全局快照文件、不输出 compat marker；`feature`/`target` 探测与「未找到 feature 上下文」stderr+exit 0 分支为两路径共用现状逻辑逐字保留。`check-branch-drift.sh` v1 函数同构：仅解析 `session_id` 并同样以 `harness_validate_feature_name "$sid" 2>/dev/null` 校验，read rc3 基线缺席静默 exit 0、其他非 0 return 1 落 legacy、rc0 与 `detect_feature` 当前值字符串比较——一致静默 exit 0，漂移输出现状逐字两行告警并 `exit 2` 阻止 prompt、不写 JSON。`session-end.sh` 新增：guard 置 `use_v1` 后 `python3 -c` 一次性校验 stdin——`hook_event_name` 精确 `SessionEnd`、`session_id` 长度 1–128 且匹配 `[A-Za-z0-9][A-Za-z0-9._-]*`（校验内嵌解析器、规则与 foundation 同源）、`reason` 属于 `clear`/`resume`/`logout`/`prompt_input_exit`/`other` 五值——任一非法 `compat_legacy` 一次、rc0、零删除（v1 状态与 legacy 全局快照均不动）；校验通过+v1 经 `harness_session_state_remove` rc0（含缺失幂等 0）静默 rc0、其他 rc（1/2/3 均设计外）compat 一次 rc0 不删 legacy 快照；校验通过+legacy `compat_legacy` 一次后 `rm -f -- "${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot" 2>/dev/null || true`。`settings.json` 新增 SessionEnd 事件注册指向 `${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end.sh`（与既有两事件同一 schema，既有两事件不动）。三 hook 主流程保持 `set -euo pipefail`，v1 逻辑收进在 `if` 条件中调用的函数，所有 provider rc 以 `|| rc=$?` 显式捕获进分支表。v1 生命周期矩阵与七类 fixture 的行为正确性由任务 1.3 封闭，本任务只做结构核对、静态门与 smoke 抽查，避免在无矩阵覆盖下制造假绿。
+
+- [ ] 步骤 1: 运行`test ! -e claude-code/features/.harness/hooks/session-end.sh && bash claude-code/features/.harness/hooks/session-end.sh </dev/null`，确认红阶段失败为文件缺席 rc127、stdout 无 compat marker；运行`rg -q 'SessionEnd' claude-code/features/.harness/settings.json`，确认红阶段失败为 rc1（无 SessionEnd 注册）；按固定六行 schema 写`$WORK/evidence/task-1.1-red.txt`并核`test -s "$WORK/evidence/task-1.1-red.txt"`。
+- [ ] 步骤 2: 核`git rev-parse HEAD`逐字等于门④固定的 execution BASE 并设`TASK_BASE=$(git rev-parse HEAD)`；用 apply_patch 一次性交付四文件完整候选（禁止逐段拼装），立即核行数消耗（裁定 8 M2 纪律）：`test "$(wc -l <claude-code/features/.harness/hooks/session-end.sh)" -le 52`；对三个 hook 各核（必须写成显式循环，`<hook>` 占位符不得进命令，否则被 shell 当重定向）：`( set -e; for h in claude-code/features/.harness/hooks/{load-feature,check-branch-drift,session-end}.sh; do test "$(rg -oF 'compat: session-provider=legacy' "$h" | wc -l)" = 1; rg -q 'HARNESS_SESSION_STATE_PROVIDER_VERSION' "$h"; rg -q 'declare -F harness_validate_feature_name harness_session_state_path harness_session_state_write harness_session_state_read harness_session_state_remove' "$h"; done )`（裁定 2 前提与 guard 锚定。**`( set -e; … )` 子 shell 不可省**：裸 `for` 的退出码只取最后一次执行的命令，前面迭代或同一迭代内前面命令的失败会被静默丢弃——实测「load-feature.sh 含两处 compat 字面量、另两个 hook 正常」时裸循环整条 rc0，裁定 2 的结构门对前两个 hook 的违规完全失明。判定一律看**循环整体 rc 必须为 0**，不得靠肉眼看输出；`rg -o` 零匹配时 rc1 但管道后 `wc -l` 仍给 0，计数判定成立）；legacy 段逐字保留锚定——`rg -qF "printf '%s' \"\$feature\" > \"\${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot\"" claude-code/features/.harness/hooks/load-feature.sh`（外层必须用双引号并转义：单引号不可嵌套，写成外层单引号会让 `-F` 固定串丢掉 `'%s'` 的内层引号而对正确候选也红）、`rg -qF '⚠️ [分支漂移]' claude-code/features/.harness/hooks/check-branch-drift.sh`、`rg -qF "tr -d '[:space:]'" claude-code/features/.harness/hooks/check-branch-drift.sh`；把 session-end.sh 校验解析段与 settings.json 注册块的实际行数记入 green 报告草稿，超预算即停手上报。
+- [ ] 步骤 3: `settings.json` 核验——`python3 -c 'import json; json.load(open("claude-code/features/.harness/settings.json"))'`解析通过、`rg -qF '${CLAUDE_PROJECT_DIR}/.claude/hooks/session-end.sh' claude-code/features/.harness/settings.json`（SessionEnd 注册指向本片新 hook）、`rg -q 'load-feature.sh' claude-code/features/.harness/settings.json`与`rg -q 'check-branch-drift.sh' claude-code/features/.harness/settings.json`（既有两事件不动）。
+- [ ] 步骤 4: 逐字核固定工具版本`test "$("$TOOLS/shfmt" --version)" = "v3.14.0"`与`"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'`；对三个 shell 文件跑`"$TOOLS/shfmt" -d -i 2 -ci -bn claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/session-end.sh`（无输出）、`"$TOOLS/shellcheck" -x --severity=warning claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/session-end.sh`（rc0）、三个`bash -n`与`git diff --check`，全部通过。
+- [ ] 步骤 5: smoke 抽查（完整矩阵由任务 1.3 封闭，本步只做单点）——建 `tmp=$(mktemp -d)`（必须真赋值，后续步文用 `$tmp/...`）并在其内建`tree/claude-code/`（`CURRENT_FEATURE`与`features/dev-sidebar/CLAUDE.md`）与`tree/common/.harness/lib/`（`cp`仓库`common/.harness/lib/session-state*.sh`副本）fixture，以`CLAUDE_PROJECT_DIR=$tmp/tree/claude-code TMPDIR=$tmp/tmp HARNESS_STATE_ROOT=$tmp/state`调真实三 hook：v1 例——SessionStart（startup payload）rc0、`$tmp/state`下出现 project-id（64 位小写 hex）目录且基线内容==feature、`$tmp/tmp`下无 legacy 全局快照、stdout 无 compat marker；legacy 例——另建无 lib 副本 fixture 跑 SessionStart，核 rc0、stdout compat marker 恰一次、`$tmp/tmp`下全局快照按 legacy 写入、v1 状态树缺席；结束后`rm -rf -- "$tmp"`。
+- [ ] 步骤 6: 提交——`git add -N claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/session-end.sh claude-code/features/.harness/settings.json`后核 working-tree `git diff --name-only`（git tree 序）恰为`claude-code/features/.harness/hooks/check-branch-drift.sh`、`claude-code/features/.harness/hooks/load-feature.sh`、`claude-code/features/.harness/hooks/session-end.sh`、`claude-code/features/.harness/settings.json`四文件，逐文件 numstat 核 load-feature.sh ≤52、check-branch-drift.sh ≤42、session-end.sh ≤52、settings.json ≤6；`git add`同四文件（intent-to-add 不入提交，必须真 add，03c task-1.1 实测教训）后`git commit -m "feat(claude): route session hooks through provider guard"`；设`TASK_HEAD=$(git rev-parse HEAD)`并核`git diff --name-only "$TASK_BASE" "$TASK_HEAD"`恰为该四文件、`git diff --numstat "$TASK_BASE" "$TASK_HEAD" | awk '{s+=$1+$2} END {print s+0}'`≤152、`git diff --name-only "$TASK_BASE" "$TASK_HEAD" -- $UPSTREAM12`为空、`git status --porcelain`为空。
+- [ ] 步骤 7: 生成 task brief/report、4 参`review-package.sh "$TASK_BASE" "$TASK_HEAD" "$PROJECT/work" 2026-09-03-03e-claude-session-lifecycle`及 evidence package，取得独立 diff review PASS；有 fix 则更新`TASK_HEAD`、重跑步骤 2–6 并交全新 reviewer。PASS 后由 controller 运行`printf '1\ttask-1.1\t%s\t%s\t%s\tPASS\n' "$TASK_BASE" "$TASK_HEAD" "$REVIEWER" >>"$MANIFEST"`；随后分别 mark 1.1、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 1.2: 一次性交付run-demo.sh私有fixture改造
+
+文件: 修改 `claude-code/run-demo.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.2-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.2-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-hook-lifecycle-contract-v1
+产出: claude-demo-private-fixture-v1
+需求: R7
+必需: 是
+状态: 完成
+
+候选文件权威结构（design「run-demo.sh 私有 fixture 与单 EXIT trap」节）：开头`DEMO_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/claude-harness-demo.XXXXXX")`（带前缀模板，裁定 10：残留断言必须能把 demo 建的目录与同机其他进程的临时目录区分开），单一 EXIT trap 只`rm -rf -- "$DEMO_TMP_DIR"`——新设计不暂改任何树根状态（真实`CURRENT_FEATURE`全程零写入），故 trap 无恢复动作，成功/受控失败/HUP/INT/TERM 三退出路径共用同一清理点；现状`orig`/`restore_feature`整段与旧漂移演示段删除。fixture 布局：`$DEMO_TMP_DIR/tree/claude-code/`（`CURRENT_FEATURE`、`features/dev-sidebar/CLAUDE.md`、`features/dev-next/CLAUDE.md`）+`$DEMO_TMP_DIR/tree/common/.harness/lib/`（`cp`仓库`common/.harness/lib/session-state*.sh`副本）+私有`TMPDIR="$DEMO_TMP_DIR/tmp"`与`HARNESS_STATE_ROOT="$DEMO_TMP_DIR/state"`。hook 演示以`CLAUDE_PROJECT_DIR`/`TMPDIR`/`HARNESS_STATE_ROOT`三变量调真实 hook 文件演示 v1 全生命周期：SessionStart（startup payload）建基线并展示 state 树、UserPromptSubmit 无漂移零输出、改写私有`CURRENT_FEATURE`后 UPS exit 2 两行告警（受控失败演示：demo 断言 rc==2 后继续）、SessionEnd（reason=clear）清理并展示 state 树消失；install-harness、wrapper dry-run、分支一致性、流程层、verify、回归各节保留现状。
+
+- [ ] 步骤 1: 行为红（不用文本代理红）——建 `tmp=$(mktemp -d)`，`git clone --no-local . "$tmp/democlone"`，**先 `mkdir -p "$tmp/demotmp"`**（不建这个目录，`load-feature.sh:19` 的重定向会直接失败、demo 以 rc1 早死且快照根本不生成，红因就不是 R7 那件事了），再在该 clone 内以私有 `TMPDIR="$tmp/demotmp"` 运行现状 `bash claude-code/run-demo.sh`；红的主断言：demo rc0 且结束后 `test -e "$tmp/demotmp/.aosp-harness-demo.feature-snapshot"` 为真、内容为 `dev-sidebar`（现状 demo 往 `${TMPDIR:-/tmp}` 写全局快照，即 R7 的真实缺陷；clone + 私有 TMPDIR 双重隔离，实测真实 `/tmp` 零污染）。第二个合取项「demo 期间 clone 树根 `CURRENT_FEATURE` 被改写后才由 `restore_feature` 还原」在 run 结束后已被 EXIT trap 还原、事后不可观测，故改为源码级观察并记入 red 证据：`rg -n 'echo "dev-next" > CURRENT_FEATURE' claude-code/run-demo.sh`（现状 :39）与 `rg -n 'trap restore_feature EXIT' claude-code/run-demo.sh`（现状 :17）各命中一行；落证据：本步骤的全部命令与输出落 `$WORK/evidence/task-1.2-red-run.log`，固定六行 schema 的 `$WORK/evidence/task-1.2-red.txt` 里 `command=` 写这一跑的主命令（`TMPDIR="$tmp/demotmp" bash claude-code/run-demo.sh`）、`expected=` 写「快照生成即 R7 缺陷在场」、`assertion=` 逐字记「rc0 / 快照路径 / 快照内容 sha256 / 两条 `rg` 命中行号 39 与 17 / 日志路径 `evidence/task-1.2-red-run.log`」（六行 schema 的字段不够装这些事实时一律进 `assertion=` 并由它引日志路径，不得增删 schema 行）；核 `test -s "$WORK/evidence/task-1.2-red.txt"` 与 `test -s "$WORK/evidence/task-1.2-red-run.log"`；`rm -rf -- "$tmp"`。
+- [ ] 步骤 2: 设`TASK_BASE=$(git rev-parse HEAD)`并核其逐字等于任务 1.1 的`TASK_HEAD`（manifest 相邻连续）；用 apply_patch 一次性交付完整改造候选（禁止逐段拼装），结构核对：`test "$(rg -c 'trap' claude-code/run-demo.sh)" = 1`（唯一 trap）、`rg -qF 'rm -rf -- "$DEMO_TMP_DIR"' claude-code/run-demo.sh`、`! rg -q 'restore_feature' claude-code/run-demo.sh`、`rg -q 'HARNESS_STATE_ROOT' claude-code/run-demo.sh`、`rg -qF 'common/.harness/lib' claude-code/run-demo.sh`（lib 副本段在场）；立即核 v1 hook 演示段实际行数消耗（裁定 8 M2 纪律）并记入 green 报告草稿，超预算即停手上报。
+- [ ] 步骤 3: 逐字核固定工具版本`test "$("$TOOLS/shfmt" --version)" = "v3.14.0"`与`"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'`；对该单文件跑`"$TOOLS/shfmt" -d -i 2 -ci -bn claude-code/run-demo.sh`（无输出）、`"$TOOLS/shellcheck" -x --severity=warning claude-code/run-demo.sh`（rc0）、`bash -n claude-code/run-demo.sh`与`git diff --check`，全部通过。
+- [ ] 步骤 4: 三路径验收实跑——建 `tmp=$(mktemp -d)`；成功路径：记录真实`CURRENT_FEATURE` sha256 后运行`bash claude-code/run-demo.sh >"$tmp/demo.log" 2>&1`核 rc0，核真实`CURRENT_FEATURE`前后 sha256 逐字不变、`${TMPDIR:-/tmp}/.aosp-harness-demo.feature-snapshot`缺席、demo 私有树零残留——`test -z "$(ls -d "${TMPDIR:-/tmp}"/claude-harness-demo.* 2>/dev/null)"`（前缀 glob 断言，不做 /tmp 全量 inventory 比较，避免同机其他进程造成竞态）；并按 requirements 不变量第 3 条点名的验证方法补一次 inventory 比较，**四步严格有序，不得合并或调序**：(1) `mkdir -p "$tmp/demotmp"`；(2) 采前值 `find "$tmp/demotmp" | sort >"$tmp/priv.before"` 与 `find . -maxdepth 2 -not -path './.git/*' | sort >"$tmp/root.before"`；(3) 跑 `TMPDIR="$tmp/demotmp" bash claude-code/run-demo.sh >"$tmp/demo-private.log" 2>&1` 核 rc0；(4) 采后值到 `$tmp/priv.after`/`$tmp/root.after`（find 表达式与深度必须与 (2) 逐字相同）并`cmp -s "$tmp/priv.before" "$tmp/priv.after"`、`cmp -s "$tmp/root.before" "$tmp/root.after"` 双双通过。前值必须在跑之前采——两次都在跑完后采会让这条 oracle 退化成空转。安静的私有目录、零竞态，既满足不变量的字面验证方法，也能抓到 demo 往 `${TMPDIR:-/tmp}` 下**其他**路径的意外写入；上面 ambient `TMPDIR` 那一跑的定点断言保留，证明默认路径同样干净；受控失败路径由 demo 内 UPS exit 2 断言自证（demo 整体 rc0 即证明 rc==2 断言通过并继续）；信号路径由步骤 2 的单 EXIT trap 结构核对覆盖，不做非确定性中途注信号（design 测试策略节）；结束后`rm -rf -- "$tmp"`。
+- [ ] 步骤 5: 提交——`git add -N claude-code/run-demo.sh`后核 working-tree `git diff --name-only`恰为该单文件、`git diff --numstat | awk '{s+=$1+$2} END {print s+0}'`≤62；`git add claude-code/run-demo.sh`（intent-to-add 不入提交，必须真 add）后`git commit -m "refactor(claude): confine demo writes to private mktemp tree"`；设`TASK_HEAD=$(git rev-parse HEAD)`并核`git diff --name-only "$BASE_SHA" "$TASK_HEAD"`恰为任务 1.1 四文件加本文件共五文件、`git diff --numstat "$BASE_SHA" "$TASK_HEAD" | awk '{s+=$1+$2} END {print s+0}'`≤214、`git diff --name-only "$BASE_SHA" "$TASK_HEAD" -- $UPSTREAM12`为空、`git status --porcelain`为空（累计断言必须用 execution BASE `$BASE_SHA`——`$TASK_BASE` 仅保留给步骤 6 的 manifest 行与相邻连续性）。
+- [ ] 步骤 6: 生成 task brief/report、4 参`review-package.sh "$TASK_BASE" "$TASK_HEAD" "$PROJECT/work" 2026-09-03-03e-claude-session-lifecycle`及 evidence package，取得独立 diff review PASS；有 fix 则更新`TASK_HEAD`、重跑步骤 2–5 并交全新 reviewer。PASS 后由 controller 运行`printf '2\ttask-1.2\t%s\t%s\t%s\tPASS\n' "$TASK_BASE" "$TASK_HEAD" "$REVIEWER" >>"$MANIFEST"`；随后分别 mark 1.2、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 1.3: 一次性交付完整默认发现生命周期测试
+
+文件: 创建 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-1.3-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-1.3-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-hook-lifecycle-contract-v1、claude-demo-private-fixture-v1
+产出: claude-session-lifecycle-matrix-v1
+需求: R1, R2, R3, R4, R5, R6, R7, R8
+必需: 是
+状态: 完成
+
+候选文件权威结构（design「默认发现测试」与「测试策略」节）：CLI 只接受无参数、`all`、唯一`--dependency-absent`或唯一`--session-provider-fixture <missing-foundation|missing-path|missing-snapshot|missing-signals|missing-remove|absent>`，unknown/extra/flag 带值/fixture 缺值/非法值 rc1 且不打印 PASS；依赖探测要求 aggregator 文件在场且在隔离 shell source 后 marker 精确为 1 且五 API 逐个在场。active 路径覆盖：v1 SessionStart——startup/fork/clear/resume 循环各建基线（状态文件在场、内容==feature）、compact 缺失报错不创建（rc0、stderr 一行、状态缺席）、已在场+任意 source 不改写、同值幂等不视为错误、非法 session_id/source/malformed JSON 各落 legacy（marker 恰一次、全局快照按 legacy 写入、v1 状态缺席）、v1 后 CLAUDE.md 软链指向私有 feature 上下文且 TMPDIR 无全局快照；v1 UserPromptSubmit——无漂移零输出 rc0、漂移 exit 2 且两行告警与期望逐字相等、基线缺席静默 rc0、非法 session_id 落 legacy；v1 SessionEnd——reason=clear 清理后状态树消失、重复调用仍 rc0、reason=resume 合法清理、事件名/session ID 非法与 reason 值集外三行各零删除（v1 状态与预置 legacy 快照均在场）+marker 恰一次、provider 设计外错误码注入（`HARNESS_STATE_ROOT=/` 触发 rc2）落 legacy；七类 fixture——完整 provider、`absent`（无 aggregator）与 missing-foundation/path/snapshot/signals/remove：mktemp 内建`tree/claude-code`+`tree/common/.harness/lib`副本并按类删模块文件，三 hook 各以合法 stdin 运行核 rc0、stdout compat marker 出现次数==1、执行对应 legacy 行为、v1 状态树缺席/为空；legacy/absent surface——`absent`fixture 与`--dependency-absent`执行全部 legacy 行为 case（非零 case inert）：SessionStart 覆盖写全局快照+sync+messages+marker 恰一次、UserPromptSubmit 漂移两行告警 rc0 不阻断（与 v1 的 exit 2 对照）、SessionEnd 幂等删除全局快照重复 rc0；结构核对——三 hook 文本 compat 字面量`rg -o`各恰 1 处、guard 含 marker 精确比较与`declare -F`五名、settings.json python3 解析且 SessionEnd 注册指向 session-end.sh、project-id 行为核对（fixture 树预期 SHA-256 目录名在 HARNESS_STATE_ROOT 下出现）；demo 收敛断言——真实`CURRENT_FEATURE`字节不变、全局快照缺席、`${TMPDIR:-/tmp}/claude-harness-demo.*` 前缀 glob 零匹配（裁定 10）；stdout/stderr 一律落文件按字节比较，禁止用吞尾随 LF 的 command substitution 验证成功流；成功唯一摘要`printf 'RESULT PASS  claude session lifecycle\n'`调用字面量恰 2 处（裁定 3），legacy surface 出口（第 1 处）与 active 出口（末行，第 2 处）。门③ M2 纪律（裁定 8，必须正面落实）：实现者必须最先落定七类 fixture 表驱动循环与 v1 SessionStart 矩阵的真实行数消耗——候选创建后立即核行数并把两区段的实际起止行号与行数记入 green 报告；若任一区段迫使测试文件超过 176 行或 numstat 总和预计超过 400，立即停手上报 controller 回 PLAN 拆片（备选：把 run-demo.sh 收敛拆为独立小片），禁止压缩任何 oracle 语义。
+
+- [ ] 步骤 1: 运行`test ! -e tests/test-claude-session-lifecycle.sh && bash tests/test-claude-session-lifecycle.sh`，确认红阶段失败为文件缺席 rc127、stdout 无 PASS；按固定六行 schema 写`$WORK/evidence/task-1.3-red.txt`并核`test -s "$WORK/evidence/task-1.3-red.txt"`。
+- [ ] 步骤 2: 设`TASK_BASE=$(git rev-parse HEAD)`并核其逐字等于任务 1.2 的`TASK_HEAD`（manifest 相邻连续）；用 apply_patch 一次性创建`tests/test-claude-session-lifecycle.sh`完整候选（禁止逐段拼装），创建后**立即**核行数消耗（裁定 8 M2 纪律）：`test "$(wc -l <tests/test-claude-session-lifecycle.sh)" -le 176`、`test "$(rg -cF "printf 'RESULT PASS  claude session lifecycle\n'" tests/test-claude-session-lifecycle.sh)" = 2`（裁定 3 前提）；把七类 fixture 表驱动循环区段与 v1 SessionStart 矩阵区段的实际起止行号与行数记入 green 报告草稿；任一行数断言不过即停手上报 controller，不得删减 oracle 用例。
+- [ ] 步骤 3: 逐字核固定工具版本`test "$("$TOOLS/shfmt" --version)" = "v3.14.0"`与`"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'`；对测试单文件跑`"$TOOLS/shfmt" -d -i 2 -ci -bn tests/test-claude-session-lifecycle.sh`（无输出）、`"$TOOLS/shellcheck" -x --severity=warning tests/test-claude-session-lifecycle.sh`（rc0）、`bash -n tests/test-claude-session-lifecycle.sh`与`git diff --check`，全部通过。
+- [ ] 步骤 4: dependency-present 实跑——建 `tmp=$(mktemp -d)`（日志一律落 `$tmp` 下，禁止在工作树根落 `out`/`err`，否则与步骤 6 的 `git status --porcelain` 为空互撞）；分别运行`bash ./tests/test-claude-session-lifecycle.sh`与`bash ./tests/test-claude-session-lifecycle.sh all`，各自`>"$tmp/out" 2>"$tmp/err"`落盘后核 rc0、`printf 'RESULT PASS  claude session lifecycle\n' | cmp -s - "$tmp/out"`、`test ! -s "$tmp/err"`；断言计数：在仓库内`mktemp -d "$PWD/.count.XXXXXX"`中放目标副本，用 python3 以 rindex 定位最后一处`printf 'RESULT PASS  claude session lifecycle\n'`并在其前插入`printf 'checks=%d\n' "$checks" >&2`，跑 default 与 all 各一次、**双流路径写死且与前半段的 `$tmp/out`/`$tmp/err` 互不复用**（default 用`>"$tmp/probe-default.out" 2>"$tmp/probe-default.err"`、all 用`>"$tmp/probe-all.out" 2>"$tmp/probe-all.err"`；前半段的 `$tmp/err` 断言是「必须为空」，探针跑若复用同一路径会与之自相矛盾，且跨运行比较会退化成「文件和自己相等」的空转），核`cmp -s "$tmp/probe-default.err" "$tmp/probe-all.err"`逐字一致且对**两个**文件各跑一次`rg -q '^checks=[1-9][0-9]*$'`（N>0；`N` 是占位符，不得写进命令），把实际 N 记入 green 报告作为本片 dependency-present 完整矩阵口径，随后删除 `.count` 临时目录与 `$tmp`；argv 非法表`bash ./tests/test-claude-session-lifecycle.sh --bogus`、`bash ./tests/test-claude-session-lifecycle.sh all extra`、`bash ./tests/test-claude-session-lifecycle.sh --dependency-absent=x`、`bash ./tests/test-claude-session-lifecycle.sh --session-provider-fixture`（缺值）、`bash ./tests/test-claude-session-lifecycle.sh --session-provider-fixture bogus`逐行核 rc1 且 stdout 不含 PASS；六个`--session-provider-fixture`合法取值（missing-foundation/missing-path/missing-snapshot/missing-signals/missing-remove/absent）逐行跑，核各自 rc0、stdout 逐字同一`RESULT PASS  claude session lifecycle\n`、stderr 0B。
+- [ ] 步骤 5: dependency-absent 隔离实跑——建 `tmp=$(mktemp -d)`；`git clone --no-local . "$tmp/r"` 后**以 `cp` 把本任务候选 `tests/test-claude-session-lifecycle.sh` 放入 clone**（`git clone` 只复制已提交内容，本任务候选在步骤 6 才提交；三 hook 与 settings.json 已由任务 1.1 提交、run-demo.sh 已由任务 1.2 提交，均无需 cp。漏掉这一步会让本步骤五次实跑全 rc127），再删除`$tmp/r/common/.harness/lib/session-state.sh`（真实依赖缺席态），在`$tmp/r`分别跑无参数、`all`、`--dependency-absent`，核三者 rc0、stdout 逐字同一`RESULT PASS  claude session lifecycle\n`、stderr 0B；非零 case 机械核验：对该副本用 python3 以 index 在第一处`printf 'RESULT PASS  claude session lifecycle\n'`（legacy surface 出口）前插入`  printf 'checks=%d\n' "${checks:-0}" >&2`（两空格缩进与该分支一致，裁定 3），跑 default 并把双流写死为`>"$tmp/absent-probe.out" 2>"$tmp/absent-probe.err"`（本步骤此前三次 absent 跑都没写过 `$tmp/err`，对未写入的路径断言会直接报文件不存在），核 rc0、stdout 逐字同一摘要、`rg -q '^checks=[1-9][0-9]*$' "$tmp/absent-probe.err"`（N>0；`N` 是占位符，不得写进命令，实际 N 记入 green 报告）——absent surface 执行全部 legacy 行为 case、非零 case inert（与 03d 的 checks=0 口径不同）；再另起`git clone --no-local . "$tmp/e"`、同样以 `cp` 放入本任务候选测试文件，删除`$tmp/e/common/.harness/lib/session-state-remove.sh`，跑 default 核同样 rc0、同一摘要、stderr 0B（missing-remove 自动落 legacy）；结束后`rm -rf -- "$tmp"`。
+- [ ] 步骤 6: 提交——`git add -N tests/test-claude-session-lifecycle.sh`后核 working-tree `git diff --name-only`恰为该单文件、`git diff --numstat | awk '{s+=$1+$2} END {print s+0}'`≤176；`git add tests/test-claude-session-lifecycle.sh`（intent-to-add 不入提交，必须真 add）后`git commit -m "test(claude): add session lifecycle matrix"`；设`TASK_HEAD=$(git rev-parse HEAD)`并核`git diff --name-only "$BASE_SHA" "$TASK_HEAD"`逐字等于`$EXACT6`六文件、`git diff --numstat "$BASE_SHA" "$TASK_HEAD" | awk '{s+=$1+$2} END {print s+0}'`≤400、`git diff --name-only "$BASE_SHA" "$TASK_HEAD" -- $UPSTREAM12`为空、`git status --porcelain`为空（exact6/≤400 断言必须用 execution BASE `$BASE_SHA`——`$TASK_BASE` 是任务 1.2 的 HEAD，该范围只含本任务单提交；`$TASK_BASE` 仅保留给步骤 7 的 manifest 行与相邻连续性）。
+- [ ] 步骤 7: 生成 task brief/report、4 参`review-package.sh "$TASK_BASE" "$TASK_HEAD" "$PROJECT/work" 2026-09-03-03e-claude-session-lifecycle`及 evidence package，取得独立 diff review PASS；有 fix 则更新`TASK_HEAD`、重跑步骤 3–6 并交全新 reviewer。PASS 后由 controller 运行`printf '3\ttask-1.3\t%s\t%s\t%s\tPASS\n' "$TASK_BASE" "$TASK_HEAD" "$REVIEWER" >>"$MANIFEST"`；随后分别 mark 1.3、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 2.1: 审计candidate并固定accepted HEAD
+
+文件: 测试 `claude-code/features/.harness/hooks/load-feature.sh` / 测试 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 测试 `claude-code/features/.harness/hooks/session-end.sh` / 测试 `claude-code/features/.harness/settings.json` / 测试 `claude-code/run-demo.sh` / 测试 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.1-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.1-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-session-lifecycle-matrix-v1
+产出: claude-lifecycle-accepted-head-v1
+需求: R9
+必需: 是
+状态: 完成
+
+- [ ] 步骤 1: 运行`test -s "$WORK/task-2.1-report.md"`确认红阶段失败为报告缺席，按固定六行 schema 写 red 文件并核`test -s`；核 implementation clean 且`git rev-parse HEAD`为任务 1.3 的`TASK_HEAD`。
+- [ ] 步骤 2: 创建临时目录`tmp=$(mktemp -d)`；保存十二上游文件 before SHA（`sha256sum $UPSTREAM12 >"$tmp/before.sha"`）；逐字核`test "$("$TOOLS/shfmt" --version)" = "v3.14.0"`与`"$TOOLS/shellcheck" --version | rg -q '^version: 0.11.0$'`；只对 exact 六文件中五个 shell 文件跑`"$TOOLS/shfmt" -d -i 2 -ci -bn claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/session-end.sh claude-code/run-demo.sh tests/test-claude-session-lifecycle.sh`、`"$TOOLS/shellcheck" -x --severity=warning claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/hooks/session-end.sh claude-code/run-demo.sh tests/test-claude-session-lifecycle.sh`、五个`bash -n`，并`python3 -c 'import json; json.load(open("claude-code/features/.harness/settings.json"))'`核验 settings.json；分别运行`bash ./tests/test-claude-session-lifecycle.sh`与`bash ./scripts/check.sh --offline`到独立日志`$tmp/candidate-default.log`与`$tmp/candidate-offline.log`（日志必须落 `$tmp`，在工作树根落裸 `offline.log` 会打翻步骤 3 的 clean 断言），核 default 摘要逐字`RESULT PASS  claude session lifecycle\n`、`test "$(rg -c 'RESULT PASS  claude session lifecycle$' "$tmp/candidate-offline.log")" = 1`（offline 发现本入口恰好一次，`$`锚定行尾）且 offline 末行 PASS；再`sha256sum -c "$tmp/before.sha"`比较 after SHA，结束后删除临时目录。
+- [ ] 步骤 3: 核`git diff --name-only "$BASE_SHA" HEAD`逐字等于`$EXACT6`六文件、`git diff --numstat "$BASE_SHA" HEAD | awk '{s+=$1+$2} END {print s+0}'`≤400、`git diff --name-only "$BASE_SHA" HEAD -- $UPSTREAM12`为空、`git diff --check`、clean，生成 green 报告和 evidence package；若发现源码缺陷则回流任务 1.1/1.2/1.3 修复并重 review，不在本任务改变 HEAD。
+- [ ] 步骤 4: 交独立 reviewer 审 brief/report/evidence package 并取得 PASS，把当前 40 位 clean HEAD 固定为`ACCEPTED_HEAD`。
+- [ ] 步骤 5: 由 controller 运行`printf '4\ttask-2.1\t%s\t%s\t%s\tPASS\n' "$TASK_HEAD" "$TASK_HEAD" "$REVIEWER" >>"$MANIFEST"`；随后分别 mark 2.1、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 2.2: 验证完整历史与depth-1 checkout
+
+文件: 测试 `claude-code/features/.harness/hooks/load-feature.sh` / 测试 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 测试 `claude-code/features/.harness/hooks/session-end.sh` / 测试 `claude-code/features/.harness/settings.json` / 测试 `claude-code/run-demo.sh` / 测试 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.2-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.2-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-lifecycle-accepted-head-v1
+产出: claude-lifecycle-checkout-v1
+需求: R9
+必需: 是
+状态: 完成
+
+本任务由裁定 9 将「完整历史 checkout」与「真实 depth-1 checkout」两项零 delta 验证合并落地：两者同基于 `ACCEPTED_HEAD`、同在 `mktemp` 临时 clone 内执行同一组断言、零源码 delta 且无独立回滚对象，合并后仍满足四条粒度判据。两个 clone 的日志分别落盘、逐一比对，不得互相顶替。
+
+- [ ] 步骤 1: 运行`test -s "$WORK/task-2.2-report.md"`确认红阶段失败为报告缺席并写 red 文件；核 implementation `git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
+- [ ] 步骤 2: 创建临时目录`tmp=$(mktemp -d)`，运行`git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/full"`并核 full 的`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`。
+- [ ] 步骤 3: 在 full 中保存十二上游文件 before SHA，分别运行`bash ./tests/test-claude-session-lifecycle.sh`与`bash ./scripts/check.sh --offline`到独立日志`$tmp/full-default.log`与`$tmp/full-offline.log`；核 default 固定摘要逐字`RESULT PASS  claude session lifecycle\n`、`test "$(rg -c 'RESULT PASS  claude session lifecycle$' "$tmp/full-offline.log")" = 1`且 offline 末行 PASS，再`sha256sum -c`比较 after SHA、`git status --porcelain`与`git diff` clean。
+- [ ] 步骤 4: 运行`git clone --depth 1 "file://$IMPLEMENTATION_WORKTREE" "$tmp/depth1"`，核`git rev-parse HEAD`逐字等于`ACCEPTED_HEAD`、`test "$(git rev-list --count HEAD)" = 1`及`test -s .git/shallow`。
+- [ ] 步骤 5: 在 depth1 中保存十二上游文件 before SHA，分别运行`bash ./tests/test-claude-session-lifecycle.sh`与`bash ./scripts/check.sh --offline`到独立日志`$tmp/depth1-default.log`与`$tmp/depth1-offline.log`；核 default 固定摘要逐字`RESULT PASS  claude session lifecycle\n`、`test "$(rg -c 'RESULT PASS  claude session lifecycle$' "$tmp/depth1-offline.log")" = 1`且 offline 末行 PASS；比较 after SHA、diff/status clean。
+- [ ] 步骤 6: 写 green 报告/evidence package（四份日志路径逐一列入 package 的 TSV 三列）并删除两个 checkout 与临时目录；独立 review PASS 后由 controller 运行`printf '5\ttask-2.2\t%s\t%s\t%s\tPASS\n' "$ACCEPTED_HEAD" "$ACCEPTED_HEAD" "$REVIEWER" >>"$MANIFEST"`。
+- [ ] 步骤 7: 分别 mark 2.2、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 2.3: 验证exact rollback
+
+文件: 测试 `claude-code/features/.harness/hooks/load-feature.sh` / 测试 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 测试 `claude-code/features/.harness/hooks/session-end.sh` / 测试 `claude-code/features/.harness/settings.json` / 测试 `claude-code/run-demo.sh` / 测试 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.3-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.3-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-lifecycle-checkout-v1
+产出: claude-lifecycle-rollback-v1
+需求: R10
+必需: 是
+状态: 完成
+
+- [ ] 步骤 1: 运行`test -s "$WORK/task-2.3-report.md"`确认红阶段失败为报告缺席并写 red 文件。
+- [ ] 步骤 2: 建 `tmp=$(mktemp -d)`；从 implementation `git clone --no-local "$IMPLEMENTATION_WORKTREE" "$tmp/rollback"`并核 HEAD=`ACCEPTED_HEAD`；运行`git rm claude-code/features/.harness/hooks/session-end.sh tests/test-claude-session-lifecycle.sh`（删两新增）与`git checkout "$BASE_SHA" -- claude-code/features/.harness/hooks/load-feature.sh claude-code/features/.harness/hooks/check-branch-drift.sh claude-code/features/.harness/settings.json claude-code/run-demo.sh`（恢复四修改到 execution BASE 版本）后提交普通 rollback commit；核`git diff --name-status HEAD~1 HEAD`恰六行——两个新增文件各一行`D`、四个修改文件各一行`M`——且路径逐字等于`$EXACT6`；核`git diff "$BASE_SHA" HEAD`为空（本片与 03d「全 D」口径的关键差异：本片交付含四个修改文件，rollback 的验收口径是 rollback 后六文件状态与 execution BASE 逐字节一致、即对 BASE 的 git diff 为空，而非 name-status 全为 D）。
+- [ ] 步骤 3: 在 rollback 运行`bash tests/test-session-snapshot.sh`（03b 基础测试，核逐字`RESULT PASS  session snapshot safety`）、`bash tests/test-session-snapshot-assurance.sh`（03b1 assurance 入口，核逐字`RESULT PASS  session snapshot assurance`）、`bash tests/test-session-signals.sh`（03c signals 入口，核逐字`RESULT PASS  session write interrupts`）、`bash tests/test-session-state.sh`（03d provider 入口，核逐字`RESULT PASS  session state`）与`bash ./scripts/check.sh --offline`（各入口日志一律落 `$tmp/rollback-*.log`，禁止在 checkout 树根落裸日志）；核全绿、`! rg -q 'RESULT PASS  claude session lifecycle$' "$tmp/rollback-offline.log"`（本入口发现 0 次）、`test ! -e claude-code/features/.harness/hooks/session-end.sh`、`test ! -e tests/test-claude-session-lifecycle.sh`且 clean；candidate/full/depth-1 checkout 不被触碰。
+- [ ] 步骤 4: 写 green 报告/evidence package 并删除 rollback checkout；独立 review PASS 后由 controller 运行`printf '6\ttask-2.3\t%s\t%s\t%s\tPASS\n' "$ACCEPTED_HEAD" "$ACCEPTED_HEAD" "$REVIEWER" >>"$MANIFEST"`。
+- [ ] 步骤 5: 分别 mark 2.3、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 2.4: 验证04顺序门
+
+文件: 测试 `claude-code/features/.harness/hooks/load-feature.sh` / 测试 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 测试 `claude-code/features/.harness/hooks/session-end.sh` / 测试 `claude-code/features/.harness/settings.json` / 测试 `claude-code/run-demo.sh` / 测试 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.4-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.4-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv`
+消费: claude-lifecycle-rollback-v1
+产出: claude-lifecycle-order-gate-v1
+需求: R10
+必需: 是
+状态: 完成
+
+- [ ] 步骤 1: 运行`test -s "$WORK/task-2.4-report.md"`确认红阶段失败为报告缺席并写 red 文件。
+- [ ] 步骤 2: 定义日期无关规范 ID 片段`NEXT=04-runtime-resource-leases`（日期前缀由创建日决定，本片不预知，R10）；前提：本步骤四门与步骤 4 一律在 `bash` 下执行（依赖未匹配 glob 按字面传参、以及 `$files` 的词分割；zsh 的 NOMATCH 会整条中止赋值、且不对未加引号的 `$files` 做词分割，两者都会把门变成假绿），且执行 shell 不得开 nullglob——未匹配 glob 需按字面传给 `ls`、由其 rc2 经 `!` 判缺席；在 implementation worktree 运行`! ls -d "$PROJECT"/specs/*"$NEXT" 2>/dev/null`与`! ls -d "$PROJECT"/work/*"$NEXT" 2>/dev/null`核 spec/work 目录缺席。
+- [ ] 步骤 3: 运行`test -z "$(git show-ref | rg "refs/heads/spec/.*$NEXT")"`核分支零匹配；运行`test -z "$(git worktree list --porcelain | rg "$NEXT")"`核 worktree 零匹配。
+- [ ] 步骤 4: 收集限定域文件后跑 scoped rg——`files=$(ls "$PROJECT"/specs/*/ledger.md "$PROJECT"/work/*/dispatch.tsv "$PROJECT"/work/*/execution-base.env 2>/dev/null)`（ls 多参数单列一行，禁止 `&&` 链 ls），然后`test -n "$files"`（正向断言：`specs/*/ledger.md` 至少十份，必然非空；写成 `test -z "$files" ||` 会在 `$files` 取空时真空通过而假绿）后再`! rg -q "$NEXT" $files`核 ledger/dispatch/execution-base 记录零匹配；不得搜索 PLAN/requirements/design/tasks 中的合法规划文字（裁定 6）。
+- [ ] 步骤 5: 写 green 报告/evidence package 并取得独立 review PASS；由 controller 运行`printf '7\ttask-2.4\t%s\t%s\t%s\tPASS\n' "$ACCEPTED_HEAD" "$ACCEPTED_HEAD" "$REVIEWER" >>"$MANIFEST"`。
+- [ ] 步骤 6: 分别 mark 2.4、apply_patch 写 ledger 锚点、sync-ledger。
+
+### 任务 2.5: 收敛manifest、ledger与终交付
+
+文件: 测试 `claude-code/features/.harness/hooks/load-feature.sh` / 测试 `claude-code/features/.harness/hooks/check-branch-drift.sh` / 测试 `claude-code/features/.harness/hooks/session-end.sh` / 测试 `claude-code/features/.harness/settings.json` / 测试 `claude-code/run-demo.sh` / 测试 `tests/test-claude-session-lifecycle.sh`
+验收资产（不纳入源码文件清单）: 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/evidence/task-2.5-red.txt` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/task-2.5-report.md` / 修改 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/review-manifest.tsv` / 创建 `.spec/2026-08-31-aosp-harness-refactor/work/2026-09-03-03e-claude-session-lifecycle/acceptance/acceptance-report.md`
+消费: claude-lifecycle-order-gate-v1
+产出: tests/test-claude-session-lifecycle.sh（终交付锚点 claude-session-lifecycle-v1 记入 ledger 完成锚点与 acceptance 报告）
+需求: R9, R10
+必需: 是
+状态: 完成
+
+- [ ] 步骤 1: 运行`test -s "$WORK/acceptance/acceptance-report.md"`确认红阶段失败为报告缺席并写 red 文件；核`git rev-parse HEAD`=`ACCEPTED_HEAD`与 clean。
+- [ ] 步骤 2: 汇总 candidate/full/depth/rollback/order 日志到 green 与 acceptance 报告（含 accepted HEAD、active 摘要、checks 计数口径、absent surface 非零 case 口径、七类 fixture、exact6/400、三 hook compat 字面量恰 1 处结构核对），生成 evidence package 并取得独立 review PASS。
+- [ ] 步骤 3: 由 controller 运行`printf '8\ttask-2.5\t%s\t%s\t%s\tPASS\n' "$ACCEPTED_HEAD" "$ACCEPTED_HEAD" "$REVIEWER" >>"$MANIFEST"`。
+- [ ] 步骤 4: 运行以下完整 manifest 核验（八行、六列、相邻连续、reviewer 非空、全 PASS）：
+
+  ```bash
+  awk -F '\t' -v base="$BASE_SHA" -v head="$ACCEPTED_HEAD" '
+    BEGIN { split("task-1.1 task-1.2 task-1.3 task-2.1 task-2.2 task-2.3 task-2.4 task-2.5", ids, " ") }
+    NF != 6 || $1 != NR || $2 != ids[NR] || $3 !~ /^[0-9a-f]{40}$/ || $4 !~ /^[0-9a-f]{40}$/ || $5 == "" || $6 != "PASS" { bad=1 }
+    NR == 1 && $3 != base { bad=1 }
+    NR > 1 && $3 != prev { bad=1 }
+    { prev=$4 }
+    END { exit bad || NR != 8 || prev != head }
+  ' "$MANIFEST"
+  ```
+
+- [ ] 步骤 5: mark 任务 2.5 完成；用 apply_patch 写 ledger 完成锚点及 accepted HEAD、active 摘要、checks 计数口径、exact6/400、full/depth/rollback/order 证据（遵守裁定 6，不逐字包含 04 规范 ID 全名），再运行 sync-ledger。
+- [ ] 步骤 6: 重跑`python3 /home/zzh0838/.agents/skills/spec/scripts/check-tasks.py "$TASKS"`、`python3 /home/zzh0838/.agents/skills/spec/scripts/check-req.py "$SPEC/requirements.md"`、`python3 /home/zzh0838/.agents/skills/spec/scripts/check-criteria.py "$SPEC/requirements.md"`、`python3 /home/zzh0838/.agents/skills/spec/scripts/check-analyze.py "$SPEC/requirements.md"`、candidate default/offline、`git diff --check`、clean 与任务 2.4 的 04 顺序门；全部通过才进入 accept，任何 inert 或 legacy-only PASS 不得作为本片验收证据或解除后序门。

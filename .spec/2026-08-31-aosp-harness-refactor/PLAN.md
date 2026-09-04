@@ -51,7 +51,7 @@
 | `03b1-session-snapshot-assurance` | 在signals facade前穷举snapshot mutation/publish/child signal | `03b-session-snapshot-safety` | dependency-present时`./tests/test-session-snapshot-assurance.sh`输出`RESULT PASS  session snapshot assurance`且完整矩阵全PASS | ✅ 完成 |
 | `03c-session-write-interrupts` | 交付独占的 write facade/group signal 模块 | `03b-session-snapshot-safety`, `03b1-session-snapshot-assurance` | `./tests/test-session-signals.sh` 输出 `RESULT PASS  session write interrupts` | ✅ 完成 |
 | `03d-session-remove-prune` | 交付 remove 模块与 complete-provider aggregator | `03c-session-write-interrupts` | `./tests/test-session-state.sh` 输出 `RESULT PASS  session state` | ✅ 完成 |
-| `03e-claude-session-lifecycle` | 将 Claude hook/demo 接入完整安全状态 API并验证生命周期 | `03d-session-remove-prune` | `./tests/test-claude-session-lifecycle.sh` 输出 `RESULT PASS  claude session lifecycle` | ⬜ 未开始 |
+| `03e-claude-session-lifecycle` | 将 Claude hook/demo 接入完整安全状态 API并验证生命周期 | `03d-session-remove-prune` | `./tests/test-claude-session-lifecycle.sh` 输出 `RESULT PASS  claude session lifecycle` | ✅ 完成 |
 | `04-runtime-resource-leases` | 为源码、build、device、CVD 提供跨会话独占租约 | `02-offline-quality-gate` | `./tests/test-resource-leases.sh` 输出 `RESULT PASS  resource leases` | ⬜ 未开始 |
 | `05-verifier-contract` | 对齐三套 verifier 的断言和 PASS/FAIL/SKIP 契约 | `02-offline-quality-gate` | `./tests/test-verifier-contract.sh` 输出 `RESULT PASS  verifier contract` | ⬜ 未开始 |
 | `06-resilient-command-runtime` | 为 ADB/build/CVD 步骤增加超时、诊断、取消和 fail-fast | `04-runtime-resource-leases` | `./tests/test-command-runtime.sh` 输出 `RESULT PASS  command runtime` | ⬜ 未开始 |
