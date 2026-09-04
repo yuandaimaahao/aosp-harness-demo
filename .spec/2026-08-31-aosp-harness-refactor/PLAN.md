@@ -1,4 +1,4 @@
-# 2026-08-31-aosp-harness-refactor 拆分计划 v5.9
+# 2026-08-31-aosp-harness-refactor 拆分计划 v6.0
 
 > 上游：`research/report.md`
 > v5.3 依据：03 task 1.1/1.2 的真实 diff 与增量 PLAN review 证明 359/400 行 sizing prototype 失真且 1400 行例外不满足 P5；按安全完成边界拆为互不叠改的私有模块，只有最终 aggregator 发布完整 capability。
@@ -9,6 +9,7 @@
 > v5.7 依据：03b requirements round1证明原03c无法访问封装在03b Python worker内的owned temp/publish点，且259行代表原型没有覆盖完整rename/mutation oracle。把child信号处理、owned-temp cleanup和`TEMP_BEFORE_PUBLISH`归还03b worker，03c只做可组合的Bash转发facade；新增只拥有默认发现穷举测试的03b1，在其dependency-present证据通过前禁止03c启动。design round2 cleanup优先级修复后的fixed-format核心208行+基础测试192行实跑400/400，补齐四态source rc/双流/完整inventory/export属性、strict worker、held capture、字节级read、并发winner、close前ownership transfer、early-second latch、post-rename winner、signal+cleanup-close-error的全fd遍历与静态攻击整树delta并使exact2 ShellCheck全绿；03b1完整active-family runnable prototype再以exact1=308/400、240项调用/状态delta、换入对象身份/shape、EEXIST全oracle前temp清理/完整winner指纹、四个信号线性化/cleanup窗口、固定工具全绿证明单文件边界可实施。
 > v5.8 依据：04 design round1以真实探针证明原387/400原型存在CLI假绿，且缺strict record/global overlap、工具与输出I/O收敛、Python3.8兼容及tombstone恢复；完整R9矩阵不可能进入余13行。04保留完整runtime/docs与每类核心机制至少一个基础回归，修复四项后fixed-shfmt runnable exact3实测336+7+57=400/400；新增04a独占完整mutation/I/O/concurrency/adapter assurance，其runnable exact1原型398/400，并只替换生产文本唯一test seam做故障注入；04a的dependency-present证据通过前禁止05/06/08启动，严格串行的NEXT改为04a再05。
 > v5.9 依据：04a requirements起草前在已合入04 provider上实跑398行转交assurance原型，稳定复现`FAIL monotonic attempt count`：资源扫描后首次观测deadline到达时直接rc3，未进入最后一次无sleep锁尝试。隔离provider只替换该分支相邻两行；requirements round1再按全局churn口径和负向oracle findings把assurance收敛为fixed-shfmt 396行，补齐七类damaged provider、三种真实absent入口、同owner异mode、tracked hash/repo外fixture与mutant双流反证。修订原型default/all/`--dependency-absent`三路逐字PASS，provider diff `2增2删`加assurance `396增0删`恰为400行新增+删除。因此04a收窄为exact两文件的相邻修复+穷举保证，不改public API/文档/基础测试，仍在任何消费者前验收。
+> v6.0 依据：05 requirements round1独立review的B1证明“05同测三入口”与文件表“05只拥有common、09拥有三个薄入口”互相冲突，且三套331/156/120行既有实现加文档与完整矩阵没有400行sizing证据；round2 P-B1进一步证明05若修改既有common入口，仍会与09重叠且无法独立回滚。05因此新增不被09改写的canonical CLI并独占contract doc/test；09在消费05/06/07后独占三个旧入口、dispatcher、legacy fallback与parity，05回滚时以canonical文件物理缺席无歧义切回fallback。
 
 ## 总目标
 
@@ -56,7 +57,7 @@
 | `03e-claude-session-lifecycle` | 将 Claude hook/demo 接入完整安全状态 API并验证生命周期 | `03d-session-remove-prune` | `./tests/test-claude-session-lifecycle.sh` 输出 `RESULT PASS  claude session lifecycle` | ✅ 完成 |
 | `04-runtime-resource-leases` | 为源码、build、device、CVD 提供跨会话独占租约 | `02-offline-quality-gate` | `./tests/test-resource-leases.sh` 输出 `RESULT PASS  resource leases` | ✅ 完成 |
 | `04a-runtime-resource-lease-assurance` | 修复deadline最后一次无sleep锁尝试并穷举状态损坏、I/O与并发矩阵 | `04-runtime-resource-leases` | dependency-present时`./tests/test-resource-leases-assurance.sh`输出`RESULT PASS  resource lease assurance`且完整矩阵全PASS | ✅ 完成 |
-| `05-verifier-contract` | 对齐三套 verifier 的断言和 PASS/FAIL/SKIP 契约 | `02-offline-quality-gate`, `04a-runtime-resource-lease-assurance` | `./tests/test-verifier-contract.sh` 输出 `RESULT PASS  verifier contract` | ⬜ 未开始 |
+| `05-verifier-contract` | 交付独立 canonical verifier 的五断言与 PASS/FAIL/SKIP 契约 | `02-offline-quality-gate`, `04a-runtime-resource-lease-assurance` | `./tests/test-verifier-contract.sh` 输出 `RESULT PASS  verifier contract` | ⏳ 进行中 |
 | `06-resilient-command-runtime` | 为 ADB/build/CVD 步骤增加超时、诊断、取消和 fail-fast | `04-runtime-resource-leases`, `04a-runtime-resource-lease-assurance` | `./tests/test-command-runtime.sh` 输出 `RESULT PASS  command runtime` | ⬜ 未开始 |
 | `07-feature-registry-resolver` | 收敛 client registry、manifest schema、resolver 和 branch contract | `02-offline-quality-gate` | `./tests/test-registry-resolver.sh` 输出 `RESULT PASS  registry resolver` | ⬜ 未开始 |
 | `08-client-session-adapters` | 收敛 Claude/Codex wrapper 与 Codex session hook，保留 03e 独占的 Claude hook | `03d-session-remove-prune`, `04-runtime-resource-leases`, `04a-runtime-resource-lease-assurance`, `07-feature-registry-resolver` | `./tests/test-client-session-adapters.sh` 输出统一 PASS | ⬜ 未开始 |
@@ -84,7 +85,7 @@
 | `03e` | Claude hook/settings/demo 适配、lifecycle test |
 | `04` | lease 公共库、lease 协议文档、resource-leases test |
 | `04a` | `common/.harness/lib/resource-leases.sh`的deadline两行相邻修复；`tests/test-resource-leases-assurance.sh`完整保证 |
-| `05` | verifier contract 文档、common verifier 断言、contract test |
+| `05` | 新增 `common/.harness/bin/verify-sidebar.sh` canonical CLI、verifier contract 文档、contract test；不修改三个旧 verifier 入口 |
 | `06` | command runtime 库、ADB/build/CVD 执行代码块、runtime test |
 | `07` | client registry、resolver/branch checker、manifest adapter、registry test |
 | `08` | common client launcher、Claude/Codex wrapper、Codex session hook 薄适配、adapter test；不修改 03e 的 Claude hook |
@@ -147,7 +148,7 @@
 
 ### `05-verifier-contract`
 
-依据：report “验收强度与契约漂移”。定义 boot、system_server、crash baseline、service、package 五项断言及 PASS/FAIL/SKIP/退出码；补齐 common 的 crash/package/baseline；同一 mock 矩阵验证三入口的成功、命令失败、业务缺失、SKIP 和时间边界。产出：`docs/verifier-contract.md`、`tests/test-verifier-contract.sh` 与稳定 CLI `verify-sidebar.sh [--demo] [--since <epoch[.nsec]>] [--allow-skip]`；末行只能为 `RESULT PASS|FAIL|INCOMPLETE` 及可选解释，退出码分别为 `0|1|2`。
+依据：report “验收强度与契约漂移”及05 requirements round1 B1/round2 P-B1。定义boot、system_server、crash baseline、service、package五项断言及PASS/FAIL/SKIP/退出码；新增不与旧入口重叠的common canonical CLI，隔离mock矩阵验证其成功、六条查询失败、业务缺失/解析失败、SKIP和时间边界。三个旧verifier入口在05中不改，09独占dispatcher、三个薄入口、legacy fallback及parity；09永不修改canonical CLI，05回滚后以该文件物理缺席进入fallback，不覆盖09 hunks。产出：`docs/verifier-contract.md`、`tests/test-verifier-contract.sh`与稳定CLI `common/.harness/bin/verify-sidebar.sh [--demo] [--since <epoch[.nsec]>] [--allow-skip]`；末行只能为`RESULT PASS|FAIL|INCOMPLETE`及受控可选解释，退出码分别为`0|1|2`。门③前必须以fixed-format runnable exact3 prototype证明完整矩阵与added+removed≤400，否则回PLAN拆片。
 
 ### `06-resilient-command-runtime`
 
@@ -163,7 +164,7 @@
 
 ### `09-verifier-adapters`
 
-依据：report 中三套 verifier 重复与断言漂移。将三入口收敛到消费 `05` CLI 契约、`06` command runtime 和 `07` registry 的公共 dispatcher，保留旧路径。dispatcher 自带与 `01` 等价、不依赖 legacy 文件的 serial/SKIP 前置层。产出：`harness_verify <feature> [--session-id <safe-id>] [--lease-wait-seconds <0..300>] [--android-instance-id <safe-id>] [contract CLI args...]`；真实 v2 模式强制 session/instance ID，demo 模式可生成进程内唯一 session ID；wait 默认 `0`、只接受显式 CLI 覆盖，不从未约束环境取值。缺少/非法控制参数在 ADB/lease 前返回 `2`；中断必须释放 lease。stdout/退出码与 `05` 相同；`tests/test-verifier-adapters.sh` 覆盖 v2/legacy、`01` present/absent、控制参数缺失/非法、中断释放、未知 feature、畸形 registry 和命令失败。
+依据：report 中三套 verifier 重复与断言漂移。将三旧入口收敛到消费 `05` canonical CLI契约、`06` command runtime和`07` registry的公共dispatcher，保留旧路径且永不修改05的canonical文件。dispatcher自带与`01`等价、不依赖legacy文件的serial/SKIP前置层，并拥有05 provider物理缺席时使用的legacy fallback；present时三旧入口走v2，absent时都走fallback，测试必须覆盖两态且不得按文件内容猜版本。产出：`harness_verify <feature> [--session-id <safe-id>] [--lease-wait-seconds <0..300>] [--android-instance-id <safe-id>] [contract CLI args...]`；真实v2模式强制session/instance ID，demo模式可生成进程内唯一session ID；wait默认`0`、只接受显式CLI覆盖，不从未约束环境取值。缺少/非法控制参数在ADB/lease前返回`2`；中断必须释放lease。stdout/退出码与`05`相同；`tests/test-verifier-adapters.sh`覆盖v2/legacy、05 present/absent、`01` present/absent、三入口parity、控制参数缺失/非法、中断释放、未知feature、畸形registry和命令失败。
 
 ### `10-docs-and-readiness`
 
@@ -200,7 +201,7 @@
 | `04a -> 05` | 同一dependency-present验收与五类NEXT资产缺席门；无运行时API | controller只在04a证据齐全后创建05 spec/ref/worktree/ledger BASE/dispatch，inert PASS不能替代 |
 | `04 -> 08` | 同上 | `08` 为 source/build 生成 workspace request；provider 缺席时 stderr 输出 `compat: lease-provider=legacy` |
 | `04a -> 08` | 同04a到06的dependency-present证明协议 | controller只在04a验收后启动08；08运行时仍直接消费04 API，inert PASS不能替代验收证据 |
-| `05 -> 09` | verifier CLI；末行 `RESULT ...`；退出 `0|1|2` | `09` 原样传递 stdout/退出码；provider 缺席时 legacy verifier 仍经 `01` 等价 preflight |
+| `05 -> 09` | `common/.harness/bin/verify-sidebar.sh` physical provider；五断言、demo fixture、末行`RESULT ...`与退出`0|1|2` | `09`不改provider；present时dispatcher/三薄入口消费其契约，物理缺席时走09自有legacy fallback；两态及三入口parity均由09测试，回滚05不覆盖09 hunks |
 | `06 -> 09` | `harness_command_run`；stdout 传透、stderr 诊断；`0|child|124|2` | `09` 从自身 CLI 取已校验 session ID、0..300 秒 wait 和 Android instance ID，生成 lease request 并传分离 argv；provider 缺席时走 legacy verifier |
 | `07 -> 08` | resolver stdout 固定 key 集 `contract_version,client,command,context,hook_adapter,feature,target_branch,manifest,workflow,verifier,repositories,contract_sha256`，键按 ASCII 排序，值禁止 LF/NUL/`=`；`0|1|2` | 按 key 解析，不依赖行号；provider 缺席时 stderr 输出 `compat: contract_version=legacy` |
 | `07 -> 09` | 同上 | 按 registry 定位 verifier/feature；缺席时走 legacy verifier |
@@ -224,7 +225,7 @@
 | `03e` | 回退 Claude hook/settings/demo 接入 | `03d` 完整 provider与测试不依赖03e；08不修改03e独占hook |
 | `04` | 删除provider、协议文档与基础测试，不改04a/后序文件 | `04a`因provider物理缺席走inert PASS/零active case；`06`只在`HARNESS_LEGACY_SINGLE_SESSION=1`下告警运行否则返2，`08`走legacy adapter；该状态不得重新验收04a或启动消费者 |
 | `04a` | 删除lease assurance入口并精确回退provider的deadline两行修复，不改04文档、基础测试或后序模块 | 回到已验收04基线且基础测试保持绿色，但重新暴露已记录的最后一次无sleep锁尝试缺口；失去穷举门禁证据且不得重新验收或新启动05/06/08 |
-| `05` | 回退 contract 文档/共用断言 | `09` 的 legacy fixture 保持旧 verifier 入口可运行 |
+| `05` | 删除canonical CLI、contract文档与test，不修改三个旧入口或09文件 | `09`以canonical文件物理缺席无歧义走自有legacy fallback；三个薄入口与dispatcher hunks不被05回滚覆盖 |
 | `06` | 回退 command runtime/skill 更新 | `09` 自动使用仍符合 `01` 基线的 legacy verifier |
 | `07` | 回退 registry/resolver/schema，保留 legacy 数据 | `08/09` 的 legacy fixture 验证回退路径 |
 | `08` | 回退 client/session adapter | `09` 不依赖 `08`；`10` 只引稳定入口 |

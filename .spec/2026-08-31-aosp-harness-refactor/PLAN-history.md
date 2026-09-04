@@ -67,3 +67,7 @@
 ## v5.9 — 2026-09-04
 
 由`specs/2026-09-04-04a-runtime-resource-lease-assurance/reviews/requirements-prototype-boundary.md`触发：04a requirements起草前在已合入04 provider上实跑398行转交assurance，稳定失败于`monotonic attempt count`且隔离日志只有一次`flock`；资源扫描后首次观测deadline到达时直接返回，没有进入既定最后一次无sleep锁尝试。隔离provider把相邻两行替换为“到期continue，下一轮拿锁后由既有锁后deadline检查返回”；requirements round1又指出原口径漏计两行删除且缺多项承重负向oracle，随后把assurance收敛到fixed-shfmt 396行并补齐七类damaged provider、三种真实absent入口、同owner异mode、tracked hash/repo外fixture与mutant双流。修订原型default/all/dependency-absent三路均逐字PASS，exact churn为`2+2+396=400`。04a因此由exact1 assurance片收窄为exact2/400相邻修复+保证；public API、文档、基础测试、顺序图与consumer依赖不变，回滚两文件即回到已验收04基线。
+
+## v6.0 — 2026-09-04
+
+由`specs/2026-09-04-05-verifier-contract/reviews/requirements-05-verifier-contract-round-1.md`的B1触发：05详情要求同一mock矩阵验证三入口，但文件边界只把common verifier归05，并把三个薄入口归09；同时现有三脚本共607行，若05直接改三入口再新增文档/矩阵，没有additions+deletions≤400的可运行sizing证据。round2 P-B1继续指出，若05补写既有common feature入口，09后续薄化同一路径仍会重叠，05 exact rollback还可能覆盖09 hunks且无法区分弱legacy内容。最终切口改为：05新增独立`common/.harness/bin/verify-sidebar.sh` canonical physical provider并独占contract文档/单入口矩阵，三个旧入口完全不改；09消费05/06/07后独占dispatcher、三旧入口薄化、legacy fallback和三入口parity，并永不修改05 provider。05 rollback只移除自身exact3，09以provider物理缺席切fallback，不读取内容猜版本也不覆盖自身hunks。依赖图与顺序不变；门③前必须用完整fixed-format runnable exact3 prototype证明≤400，否则再回PLAN拆片。

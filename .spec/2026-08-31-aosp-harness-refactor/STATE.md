@@ -1,12 +1,13 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 04a复盘五问均否：无计划变更；下一片仍为05-verifier-contract
-updated: '2026-09-04T23:30:36+08:00'
-current_spec: null
-spec_stage: null
+basis: 门② autopilot：requirements round3与PLAN v6.0增量review PASS，B/I/M=0/0/0；check-plan/check-req/check-criteria/check-analyze/diff-check及review
+  policy全通过
+updated: '2026-09-04T23:59:34+08:00'
+current_spec: 2026-09-04-05-verifier-contract
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -151,6 +152,8 @@ workflow: requirements-first
 | 2026-09-04T23:22:37+08:00 | spec/execute | spec/accept | 04a四任务最终review PASS；controller终验收R1-R10、四不变量、exact2/400、四行manifest、converge、candidate/full/depth1/rollback与NEXT门全通过 |
 | 2026-09-04T23:29:43+08:00 | spec/accept | retro | 04a验收通过并fast-forward合入main；work证据已归档，post-merge default assurance与offline回归全绿，PLAN/DECISIONS已更新 |
 | 2026-09-04T23:30:36+08:00 | retro | select | 04a复盘五问均否：无计划变更；下一片仍为05-verifier-contract |
+| 2026-09-04T23:34:24+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-04-05-verifier-contract |
+| 2026-09-04T23:59:34+08:00 | spec/requirements | spec/design | 门② autopilot：requirements round3与PLAN v6.0增量review PASS，B/I/M=0/0/0；check-plan/check-req/check-criteria/check-analyze/diff-check及review policy全通过 |
 
 ## SKIPPED 记录
 
