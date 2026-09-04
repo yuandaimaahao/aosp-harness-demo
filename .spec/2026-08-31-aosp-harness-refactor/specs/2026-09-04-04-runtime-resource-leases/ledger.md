@@ -78,3 +78,5 @@
 - 2026-09-04T18:20+08:00 execute isolation=worktree branch=spec/2026-09-04-04-runtime-resource-leases base=692d52d00b56df9609760aa33a6f9aa3c38095a3
 - 2026-09-04T18:20+08:00 门⑤: PASS — closeout-evidence七节完整；本轮主验证/default/all/offline、invalid/static/exact3=400、full/depth1/rollback、七行manifest、后序五类缺席门、四不变量与隔离check-converge全部rc0；R1-R10逐条PASS、SKIPPED=0、挂账finding=0；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243。
 - 2026-09-04T18:20+08:00 验收命令更正: 首次depth1回放把相对worktree拼进file://而rc128；改用ledger canonical absolute worktree后同一判据PASS（count=1、shallow非空、default/offline绿、clean），前次失败不归因实现。
+- 2026-09-04T20:22+08:00 publish=PASS mode=ordinary archive-commit=621e31d30900fa7210be1c143d0f0bc7ced35946 metadata-commit=78759603f319f2ff72d3f59d9877cc42fbed0041 main=78759603f319f2ff72d3f59d9877cc42fbed0041；canonical publish_main快进成功，post-merge lease/offline与祖先核验PASS，feature worktree及分支普通清理完成，未push。
+- 2026-09-04T20:22+08:00 retro: 五问均否——04未推翻04a/05/06/08前提；执行期发现均已在本片闭合，无计划外工作；04a仍满足P1-P5且保持单文件assurance边界；依赖顺序继续04→04a→05/06/08；无当前上下文无法回答的新问题。PLAN v5.8无需调整，下一片仍为04a-runtime-resource-lease-assurance。

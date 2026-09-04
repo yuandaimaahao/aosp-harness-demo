@@ -1,13 +1,12 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: spec
+phase: select
 phase_status: in_progress
-basis: 7个任务全部完成；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243；七行review manifest连续且全PASS；fixed
-  static、candidate/full/depth1/rollback、exact3=400、后序五类缺席门和clean全绿
-updated: '2026-09-04T18:07:55+08:00'
-current_spec: 2026-09-04-04-runtime-resource-leases
-spec_stage: accept
+basis: 04复盘五问均否：PLAN v5.8无需调整；下一片仍为04a-runtime-resource-lease-assurance
+updated: '2026-09-04T20:22:51+08:00'
+current_spec: null
+spec_stage: null
 mode: standard
 workflow: requirements-first
 ---
@@ -143,6 +142,8 @@ workflow: requirements-first
 | 2026-09-04T15:11:08+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v5.8回流design三轮审查达熔断后由同reviewer只读融合验证最终PASS（0/0/0）；stored lexical canonical、capture安全生命周期、helper固定协议与publish后rollback、assurance反证全部闭合，core exact3=400/400、04a exact1=398/400，固定工具/运行/机械检查全绿 |
 | 2026-09-04T15:31:20+08:00 | spec/tasks | spec/execute | 门④ autopilot：tasks三轮独立审查最终PASS（0/0/0）；7任务/68字面验收资产/源码独占与零delta边界/R1-R10并集/产消链/checkout+rollback+04a五类缺席门/七行manifest闭合，机械检查全绿 |
 | 2026-09-04T18:07:55+08:00 | spec/execute | spec/accept | 7个任务全部完成；accepted HEAD=f7cfcb202d1fd2934d07cc90e333a4205b563243；七行review manifest连续且全PASS；fixed static、candidate/full/depth1/rollback、exact3=400、后序五类缺席门和clean全绿 |
+| 2026-09-04T20:22:32+08:00 | spec/accept | retro | 04验收通过并以78759603f319f2ff72d3f59d9877cc42fbed0041快进合入main；post-merge lease/offline回归与祖先核验全PASS；feature worktree和分支已普通清理 |
+| 2026-09-04T20:22:51+08:00 | retro | select | 04复盘五问均否：PLAN v5.8无需调整；下一片仍为04a-runtime-resource-lease-assurance |
 
 ## SKIPPED 记录
 
