@@ -1,0 +1,365 @@
+Task 3 green evidence
+
+Constants
+TOOLS=/home/zzh0838/.cache/aosp-harness-tools-04/bin
+execution BASE_SHA=1e3d297a7bc636d8ea2e7f4b7aa0dfbe4731fdf5
+ACCEPTED_HEAD=5f867fa8e5d1c5b79001d0ec201045139fa29a40
+task-3 source delta BASE=HEAD=5f867fa8e5d1c5b79001d0ec201045139fa29a40
+TARGET=tests/test-verifier-contract-assurance.sh
+empty-stream SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+1. Isolated rollback checkout
+
+Temporary root: /tmp/05a-task3-rollback.D2CI94
+command: git clone --no-local "$SOURCE" "$ROLLBACK"
+rc: 0
+stderr key line: Cloning into '/tmp/05a-task3-rollback.D2CI94/repo'...
+command: git -C "$ROLLBACK" checkout --detach "$ACCEPTED_HEAD"
+rc: 0
+stdout/stderr key line: HEAD is now at 5f867fa Add verifier contract assurance test
+pre-rollback HEAD: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+pre-rollback status count: 0
+
+command: git -C "$ROLLBACK" rm tests/test-verifier-contract-assurance.sh
+rc: 0
+stdout: rm 'tests/test-verifier-contract-assurance.sh'
+stderr bytes: 0
+command: git -C "$ROLLBACK" commit -m 'test: rollback verifier contract assurance'
+rc: 0
+rollback-only commit: b6531212bd1c76027c096db2486b8241b3147f45
+stderr bytes: 0
+
+command: git -C "$ROLLBACK" diff --name-only "$BASE_SHA" HEAD
+rc: 0
+stdout bytes: 0
+command: git -C "$ROLLBACK" diff --numstat "$BASE_SHA" HEAD
+rc: 0
+stdout bytes: 0
+command: git -C "$ROLLBACK" diff --check "$BASE_SHA" HEAD
+rc: 0
+stdout bytes: 0
+stderr bytes: 0
+result: rollback tree has zero source diff from execution BASE.
+
+command: find "$ROLLBACK/tests" -maxdepth 1 -type f -name 'test-verifier-contract-assurance.sh' -print
+rc: 0
+discovery count: 0
+command: test ! -e "$ROLLBACK/tests/test-verifier-contract-assurance.sh" && test ! -L "$ROLLBACK/tests/test-verifier-contract-assurance.sh"
+rc: 0
+
+Rollback regressions ran serially. Each command returned rc 0 and had empty stderr:
+
+command: bash ./tests/test-verifier-contract.sh
+rc: 0
+stdout: 31 bytes; SHA-256=f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2
+stdout last: RESULT PASS  verifier contract
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./tests/test-device-safety.sh
+rc: 0
+stdout: 195 bytes; SHA-256=27ec6e99b155d340e51221e67a1bc43b4311a0216ce9697ae696aac0810595d2
+stdout last: RESULT PASS  device safety
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./tests/test-resource-leases.sh
+rc: 0
+stdout: 29 bytes; SHA-256=91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b
+stdout last: RESULT PASS  resource leases
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./tests/test-resource-leases-assurance.sh
+rc: 0
+stdout: 38 bytes; SHA-256=0efda5495dd5fa42489228b3267f9adf88a97d038370adad9f9e17b386d30855
+stdout last: RESULT PASS  resource lease assurance
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./tests/test-claude-session-lifecycle.sh
+rc: 0
+stdout: 38 bytes; SHA-256=d82576f80324213355380079d3e34e911bcb7d005a4b767cab2b43a4ca8ba16e
+stdout last: RESULT PASS  claude session lifecycle
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./scripts/check.sh --offline
+rc: 0
+stdout: 672 bytes; SHA-256=54b41a03b8c68aca5f973a4e29d711a53112df58ff3cec8ed716b34a683a03cf
+stdout last: RESULT PASS  aosp-harness offline quality gate
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./common/.harness/features/dev-sidebar/verify-sidebar.sh --demo
+rc: 0
+stdout: 105 bytes; SHA-256=080b2ebca448959d33e737ae79a56ce34502d4ba64fb02f18a42ca6c70e941bc
+stdout last: RESULT PASS
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./claude-code/features/dev-sidebar/verify-sidebar.sh --demo
+rc: 0
+stdout: 311 bytes; SHA-256=0d5668cc12df74b6444a53f47ee32412c643ef93facf3dc13205cffd2439ad16
+stdout last: RESULT PASS
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./codex/features/dev-sidebar/verify-sidebar.sh --demo
+rc: 0
+stdout: 207 bytes; SHA-256=e86222cbb861adc031872f3bd0dfc24a70b438d7d037295501ababdb5215ff62
+stdout last: RESULT PASS
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: git status --porcelain=v1
+rc: 0
+stdout/stderr: empty; count=0
+
+Rollback physical cleanup:
+validated exact realpath prefix /tmp/05a-task3-rollback.* and the ordinary directory "$ROLLBACK/.git" before cleanup.
+command: find "$TMP_ROOT" -depth -delete
+rc: 0
+command: test ! -e /tmp/05a-task3-rollback.D2CI94
+rc: 0
+command: test ! -e /tmp/05a-task3-rollback.D2CI94/repo
+rc: 0
+No rm -rf was used. The rollback-only commit existed only in the physically deleted external checkout.
+
+2. 06/09 five-category absence gate
+
+Controller read-only root: /home/zzh0838/CareerDevelop/AI2D/aosp-harness-controller-main
+Execution BASE targets searched: 16
+Dispatch targets found: 0; /dev/null was used for a real deterministic rg no-match probe.
+command: test ! -L /dev/null
+rc: 0; object type: character special file
+
+For each ID, the spec directory find and branch-list command returned rc 0 with zero output and the absence assertion returned rc 0. The worktree, execution BASE, and dispatch searches were real rg calls; only rc 1 was accepted.
+
+ID=06-resilient-command-runtime
+spec directory: find rc=0, bytes=0, assertion rc=0
+spec branch: git branch --list rc=0, bytes=0, assertion rc=0
+worktree: rg rc=1, bytes=0
+execution BASE: rg rc=1, bytes=0
+dispatch: rg /dev/null rc=1, bytes=0
+
+ID=09-verifier-adapters
+spec directory: find rc=0, bytes=0, assertion rc=0
+spec branch: git branch --list rc=0, bytes=0, assertion rc=0
+worktree: rg rc=1, bytes=0
+execution BASE: rg rc=1, bytes=0
+dispatch: rg /dev/null rc=1, bytes=0
+
+Enclosing NEXT gate rc: 0
+
+Discarded orchestration probes, not product gates: the first shell pipeline used `xargs`, which translated the expected inner `rg` rc1 into xargs rc123; a second attempt ran under the ambient zsh and lacked Bash `mapfile`, returning rc127. Neither changed any repository or external state. The complete gate was then rerun under explicit `/bin/bash` with arrays, and only the directly observed `rg` rc1 results above were accepted.
+
+3. Candidate mechanical terminal check
+
+command: git rev-parse HEAD
+rc: 0
+stdout: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+command: git status --porcelain=v1
+rc: 0
+stdout/stderr: empty; count=0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shfmt --version
+rc: 0
+stdout: v3.14.0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shellcheck --version
+rc: 0
+key stdout: version: 0.11.0
+command: bash -n tests/test-verifier-contract-assurance.sh
+rc: 0; stdout/stderr empty
+command: shfmt -d -i 2 -ci -bn tests/test-verifier-contract-assurance.sh
+rc: 0; stdout/stderr empty
+command: shellcheck -x --severity=warning tests/test-verifier-contract-assurance.sh
+rc: 0; stdout/stderr empty
+
+command: git diff --name-status "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0
+stdout: A<TAB>tests/test-verifier-contract-assurance.sh
+command: git diff --numstat "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0
+stdout: 331<TAB>0<TAB>tests/test-verifier-contract-assurance.sh
+path count: 1
+total added+removed churn: 331
+command: git diff --check "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0; stdout/stderr empty
+command: git merge-base --is-ancestor "$BASE_SHA" "$ACCEPTED_HEAD"
+rc: 0
+command: git rev-parse "$ACCEPTED_HEAD^"
+rc: 0
+stdout: 1e3d297a7bc636d8ea2e7f4b7aa0dfbe4731fdf5
+
+Protected-path BASE..HEAD diffs:
+common/.harness/bin/verify-sidebar.sh: 0 bytes
+docs/verifier-contract.md: 0 bytes
+tests/test-verifier-contract.sh: 0 bytes
+common/.harness/features/dev-sidebar/verify-sidebar.sh: 0 bytes
+claude-code/features/dev-sidebar/verify-sidebar.sh: 0 bytes
+codex/features/dev-sidebar/verify-sidebar.sh: 0 bytes
+common/.harness/lib plus tests/test-session-*.sh plus tests/test-resource-leases*.sh: 0 bytes
+06-10 named source targets: 0 bytes
+
+Candidate/full/depth-1 active evidence consumed from task 2:
+- task-2 green records 3 checkouts x assurance/05-base/offline = 9/9 rc0, empty stderr.
+- candidate and full each prove exact1=331/0; depth-1 proves one commit, shallow marker, and TARGET/PROTO blob equality.
+- task-2 physically cleaned its external checkouts.
+
+4. Pending post-review controller boundary
+
+review-manifest.tsv currently has two six-column PASS rows. Row 3 is intentionally not pre-populated. It must be appended by the controller only after an independent task-3 review returns PASS, with base=head=5f867fa8e5d1c5b79001d0ec201045139fa29a40. The controller then owns the three-row continuity gate, mark/ledger/sync, post-review main assurance/offline/mechanical rerun, and accept transition.
+
+5. Isolated converge
+
+Temporary root: /tmp/05a-task3-converge.co9veZ
+command: git clone --no-local "$SOURCE" "$REPO" and checkout --detach "$ACCEPTED_HEAD"
+rc: 0
+checked HEAD: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+declared acceptance asset files copied into disposable fixture: 13
+command: python3 /home/zzh0838/.agents/skills/spec/scripts/check-converge.py "$REPO/$SPEC_REL" "$BASE_SHA" "$ACCEPTED_HEAD" --repo "$REPO"
+rc: 0
+stdout: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+cleanup validation: exact /tmp/05a-task3-converge.* realpath plus ordinary "$REPO/.git"
+command: find "$TMP_ROOT" -depth -delete
+rc: 0
+command: test ! -e /tmp/05a-task3-converge.co9veZ && test ! -e /tmp/05a-task3-converge.co9veZ/repo
+rc: 0
+
+6. Pre-review dependency-present terminal rerun
+
+Capture root: /tmp/05a-task3-final.iz9xbM
+
+05 protected SHA-256 before:
+common/.harness/bin/verify-sidebar.sh 56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d
+docs/verifier-contract.md a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2
+tests/test-verifier-contract.sh 2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160
+
+command: bash ./tests/test-verifier-contract-assurance.sh
+rc: 0
+stdout: 41 bytes; SHA-256=aafe238b2772cbc938ae81ed25b636ae4ea2866a66f30dbe13bccbcd7ac4f9a1
+stdout exact: RESULT PASS  verifier contract assurance\n
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./scripts/check.sh --offline
+rc: 0
+stdout: 713 bytes; SHA-256=194d752318418f8fc1449bf20e7bc648644b2bfe497acc461512a0f4449bbe08
+assurance summary exact-line discovery count: 1
+stdout last: RESULT PASS  aosp-harness offline quality gate
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+05 protected SHA-256 after:
+common/.harness/bin/verify-sidebar.sh 56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d
+docs/verifier-contract.md a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2
+tests/test-verifier-contract.sh 2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160
+result: all three before/after hashes are identical.
+
+final candidate HEAD: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+final candidate status count: 0
+cleanup validation: exact /tmp/05a-task3-final.* realpath
+command: find "$TMP_ROOT" -depth -delete
+rc: 0
+command: test ! -e /tmp/05a-task3-final.iz9xbM
+rc: 0
+
+7. Final task-owned temporary audit
+
+command: find /tmp -maxdepth 1 -type f -name '05a-task3-*' -print0
+initial exact regular non-symlink capture-file count: 16
+command: validate every exact /tmp/05a-task3-* regular non-symlink path, then find each validated path -maxdepth 0 -type f -delete
+rc: 0
+command: find /tmp -maxdepth 1 \( -type f -o -type d \) -name '05a-task3-*' -print
+rc: 0; remaining count: 0
+
+8. Post-review controller-delegated terminal gate
+
+Independent review result: PASS; B0/I0/M2.
+
+Manifest command:
+awk -F '\t' -v base="$BASE_SHA" -v head="$ACCEPTED_HEAD" 'NF!=6 || $1 != NR || $2 != NR || $3 !~ /^[0-9a-f]{40}$/ || $4 !~ /^[0-9a-f]{40}$/ || $5=="" || $6!="PASS" {bad=1} NR==1 && $3!=base {bad=1} NR>1 && $3!=prev {bad=1} {prev=$4} END {if (NR!=3 || prev!=head) bad=1; exit bad}' "$MANIFEST"
+rc: 0
+manifest rows: 3
+stdout bytes: 0
+stderr bytes: 0
+manifest SHA-256: ba50fb763abdc65794e66195a615d7140d5cb911fe07d107bd48a407b8327adb
+result: exact 3 rows x 6 columns; seq/task are 1..3; first base is 1e3d297a7bc636d8ea2e7f4b7aa0dfbe4731fdf5; last head is 5f867fa8e5d1c5b79001d0ec201045139fa29a40; adjacent rows are continuous; each reviewer is nonempty; all results are PASS.
+
+Post-review 06/09 asset enumeration:
+command: find "$PROJECT" -type f -name execution-base.env -print0
+rc: 0; targets: 16
+command: find "$PROJECT" -type f -name dispatch.tsv -print0
+rc: 0; targets: 0
+command: test ! -L /dev/null; stat -c %F /dev/null
+rc: 0; type: character special file
+
+For each ID, spec find and branch list returned rc0 with zero output and their empty-output assertions returned rc0. The three searches below were direct `rg` invocations, and only rc1 was accepted:
+
+ID=06-resilient-command-runtime
+spec directory: find rc=0, assertion rc=0, bytes=0
+spec branch: git branch --list rc=0, assertion rc=0, bytes=0
+worktree list rg: rc=1, bytes=0
+16 execution-base.env files rg: rc=1, bytes=0
+zero dispatch targets, checked /dev/null rg: rc=1, bytes=0
+
+ID=09-verifier-adapters
+spec directory: find rc=0, assertion rc=0, bytes=0
+spec branch: git branch --list rc=0, assertion rc=0, bytes=0
+worktree list rg: rc=1, bytes=0
+16 execution-base.env files rg: rc=1, bytes=0
+zero dispatch targets, checked /dev/null rg: rc=1, bytes=0
+
+Post-review NEXT enclosing gate rc: 0
+
+Post-review candidate and fixed mechanical gates:
+candidate HEAD before: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+candidate status count before: 0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shfmt --version
+rc: 0; stdout: v3.14.0; stderr bytes: 0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shellcheck --version
+rc: 0; version field: 0.11.0; stderr bytes: 0
+command: bash -n tests/test-verifier-contract-assurance.sh
+rc: 0; stdout bytes: 0; stderr bytes: 0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shfmt -d -i 2 -ci -bn tests/test-verifier-contract-assurance.sh
+rc: 0; stdout bytes: 0; stderr bytes: 0
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shellcheck -x --severity=warning tests/test-verifier-contract-assurance.sh
+rc: 0; stdout bytes: 0; stderr bytes: 0
+command: git diff --check "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0; stdout bytes: 0; stderr bytes: 0
+command: git diff --name-status "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0; stdout: A<TAB>tests/test-verifier-contract-assurance.sh
+command: git diff --numstat "$BASE_SHA..$ACCEPTED_HEAD"
+rc: 0; stdout: 331<TAB>0<TAB>tests/test-verifier-contract-assurance.sh
+path count: 1; total churn: 331
+05 exact3 and all three old verifier individual diff bytes: each 0
+session/resource protected aggregate diff bytes: 0
+named 06-10 future-source aggregate diff bytes: 0
+
+05 protected SHA-256 before post-review test commands:
+common/.harness/bin/verify-sidebar.sh 56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d
+docs/verifier-contract.md a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2
+tests/test-verifier-contract.sh 2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160
+
+command: bash ./tests/test-verifier-contract-assurance.sh
+rc: 0
+stdout: 41 bytes; SHA-256=aafe238b2772cbc938ae81ed25b636ae4ea2866a66f30dbe13bccbcd7ac4f9a1
+stdout exact: RESULT PASS  verifier contract assurance\n
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./tests/test-verifier-contract.sh
+rc: 0
+stdout: 31 bytes; SHA-256=f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2
+stdout exact: RESULT PASS  verifier contract\n
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+command: bash ./scripts/check.sh --offline
+rc: 0
+stdout: 713 bytes; SHA-256=194d752318418f8fc1449bf20e7bc648644b2bfe497acc461512a0f4449bbe08
+assurance summary exact-line discovery count: 1
+stdout last: RESULT PASS  aosp-harness offline quality gate
+stderr: 0 bytes; SHA-256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+05 protected SHA-256 after post-review test commands: all three exactly equal their before values above.
+candidate HEAD after: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+candidate status count after: 0
+post-review capture root: /tmp/05a-task3-postreview.0gpo6G
+cleanup validation: exact /tmp/05a-task3-postreview.* realpath
+command: find "$TMP_ROOT" -depth -delete
+rc: 0
+command: test ! -e /tmp/05a-task3-postreview.0gpo6G
+rc: 0
+
+Independent reviewer minor observations retained verbatim in substance:
+1. Pre-review green evidence abbreviated the formatting/lint command labels to `shfmt` and `shellcheck`, although it recorded the absolute fixed-tool root and versions. This post-review section preserves the full absolute executable paths; the historical observation remains recorded rather than erased.
+2. Pre-review dispatch evidence stated zero targets without reproducing its enumeration command before the checked `/dev/null` rc1 probe. This post-review section records `find "$PROJECT" -type f -name dispatch.tsv -print0`, its rc0, and target count 0; the historical observation remains recorded rather than erased.

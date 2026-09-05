@@ -1,0 +1,3 @@
+red command: cmp -s tests/test-verifier-contract-assurance.sh .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-05-05a-verifier-contract-assurance/prototypes/tests/test-verifier-contract-assurance.sh
+rc: 2
+assertion: target physical absence (target_absent=1)

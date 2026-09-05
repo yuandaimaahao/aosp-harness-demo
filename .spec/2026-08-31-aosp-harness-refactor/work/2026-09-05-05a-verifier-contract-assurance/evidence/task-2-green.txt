@@ -1,0 +1,193 @@
+Task 2 green evidence
+
+Constants
+TOOLS=/home/zzh0838/.cache/aosp-harness-tools-04/bin
+execution BASE=1e3d297a7bc636d8ea2e7f4b7aa0dfbe4731fdf5
+ACCEPTED_HEAD=5f867fa8e5d1c5b79001d0ec201045139fa29a40
+task-2 source delta BASE=HEAD=5f867fa8e5d1c5b79001d0ec201045139fa29a40
+TARGET=tests/test-verifier-contract-assurance.sh
+PROTO=.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-05-05a-verifier-contract-assurance/prototypes/tests/test-verifier-contract-assurance.sh
+
+Candidate mechanical checks
+command: git rev-parse HEAD
+rc: 0
+stdout: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+stderr: empty
+command: git rev-list --count HEAD; git rev-parse --is-shallow-repository
+rc: 0
+stdout: 239; false
+stderr: empty
+command: cmp -s "$TARGET" "$PROTO"
+rc: 0
+stdout/stderr: empty
+command: wc -l <"$TARGET"
+rc: 0
+stdout: 331
+stderr: empty
+command: sha256sum "$TARGET" "$PROTO"
+rc: 0
+stdout: both 88f3abcd3f99e252c10e1134b98ea63212584ebd37bc6dfac2f9dd77dedc92ba
+stderr: empty
+command: git diff --name-status "$BASE..$ACCEPTED_HEAD"
+rc: 0
+stdout: A<TAB>tests/test-verifier-contract-assurance.sh
+stderr: empty
+command: git diff --numstat "$BASE..$ACCEPTED_HEAD"
+rc: 0
+stdout: 331<TAB>0<TAB>tests/test-verifier-contract-assurance.sh
+stderr: empty
+command: git diff --name-only "$BASE..$ACCEPTED_HEAD" | wc -l
+rc: 0
+stdout: 1
+stderr: empty
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shfmt --version
+rc: 0
+stdout: v3.14.0
+stderr: empty
+command: /home/zzh0838/.cache/aosp-harness-tools-04/bin/shellcheck --version
+rc: 0
+key stdout: version: 0.11.0
+stderr: empty
+command: bash -n "$TARGET"
+rc: 0; stdout/stderr: empty
+command: shfmt -d -i 2 -ci -bn "$TARGET"
+rc: 0; stdout/stderr: empty
+command: shellcheck -x --severity=warning "$TARGET"
+rc: 0; stdout/stderr: empty
+command: git diff --check "$BASE..$ACCEPTED_HEAD"
+rc: 0; stdout/stderr: empty
+
+Protected 05 hashes before and after candidate gates
+common/.harness/bin/verify-sidebar.sh: before=56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d after=56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d
+docs/verifier-contract.md: before=a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2 after=a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2
+tests/test-verifier-contract.sh: before=2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160 after=2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160
+
+Candidate serial gates
+command: bash ./tests/test-verifier-contract-assurance.sh
+rc: 0
+stdout bytes/sha256: 41 / aafe238b2772cbc938ae81ed25b636ae4ea2866a66f30dbe13bccbcd7ac4f9a1
+stdout exact: RESULT PASS  verifier contract assurance\n
+stderr bytes/sha256: 0 / e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+command: bash ./tests/test-verifier-contract.sh
+rc: 0
+stdout bytes/sha256: 31 / f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2
+stdout exact: RESULT PASS  verifier contract\n
+stderr bytes/sha256: 0 / e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+command: bash ./scripts/check.sh --offline
+rc: 0
+stdout bytes/sha256: 713 / 194d752318418f8fc1449bf20e7bc648644b2bfe497acc461512a0f4449bbe08
+stdout last: RESULT PASS  aosp-harness offline quality gate
+stderr bytes/sha256: 0 / e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+command: git status --porcelain=v1
+rc: 0; stdout/stderr: empty; count=0
+candidate capture directory: physically absent after guarded find -depth -delete cleanup
+
+Full-history checkout
+command: git clone --no-local --branch spec/2026-09-05-05a-verifier-contract-assurance --single-branch "$SOURCE" "$FULL"
+rc: 0
+stdout: empty
+stderr: Cloning into '/tmp/05a-task2-clones.3G27Vz/full'...
+command: git -C "$FULL" rev-parse HEAD
+rc: 0; stdout: 5f867fa8e5d1c5b79001d0ec201045139fa29a40; stderr: empty
+command: git -C "$FULL" rev-list --count HEAD
+rc: 0; stdout: 239; stderr: empty
+command: git -C "$FULL" rev-parse --is-shallow-repository
+rc: 0; stdout: false; stderr: empty
+command: git -C "$FULL" diff --name-status "$BASE..$ACCEPTED_HEAD"
+rc: 0; stdout: A<TAB>tests/test-verifier-contract-assurance.sh; stderr: empty
+command: git -C "$FULL" diff --numstat "$BASE..$ACCEPTED_HEAD"
+rc: 0; stdout: 331<TAB>0<TAB>tests/test-verifier-contract-assurance.sh; stderr: empty
+command: sha256sum full TARGET and PROTO
+rc: 0; both hashes: 88f3abcd3f99e252c10e1134b98ea63212584ebd37bc6dfac2f9dd77dedc92ba; stderr: empty
+command: bash ./tests/test-verifier-contract-assurance.sh
+rc: 0; stdout bytes/sha256: 41 / aafe238b2772cbc938ae81ed25b636ae4ea2866a66f30dbe13bccbcd7ac4f9a1; stdout exact: RESULT PASS  verifier contract assurance\n; stderr bytes=0
+command: bash ./tests/test-verifier-contract.sh
+rc: 0; stdout bytes/sha256: 31 / f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2; stdout exact: RESULT PASS  verifier contract\n; stderr bytes=0
+command: bash ./scripts/check.sh --offline
+rc: 0; stdout bytes/sha256: 713 / 194d752318418f8fc1449bf20e7bc648644b2bfe497acc461512a0f4449bbe08; stdout last: RESULT PASS  aosp-harness offline quality gate; stderr bytes=0
+command: git -C "$FULL" status --porcelain=v1
+rc: 0; stdout/stderr: empty; count=0
+
+True depth-1 checkout
+command: git clone --depth 1 --branch spec/2026-09-05-05a-verifier-contract-assurance --single-branch "file://$SOURCE" "$DEPTH"
+rc: 0
+stdout: empty
+stderr: Cloning into '/tmp/05a-task2-clones.3G27Vz/depth-1'...
+command: git -C "$DEPTH" rev-parse HEAD
+rc: 0; stdout: 5f867fa8e5d1c5b79001d0ec201045139fa29a40; stderr: empty
+command: git -C "$DEPTH" rev-list --count HEAD
+rc: 0; stdout: 1; stderr: empty
+command: git -C "$DEPTH" rev-parse --is-shallow-repository
+rc: 0; stdout: true; stderr: empty
+command: test -s "$DEPTH/.git/shallow"
+rc: 0; marker=present; marker lines=1; marker content=5f867fa8e5d1c5b79001d0ec201045139fa29a40
+command: sha256sum depth-1 TARGET and PROTO
+rc: 0; both hashes: 88f3abcd3f99e252c10e1134b98ea63212584ebd37bc6dfac2f9dd77dedc92ba; stderr: empty
+command: git -C "$DEPTH" rev-parse HEAD:tests/test-verifier-contract-assurance.sh
+rc: 0; stdout: 3688cfe9ea2e17d85c3b726ff4d9e7c15ec0f1f2; stderr: empty
+command: git -C "$DEPTH" rev-parse HEAD:.spec/2026-08-31-aosp-harness-refactor/specs/2026-09-05-05a-verifier-contract-assurance/prototypes/tests/test-verifier-contract-assurance.sh
+rc: 0; stdout: 3688cfe9ea2e17d85c3b726ff4d9e7c15ec0f1f2; stderr: empty
+command: git -C "$DEPTH" diff --name-status "$BASE..$ACCEPTED_HEAD"
+rc: 128; stdout: empty; stderr: fatal: Invalid revision range 1e3d297a7bc636d8ea2e7f4b7aa0dfbe4731fdf5..5f867fa8e5d1c5b79001d0ec201045139fa29a40
+classification: additional diagnostic probe, not a test gate and not required by task 2 step 4. The rc128 and stderr are retained verbatim rather than hidden. A true depth-1 clone deliberately lacks BASE; the task-defined identity proof is HEAD/count/shallow marker/TARGET+PROTO SHA-256 and blob equality/clean. Candidate and full-history provide the authoritative BASE..HEAD exact1 diffs.
+command: bash ./tests/test-verifier-contract-assurance.sh
+rc: 0; stdout bytes/sha256: 41 / aafe238b2772cbc938ae81ed25b636ae4ea2866a66f30dbe13bccbcd7ac4f9a1; stdout exact: RESULT PASS  verifier contract assurance\n; stderr bytes=0
+command: bash ./tests/test-verifier-contract.sh
+rc: 0; stdout bytes/sha256: 31 / f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2; stdout exact: RESULT PASS  verifier contract\n; stderr bytes=0
+command: bash ./scripts/check.sh --offline
+rc: 0; stdout bytes/sha256: 713 / 194d752318418f8fc1449bf20e7bc648644b2bfe497acc461512a0f4449bbe08; stdout last: RESULT PASS  aosp-harness offline quality gate; stderr bytes=0
+command: git -C "$DEPTH" status --porcelain=v1
+rc: 0; stdout/stderr: empty; count=0
+
+Clone cleanup
+command: validate /tmp/05a-task2-clones.* prefix, then find "$ROOT" -depth -delete
+rc: 0
+full clone: physically absent
+depth-1 clone: physically absent
+clone root: physically absent
+
+Discarded-driver cleanup audit
+command: find /tmp -maxdepth 1 -type d -name '05a-task2-candidate.*'
+rc: 0; count before=1; exact path=/tmp/05a-task2-candidate.pEpI39
+command: validate /tmp/05a-task2-candidate.* prefix, then find /tmp/05a-task2-candidate.pEpI39 -depth -delete
+rc: 0
+command: find /tmp -maxdepth 1 -type d -name '05a-task2-candidate.*' | wc -l
+rc: 0; stdout: 0; stderr: empty
+command: find /tmp -maxdepth 1 -type d -name 'verifier-assurance.*' | wc -l
+rc: 0; stdout: 0; stderr: empty
+command: git status --porcelain=v1
+rc: 0; stdout/stderr: empty; count=0
+
+Structured, reproducible assurance anchors (read-only audit; no long test rerun)
+command: parse the quoted Python payload with ast; read literal EXPECTED_TEXT and TABLE; reproduce generated prefix counts and source-anchor counts
+rc: 0
+stdout key-values:
+  expected_base=105 generated=159 total=264 unique=264
+  generated=cli:23 since:9 query:6 service_ascii:80 surface:41
+  table_rows=73
+  argc+byte-length+hex recorder anchor count=1
+  independent wanted argc+byte-length+hex oracle anchor count=1
+  sorted executed==expected manifest anchor count=1
+  surface range(41) anchor count=1
+  service ASCII Cartesian-product anchor count=1; dimensions 4*4*5=80
+  cleanup_success_before_summary anchor count=1
+  mutant labels: mutant-case-manifest, mutant-argv-service, mutant-service-grammar, mutant-cleanup-before-pass
+stderr: empty
+artifact locations and implications:
+  lines 87-98 define EXPECTED_TEXT independently of execution; lines 181-184 add fixed generated counts and reject duplicate expected IDs.
+  lines 185-187 reject duplicate execution and record each execution; lines 299-302 require exact sorted expected/executed equality and PASS rows.
+  lines 29-42 record runner/direct argc and each argv byte length+hex; lines 209-214 independently construct the wanted transport; line 228 requires exact argv plus rc/stdout/stderr.
+  line 231 constructs 4*4*5=80 service ASCII combinations; lines 267-298 execute 41 surface layouts.
+  lines 303-320 define four single-change mutants, syntax/compile checks, matching labels, and no-survivor behavior; case/cleanup child mutants require rc1, empty stdout, and exact `FAIL mutant-<label>\n` stderr. Provider argv/grammar mutants must raise their exact local label or fail as label mismatch/survivor.
+  lines 321-323 recheck provider/doc/base hashes, physically clean TMP, then call the guarded summary; lines 324-330 convert any failed internal assertion to rc1/stderr FAIL and cannot emit fixed PASS.
+evidence interpretation: the assurance interface is intentionally silent except for its terminal summary, so no uncaptured internal stream is invented. The exact reviewed artifact contains these fail-closed checks, and each candidate/full/depth-1 assurance invocation returned rc0 with exact 41-byte PASS and empty stderr; reaching that terminal requires all 264 manifest cases, 41 surfaces, 80 service combinations, argv checks, and four mutant no-survivor checks to complete.
+
+Nine-gate definition
+The nine test gates are exactly 3 checkouts (candidate/full/depth-1) * 3 commands (`bash ./tests/test-verifier-contract-assurance.sh`, `bash ./tests/test-verifier-contract.sh`, `bash ./scripts/check.sh --offline`). All nine returned rc0 and empty stderr. Git identity/diff/hash/status commands are mechanical probes, not members of those nine test gates; the retained depth-1 rc128 diagnostic probe therefore does not contradict the nine-gate stream result.
+
+Review/bookkeeping boundary
+Task 2 is a zero-source-delta review: its review object is BASE=HEAD plus this validation evidence, not a claim that task 2 introduced or re-reviewed the task 1 source diff. Under the tasks protocol, review-manifest row 2 is post-review controller bookkeeping and can only be appended after an independent review returns PASS; it is not a precondition or pre-populated input to that same review.
+Independent review r2 result: PASS; B/I/M=0/0/0; reviewer=review_05a_task2_diff.
+Post-review manifest row appended: `2<TAB>2<TAB>5f867fa8e5d1c5b79001d0ec201045139fa29a40<TAB>5f867fa8e5d1c5b79001d0ec201045139fa29a40<TAB>review_05a_task2_diff<TAB>PASS`.
+
+Final result: candidate/full/depth-1 assurance, 05 base, and offline gates PASS; exact1=331/0; all checked trees clean; both clones physically cleaned.

@@ -1,0 +1,9 @@
+Task 2 red evidence
+
+command: test -s /home/zzh0838/CareerDevelop/AI2D/aosp-harness-controller-main/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-05-05a-verifier-contract-assurance/evidence/task-2-green.txt
+rc: 1
+stdout: empty
+stderr: empty
+reason: green evidence physically absent
+ACCEPTED_HEAD candidate: 5f867fa8e5d1c5b79001d0ec201045139fa29a40
+candidate status count: 0
