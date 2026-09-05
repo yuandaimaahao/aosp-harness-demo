@@ -14,3 +14,4 @@
 - 2026-09-05T14:45+08:00 自动通过: 门③ — 依据：quick autopilot：design机械检查与独立review B0/I0/M0；实现固定为prototype逐字复制的exact1，不重新设计
 - 2026-09-05T14:40+08:00 requirements quick review result=PASS reviewer=review_05a_requirements_quick blocking=0 important=0 minor=0；独立核331行/SHA、264/264唯一ID、固定anchors、VC_ASSURANCE_CHILD guard、fixed tools及default/all同active分支裁定。
 - 2026-09-05T14:40+08:00 自动通过: 门② — 依据：quick autopilot：requirements R1-R10、验收/不变量与05消费边界机械检查全PASS；runnable exact1=331/400 active/absent证据成立，独立review B0/I0/M0
+- 2026-09-05T16:07+08:00 自动通过: 门④ — 依据：quick autopilot：tasks机械检查与独立review B0/I0/M0；三任务串行依赖、R1-R10、exact1、candidate/full/depth-1、rollback/NEXT与manifest验收闭环

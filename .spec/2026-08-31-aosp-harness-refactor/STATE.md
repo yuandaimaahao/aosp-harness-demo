@@ -3,10 +3,10 @@ project: 2026-08-31-aosp-harness-refactor
 kind: large
 phase: spec
 phase_status: in_progress
-basis: 门③ quick autopilot：design八节与331行prototype边界闭合，独立review B0/I0/M0
-updated: '2026-09-05T16:01:07+08:00'
+basis: 门④：tasks机械门PASS；quick独立审查PASS B0/I0/M0；用户已授权全部spec autopilot连续执行
+updated: '2026-09-05T16:08:13+08:00'
 current_spec: 2026-09-05-05a-verifier-contract-assurance
-spec_stage: tasks
+spec_stage: execute
 mode: standard
 workflow: requirements-first
 ---
@@ -161,6 +161,7 @@ workflow: requirements-first
 | 2026-09-05T15:17:11+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-05-05a-verifier-contract-assurance |
 | 2026-09-05T15:56:05+08:00 | spec/requirements | spec/design | 门② quick autopilot：331行runnable原型与requirements机械门全绿，独立review B0/I0/M0 |
 | 2026-09-05T16:01:07+08:00 | spec/design | spec/tasks | 门③ quick autopilot：design八节与331行prototype边界闭合，独立review B0/I0/M0 |
+| 2026-09-05T16:08:13+08:00 | spec/tasks | spec/execute | 门④：tasks机械门PASS；quick独立审查PASS B0/I0/M0；用户已授权全部spec autopilot连续执行 |
 
 ## SKIPPED 记录
 
