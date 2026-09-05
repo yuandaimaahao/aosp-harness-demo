@@ -24,7 +24,7 @@ TOOLS=/home/zzh0838/.cache/aosp-harness-tools-04/bin
 产出: `tests/test-verifier-contract-assurance.sh`
 需求: R1, R2, R3, R4, R5, R6, R7, R8
 必需: 是
-状态: 待开始
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`cmp -s "$TARGET" "$PROTO"`，确认红阶段失败且原因是目标物理缺席，记录命令、rc和缺席断言为red。
 - [ ] 步骤 2: 核worktree HEAD=`BASE_SHA`且clean；用apply_patch把prototype逐字复制到TARGET并设0755，不重新设计、不修改05 exact3。
@@ -40,7 +40,7 @@ TOOLS=/home/zzh0838/.cache/aosp-harness-tools-04/bin
 产出: `verifier-contract-assurance-checkouts-v1`
 需求: R1, R2, R3, R8, R9
 必需: 是
-状态: 待开始
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`test -s "$WORK/evidence/task-2-green.txt"`，确认红阶段失败且原因是green证据缺席；固定任务1 HEAD为`ACCEPTED_HEAD`候选且clean。
 - [ ] 步骤 2: candidate核TARGET与PROTO逐字、exact1=331/0、fixed tools、05保护hash、diff-check与clean；串行运行assurance、05 base和offline，捕获rc/双流/末行到green。
@@ -56,7 +56,7 @@ TOOLS=/home/zzh0838/.cache/aosp-harness-tools-04/bin
 产出: `RESULT PASS  verifier contract assurance`（终交付摘要）
 需求: R1, R8, R9, R10
 必需: 是
-状态: 待开始
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`test -s "$WORK/acceptance/acceptance-report.md"`，确认红阶段失败且原因是验收报告缺席；核HEAD=`ACCEPTED_HEAD`且clean。
 - [ ] 步骤 2: 从accepted HEAD建立repo外rollback checkout，精确删除TARGET并提交；核rollback tree与`BASE_SHA`零diff、assurance发现0，串行运行05/01/04/04a/03e/offline和三个旧demo回归，全绿写green并物理清理。
