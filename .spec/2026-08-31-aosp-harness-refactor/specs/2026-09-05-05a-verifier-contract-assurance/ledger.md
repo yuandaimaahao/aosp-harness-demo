@@ -36,3 +36,7 @@
 - 任务 3: 完成
 - 2026-09-05T17:19+08:00 G-VERIFY result=PASS verifier=accept_05a_verify；closeout七节恰7，主判据41-byte exact、05 base、offline、fixed static、exact1=331/0、protected zero-diff、三行manifest、isolated converge、clean与06/09五类缺席全PASS；R1-R10与四不变量逐条PASS，blocking=0 important=0，保留task3 reviewer minor=2。
 - 2026-09-05T17:24+08:00 自动通过: 门⑤ — 依据：fresh G-VERIFY PASS：主判据、R1-R10、四不变量、rollback/full/depth-1/offline/converge/NEXT闭合，B0/I0/M2；用户已授权连续autopilot
+- 2026-09-05T17:28+08:00 publish result=PASS mode=ordinary main_before=3d0508c77347049789289e96e399bb185897dee5 feature=ada8db0c76659ab72b336f0276e9d334d0095ecf；统一`publish_main` producer执行`git merge --ff-only`，主干只引入331行正式assurance源码，未push。
+- 2026-09-05T17:32+08:00 post-merge result=PASS main=ada8db0c76659ab72b336f0276e9d334d0095ecf；assurance rc0/stdout41/stderr0，05 base rc0/stderr0，offline rc0/stderr0/固定末行，主干除本spec work归档前路径外clean。
+- 2026-09-05T17:32+08:00 cleanup result=PASS；开发分支祖先核验后ordinary worktree无force移除、feature branch以`git branch -d`删除，两个目标均物理/引用缺席。
+- 2026-09-05T17:34+08:00 archive result=PASS commit=edf1fc2a8fcce99436df779b812a135d70827fcc；提交路径逐字仅本spec `work/2026-09-05-05a-verifier-contract-assurance/` 21个证据文件。
