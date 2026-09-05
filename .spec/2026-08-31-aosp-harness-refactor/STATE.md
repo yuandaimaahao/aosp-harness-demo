@@ -1,12 +1,12 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: select
+phase: spec
 phase_status: in_progress
-basis: 05复盘五问均否：PLAN v6.1不变，下一片为05a-verifier-contract-assurance
-updated: '2026-09-05T13:36:10+08:00'
-current_spec: null
-spec_stage: null
+basis: 门② quick autopilot：331行runnable原型与requirements机械门全绿，独立review B0/I0/M0
+updated: '2026-09-05T15:56:05+08:00'
+current_spec: 2026-09-05-05a-verifier-contract-assurance
+spec_stage: design
 mode: standard
 workflow: requirements-first
 ---
@@ -158,6 +158,8 @@ workflow: requirements-first
 | 2026-09-05T12:54:10+08:00 | spec/execute | spec/accept | 六任务全部有红阶段证据、实现报告和独立diff review最终PASS；六行manifest连续，accepted HEAD 9e5edb45，candidate/full/depth-1/rollback/NEXT/converge全绿 |
 | 2026-09-05T13:34:56+08:00 | spec/accept | retro | 05验收通过：accepted HEAD 9e5edb45 exact3=371，六任务manifest与四路验收全PASS，已FF合入main且post-merge offline通过 |
 | 2026-09-05T13:36:10+08:00 | retro | select | 05复盘五问均否：PLAN v6.1不变，下一片为05a-verifier-contract-assurance |
+| 2026-09-05T15:17:11+08:00 | select | spec/requirements | new-spec.sh 建了 2026-09-05-05a-verifier-contract-assurance |
+| 2026-09-05T15:56:05+08:00 | spec/requirements | spec/design | 门② quick autopilot：331行runnable原型与requirements机械门全绿，独立review B0/I0/M0 |
 
 ## SKIPPED 记录
 
