@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -u
+fail() {
+  printf 'error: verifier dispatcher: %s\n' "$1" >&2
+  exit 2
+}
+[[ $# -ge 1 ]] || fail 'feature is required'
+feature=$1
+shift
+[[ $feature == dev-sidebar ]] || fail 'unknown feature'
+session=''
+wait_seconds=0
+instance=''
+args=()
+while (($#)); do
+  case $1 in
+    --session-id)
+      [[ $# -ge 2 ]] || fail 'missing session id'
+      session=$2
+      shift 2
+      ;;
+    --lease-wait-seconds)
+      [[ $# -ge 2 ]] || fail 'missing lease wait'
+      wait_seconds=$2
+      shift 2
+      ;;
+    --android-instance-id)
+      [[ $# -ge 2 ]] || fail 'missing Android instance id'
+      instance=$2
+      shift 2
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+safe='^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'
+demo=0
+for arg in "${args[@]}"; do [[ $arg != --demo ]] || demo=1; done
+if ((demo)); then
+  [[ -n $session ]] || session=verify-$$
+  [[ -n $instance ]] || instance=demo-$$
+fi
+[[ $session =~ $safe ]] || fail 'session id must be explicit and safe'
+[[ $instance =~ $safe ]] || fail 'Android instance id must be explicit and safe'
+[[ $wait_seconds =~ ^(0|[1-9][0-9]{0,2})$ && $wait_seconds -le 300 ]] || fail 'lease wait must be 0..300'
+
+here=$(CDPATH='' cd -- "${BASH_SOURCE[0]%/*}" && pwd -P) || fail 'cannot resolve installation'
+canonical=$here/verify-sidebar.sh
+runner=$here/verifier-query-runner
+resolver=$here/harness-resolve-contract
+runtime=$here/../lib/command-runtime.sh
+if [[ -f $canonical && ! -L $canonical && -x $runner && -x $resolver && -f $runtime && ! -L $runtime ]]; then
+  printf '%s\n' 'contract_version=v2' >&2
+  if ((demo)); then exec "$canonical" "${args[@]}"; fi
+  export HARNESS_SESSION_ID=$session HARNESS_LEASE_WAIT_SECONDS=$wait_seconds ANDROID_INSTANCE_ID=$instance
+  export HARNESS_VERIFIER_QUERY_RUNNER=$runner
+  exec "$canonical" "${args[@]}"
+fi
+printf '%s\n' 'contract_version=legacy' 'compat: verifier-provider=legacy' >&2
+legacy=$here/../features/$feature/verify-sidebar.sh
+[[ -x $legacy ]] || fail 'legacy verifier unavailable'
+exec "$legacy" "${args[@]}"

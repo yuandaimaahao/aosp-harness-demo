@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -u
+fail() {
+  printf 'error: verifier query runner: %s\n' "$1" >&2
+  exit 2
+}
+[[ $# -ge 6 && $2 == -- ]] || fail 'invalid query request'
+case $1 in boot | system_server | boot_time | crash | service | package) ;; *) fail 'unknown query key' ;; esac
+shift 2
+serial=${ANDROID_SERIAL-}
+[[ $serial =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]] || fail 'invalid ANDROID_SERIAL'
+[[ $1 == adb && $2 == -s && $3 == "$serial" ]] || fail 'query is not pinned to ANDROID_SERIAL'
+here=$(CDPATH='' cd -- "${BASH_SOURCE[0]%/*}" && pwd -P) || fail 'cannot resolve installation'
+exec "$here/run-command.sh" query android-device -- "$@"
