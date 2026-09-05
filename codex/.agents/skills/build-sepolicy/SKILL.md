@@ -7,6 +7,8 @@ description: Build and verify AOSP SELinux policy after changes under system/sep
 
 Select this repository skill explicitly as `$build-sepolicy` when an `AGENTS.md` route requires it. Codex may also select it implicitly when the frontmatter description matches the task. File paths alone do not select skills.
 
+When `common/.harness/bin/run-command.sh` is available, prefer it as the outer command runner: use class `build` with `workspace-build`, `query` with `android-device`, `cvd` with `android-cvd`, and set safe `HARNESS_SESSION_ID` plus `ANDROID_INSTANCE_ID`. The retained commands below document the legacy fallback and exact AOSP operations.
+
 ## Define a system service
 
 Map the service name in `system/sepolicy/private/service_contexts` or the appropriate product or vendor file:

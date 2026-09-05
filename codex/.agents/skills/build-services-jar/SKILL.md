@@ -7,6 +7,8 @@ description: Build and deploy AOSP services.jar after changes under frameworks/b
 
 Select this repository skill explicitly as `$build-services-jar` when an `AGENTS.md` route requires it. Codex may also select it implicitly when the frontmatter description matches the task. File paths alone do not select skills.
 
+When `common/.harness/bin/run-command.sh` is available, prefer it as the outer command runner: use class `build` with `workspace-build`, `query|mutate|reconnect` with `android-device`, and set safe `HARNESS_SESSION_ID` plus `ANDROID_INSTANCE_ID`. The retained commands below document the legacy fallback and exact AOSP operations.
+
 ## Build in one retained session
 
 Submit this entire block as one shell invocation. Codex must keep polling the same exec session until it exits; starting the build in one session and waiting in another loses the child status.

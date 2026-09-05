@@ -32,9 +32,12 @@ paths:
 ## 编译与验证
 
 ```bash
-bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
+command_adapter="${HARNESS_COMMAND_ADAPTER:-common/.harness/bin/run-command.sh}"
+HARNESS_SESSION_ID="${HARNESS_SESSION_ID:-manual-$$}"
+export HARNESS_SESSION_ID
+bash "$command_adapter" build workspace-build -- bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
   && lunch aosp_cf_x86_64_phone-trunk_staging-userdebug >/dev/null 2>&1 \
-  && m selinux_policy' > /tmp/build-sepolicy.log 2>&1 &
+  && m selinux_policy'
 ```
 
 - 策略随整机镜像生效，改动一般走稳环（`m` 整机 → `cvd stop/start` 换新镜像）更稳。
@@ -42,10 +45,14 @@ bash -c 'source build/envsetup.sh >/dev/null 2>&1 \
 
 ```bash
 device_serial="${ANDROID_SERIAL-}"
-if [[ -z "$device_serial" || ! "$device_serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ ]]; then
+instance_id="${ANDROID_INSTANCE_ID-}"
+command_adapter="${HARNESS_COMMAND_ADAPTER:-common/.harness/bin/run-command.sh}"
+if [[ -z "$device_serial" || ! "$device_serial" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]*$ || ! "$instance_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
   echo 'error: set ANDROID_SERIAL to a safe, explicit target serial' >&2
   exit 2
 fi
-adb -s "$device_serial" shell dmesg | grep 'avc: denied'
-adb -s "$device_serial" shell service list | grep sidebar
+HARNESS_SESSION_ID="${HARNESS_SESSION_ID:-manual-$$}"
+export HARNESS_SESSION_ID ANDROID_INSTANCE_ID="$instance_id"
+bash "$command_adapter" query android-device -- adb -s "$device_serial" shell dmesg | grep 'avc: denied'
+bash "$command_adapter" query android-device -- adb -s "$device_serial" shell service list | grep sidebar
 ```
