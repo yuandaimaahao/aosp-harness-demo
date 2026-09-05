@@ -1,0 +1,7 @@
+Task 6 red-stage evidence
+
+Command:
+test -s /tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract/task-6-report.md
+
+Observed exit status: 1
+Expected: non-zero, because task-6-report.md was absent before Task 6 reporting.

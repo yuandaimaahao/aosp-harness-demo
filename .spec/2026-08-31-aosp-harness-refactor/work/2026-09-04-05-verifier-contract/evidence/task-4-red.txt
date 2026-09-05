@@ -1,0 +1,8 @@
+task=4 red phase
+command: test -s "/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract/task-4-report.md"
+rc: 1
+stdout: <empty>
+stderr: <empty>
+result: expected failure; task-4-report.md was absent before task-4 candidate audit began.
+candidate_HEAD: 9e5edb45a3048e4c208e2d7fe135639768cc87db
+candidate_status_porcelain_bytes: 0

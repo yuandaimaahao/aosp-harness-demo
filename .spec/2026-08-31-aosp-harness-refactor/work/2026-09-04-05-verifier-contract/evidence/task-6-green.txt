@@ -1,0 +1,152 @@
+Task 6 green execution evidence (rerun for independent review)
+
+Constants
+---------
+execution BASE: 65d67b52e5b34d0d9d2add587083ebf2fadcd3ea
+ACCEPTED_HEAD: 9e5edb45a3048e4c208e2d7fe135639768cc87db
+implementation worktree:
+/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract/worktree
+controller main worktree: /tmp/aosp-harness-publish-04-main.AGaEae
+empty-stream SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+1. Isolated exact3 rollback
+----------------------------
+cwd: implementation worktree above
+temporary root created by: mktemp -d /tmp/vc-task6-evidence-rollback.XXXXXX
+created root: /tmp/vc-task6-evidence-rollback.ZuGGcQ
+safety assertions before cleanup: realpath was the exact root above; rollback/.git
+was a directory.
+
+Executed command block (all commands used shell argv, no network):
+  git clone --no-local "$SOURCE_REPO" "$ROLLBACK"
+  git -C "$ROLLBACK" checkout --detach 9e5edb45a3048e4c208e2d7fe135639768cc87db
+  git -C "$ROLLBACK" rm common/.harness/bin/verify-sidebar.sh docs/verifier-contract.md tests/test-verifier-contract.sh
+  git -C "$ROLLBACK" commit -m 'test: rollback verifier contract exact3'
+  git -C "$ROLLBACK" diff --name-only 65d67b52e5b34d0d9d2add587083ebf2fadcd3ea HEAD
+  git -C "$ROLLBACK" diff --numstat 65d67b52e5b34d0d9d2add587083ebf2fadcd3ea HEAD
+  git -C "$ROLLBACK" diff --check 65d67b52e5b34d0d9d2add587083ebf2fadcd3ea HEAD
+
+Results: clone/checkout/rm/commit/diff-check each rc=0.  Rollback commit is
+5f555cca02b0cb4cdd075f21ac0001db23cf528d.  It deleted exactly the three
+named files (371 deletions).  BASE..rollback `--name-only` was 0 bytes and
+BASE..rollback `--numstat` was 0 bytes; therefore both are empty.
+
+The following seven commands ran from that rollback clone; each rc=0.  Each
+stdout/stderr file was captured separately.  The listed hashes and byte counts
+are the complete raw-stream binding; stderr hash is the empty-stream hash.
+
+  bash "$ROLLBACK/tests/test-device-safety.sh"
+    stdout 195 bytes sha256=27ec6e99b155d340e51221e67a1bc43b4311a0216ce9697ae696aac0810595d2
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS  device safety
+  bash "$ROLLBACK/scripts/check.sh" --offline
+    stdout 641 bytes sha256=f1d493e96c24312a572fc2b19882b45eb44f92d1ab1863f13877154e67f95b7c
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS  aosp-harness offline quality gate
+  bash "$ROLLBACK/tests/test-resource-leases.sh"
+    stdout 29 bytes sha256=91cc39b0d798a121e52ca21cb7aa42970725c9afa25229a4b99d782cf79a821b
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS  resource leases
+  bash "$ROLLBACK/tests/test-resource-leases-assurance.sh"
+    stdout 38 bytes sha256=0efda5495dd5fa42489228b3267f9adf88a97d038370adad9f9e17b386d30855
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS  resource lease assurance
+  bash "$ROLLBACK/common/.harness/features/dev-sidebar/verify-sidebar.sh" --demo
+    stdout 105 bytes sha256=080b2ebca448959d33e737ae79a56ce34502d4ba64fb02f18a42ca6c70e941bc
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS
+  bash "$ROLLBACK/claude-code/features/dev-sidebar/verify-sidebar.sh" --demo
+    stdout 311 bytes sha256=0d5668cc12df74b6444a53f47ee32412c643ef93facf3dc13205cffd2439ad16
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS
+  bash "$ROLLBACK/codex/features/dev-sidebar/verify-sidebar.sh" --demo
+    stdout 207 bytes sha256=e86222cbb861adc031872f3bd0dfc24a70b438d7d037295501ababdb5215ff62
+    stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    last stdout line: RESULT PASS
+
+Explicit cleanup command: find "$TMP_ROOT" -depth -delete
+Cleanup result: rc=0; test ! -e /tmp/vc-task6-evidence-rollback.ZuGGcQ passed.
+
+2. Controller-main NEXT physical absence
+----------------------------------------
+cwd: /tmp/aosp-harness-publish-04-main.AGaEae (the controller main worktree,
+not the rollback clone).  The command ran in `bash --noprofile --norc` with
+`set -e` and `shopt -u nullglob`.
+
+First assertion: test ! -e "$CONTROLLER/tests/test-verifier-contract-assurance.sh"
+returned rc=0 (05a source absent).
+
+For each ID below, actual commands were:
+  find "$PROJECT/specs" -mindepth 1 -maxdepth 1 -type d -name "*-$ID" -print
+  git -C "$CONTROLLER" branch --list "spec/*-$ID"
+  git -C "$CONTROLLER" worktree list --porcelain | rg -n --fixed-strings "$ID"
+  rg -n --fixed-strings "$ID" "${execution_files[@]}"
+  rg -n --fixed-strings "$ID" /dev/null
+where execution_files was populated by actual `find "$PROJECT" ... -name
+execution-base.env -print0`; it had 16 targets.  Actual `find ... -name
+dispatch.tsv -print0` found 0 dispatch targets, so the final command was the
+real deterministic `/dev/null` no-match command rather than an unexecuted
+empty argv expansion.  `/dev/null` was first checked non-symlink.
+
+ID                                  spec stdout/assert rc  branch stdout/assert rc  worktree rg  execution rg  dispatch rg
+05a-verifier-contract-assurance     0 bytes / 0            0 bytes / 0              1            1             1
+06-resilient-command-runtime        0 bytes / 0            0 bytes / 0              1            1             1
+07-feature-registry-resolver        0 bytes / 0            0 bytes / 0              1            1             1
+08-client-session-adapters          0 bytes / 0            0 bytes / 0              1            1             1
+09-verifier-adapters                0 bytes / 0            0 bytes / 0              1            1             1
+10-docs-and-readiness               0 bytes / 0            0 bytes / 0              1            1             1
+
+The enclosing NEXT command block returned rc=0 after asserting every expected
+no-match rc=1.  Thus no forbidden 05a/06/07/08/09/10 spec, branch, worktree,
+execution BASE, or dispatch record was present.
+
+3. Requirements mechanical gates
+--------------------------------
+cwd: implementation worktree above.  Each command returned rc=0 with stdout
+0 bytes and stderr 0 bytes, each stream SHA-256 equal to the empty-stream hash:
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-tasks.py "$SPEC/tasks.md"
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-req.py "$SPEC/requirements.md"
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-criteria.py "$SPEC/requirements.md"
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-analyze.py "$SPEC/requirements.md"
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-design.py "$SPEC/design.md"
+
+4. Isolated check-converge
+--------------------------
+cwd: implementation worktree above.  Temporary root created by
+`mktemp -d /tmp/vc-task6-evidence-converge.XXXXXX`:
+/tmp/vc-task6-evidence-converge.2MJBda.  It was checked by exact realpath and
+by `test -d "$TMP_ROOT/repo/.git"` before cleanup.
+
+Actual fixture command block:
+  git clone --no-local "$SOURCE_REPO" "$TMP_ROOT/repo"
+  git -C "$TMP_ROOT/repo" checkout --detach 9e5edb45a3048e4c208e2d7fe135639768cc87db
+  copy only task-1..6 brief/report/red evidence files, review-manifest.tsv,
+  and acceptance/acceptance-report.md to the matching fixture work directory
+  (20 regular files total)
+  sed -i "s|\$WORK|.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract|g" "$FIXTURE/tasks.md"
+  python3 /home/zzh0838/.agents/skills/spec/scripts/check-converge.py "$FIXTURE" 65d67b52e5b34d0d9d2add587083ebf2fadcd3ea 9e5edb45a3048e4c208e2d7fe135639768cc87db --repo "$TMP_ROOT/repo"
+
+The `$WORK` expansion is confined to the disposable fixture so the checker can
+resolve its declared relative acceptance assets; neither the implementation
+worktree nor controller task file was modified.  check-converge rc=0, stdout
+0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,
+stderr 0 bytes sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.
+Explicit `find "$TMP_ROOT" -depth -delete` returned rc=0, and
+`test ! -e /tmp/vc-task6-evidence-converge.2MJBda` passed.
+
+5. Final candidate recheck
+--------------------------
+cwd: implementation worktree above.
+  git rev-parse HEAD
+  git status --porcelain
+  git diff --name-only 9e5edb45a3048e4c208e2d7fe135639768cc87db HEAD
+  bash ./tests/test-verifier-contract.sh >stdout 2>stderr
+
+All four assertions returned rc=0: HEAD was ACCEPTED_HEAD; status and
+ACCEPTED_HEAD..HEAD name-only output were empty.  Contract stdout was exactly
+`RESULT PASS  verifier contract\n` (31 bytes,
+sha256=f86f451c3b350f9d90f35c199aa248d0d98632542586e65bdf6d67e9a6c3e7d2);
+stderr was 0 bytes,
+sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.
+
+No source, ledger, manifest, STATE, or task checkbox was written by this rerun.

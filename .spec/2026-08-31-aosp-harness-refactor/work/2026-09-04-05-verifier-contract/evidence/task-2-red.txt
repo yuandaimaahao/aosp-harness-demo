@@ -1,0 +1,4 @@
+RED verifier provider absent before installation
+command: cmp -s common/.harness/bin/verify-sidebar.sh .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-04-05-verifier-contract/prototypes/common/.harness/bin/verify-sidebar.sh
+exit: 2
+target_present: no

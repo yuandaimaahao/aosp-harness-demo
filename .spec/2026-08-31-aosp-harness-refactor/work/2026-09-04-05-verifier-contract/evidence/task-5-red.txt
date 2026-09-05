@@ -1,0 +1,6 @@
+task-5 red phase
+command: test -s "$WORK/task-5-report.md"
+expected precondition: non-zero because the report is absent before task 5 writes it
+observed: rc=1; stdout=0 bytes; stderr=0 bytes
+accepted head: 9e5edb45a3048e4c208e2d7fe135639768cc87db
+worktree status: clean (git status --porcelain = 0 bytes)

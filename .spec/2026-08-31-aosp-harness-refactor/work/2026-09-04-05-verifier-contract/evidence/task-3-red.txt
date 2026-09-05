@@ -1,0 +1,4 @@
+RED verifier contract doc absent before installation
+command: cmp -s docs/verifier-contract.md .spec/2026-08-31-aosp-harness-refactor/specs/2026-09-04-05-verifier-contract/prototypes/docs/verifier-contract.md
+exit: 2
+target_present: no

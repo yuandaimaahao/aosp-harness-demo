@@ -1,0 +1,9 @@
+command: bash tests/test-verifier-contract.sh
+rc: 127
+stdout_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stderr_sha256: acc8f20b2a8d096a1cdf0e54a99713c9afe7db00d274bb8b71be8a9d63e05ca3
+stdout_bytes: 0
+stderr_bytes: 65
+stdout: <empty>
+stderr: bash: tests/test-verifier-contract.sh: No such file or directory
+pass_marker: absent
