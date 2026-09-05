@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -u
+fail() {
+  printf 'error: client launcher: %s\n' "$1" >&2
+  exit 2
+}
+[[ $# -ge 1 ]] || fail 'client is required'
+client=$1
+shift
+dry_run=0
+if [[ ${1-} == --dry-run ]]; then
+  dry_run=1
+  shift
+fi
+[[ ${1-} == -- ]] && shift
+
+here=$(CDPATH='' cd -- "${BASH_SOURCE[0]%/*}" && pwd -P) || fail 'cannot resolve installation'
+shared=$(cd -- "$here/../.." && pwd -P) || fail 'cannot resolve shared root'
+project_root=${HARNESS_ROOT:-$shared}
+[[ -f $project_root/CURRENT_FEATURE ]] || [[ ! -f $project_root/common/CURRENT_FEATURE ]] || project_root=$project_root/common
+session=${HARNESS_SESSION_ID-}
+[[ $session =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] || fail 'HARNESS_SESSION_ID must be a safe explicit identifier'
+
+contract=$("$here/harness-resolve-contract" --client "$client" --root "$project_root") || exit $?
+command_name=$(printf '%s\n' "$contract" | awk -F= '$1=="command"{print $2}')
+feature=$(printf '%s\n' "$contract" | awk -F= '$1=="feature"{print $2}')
+[[ -n $command_name && -n $feature ]] || fail 'incomplete resolved contract'
+
+provider=$here/../lib/session-state.sh
+contract_version=legacy
+if [[ -f $provider && ! -L $provider ]]; then
+  # shellcheck source=/dev/null
+  if source "$provider" 2>/dev/null && [[ ${HARNESS_SESSION_STATE_PROVIDER_VERSION-} == 1 ]] \
+    && declare -F harness_session_state_write harness_session_state_read harness_session_state_remove >/dev/null; then
+    contract_version=v2
+    project_id=harness
+    current=''
+    if current=$(harness_session_state_read "$project_id" "$session"); then
+      [[ $current == "$feature" ]] || fail 'session feature drift'
+    else
+      rc=$?
+      [[ $rc == 3 ]] || fail 'cannot read session state'
+      harness_session_state_write "$project_id" "$session" "$feature" || fail 'cannot initialize session state'
+    fi
+  fi
+fi
+printf 'contract_version=%s\n' "$contract_version" >&2
+if ((dry_run)); then
+  printf '%s\n' "$contract"
+  exit 0
+fi
+if [[ $contract_version == v2 ]]; then
+  cd -- "$project_root" || fail 'cannot enter project root'
+  exec "$here/run-command.sh" query workspace-source -- "$command_name" "$@"
+fi
+printf '%s\n' 'compat: session-provider=legacy' >&2
+cd -- "$project_root" || fail 'cannot enter project root'
+exec "$command_name" "$@"

@@ -6,7 +6,7 @@ fail() {
   exit 2
 }
 
-[[ $# -ge 4 && $3 == -- ]] || fail 'usage: run-command.sh <class> <none|workspace-build|android-device|android-cvd> -- <command...>'
+[[ $# -ge 4 && $3 == -- ]] || fail 'usage: run-command.sh <class> <none|workspace-source|workspace-build|android-device|android-cvd> -- <command...>'
 class=$1
 resource=$2
 shift 3
@@ -50,10 +50,13 @@ if [[ $resource != none ]]; then
   }
   request=$tmp/request.tsv
   case $resource in
-    workspace-build) printf 'workspace\t%s\tbuild\n' "$(pwd -P)" >"$request" || {
-      cleanup
-      fail 'cannot write lease request'
-    } ;;
+    workspace-source | workspace-build)
+      mode=${resource#workspace-}
+      printf 'workspace\t%s\t%s\n' "$(pwd -P)" "$mode" >"$request" || {
+        cleanup
+        fail 'cannot write lease request'
+      }
+      ;;
     android-device | android-cvd)
       [[ $instance =~ $safe ]] || {
         cleanup

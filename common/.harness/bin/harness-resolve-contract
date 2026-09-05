@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -u
+fail() {
+  printf 'error: contract resolver: %s\n' "$1" >&2
+  exit 2
+}
+client=''
+root=''
+while (($#)); do
+  case $1 in
+    --client)
+      [[ $# -ge 2 ]] || fail 'missing client'
+      client=$2
+      shift 2
+      ;;
+    --root)
+      [[ $# -ge 2 ]] || fail 'missing root'
+      root=$2
+      shift 2
+      ;;
+    *) fail 'usage: harness-resolve-contract --client <name> --root <path>' ;;
+  esac
+done
+[[ $client =~ ^[a-z][a-z0-9-]{0,31}$ && -n $root ]] || fail 'invalid arguments'
+root=$(cd -- "$root" 2>/dev/null && pwd -P) || fail 'invalid root'
+if [[ ! -f $root/CURRENT_FEATURE && -f $root/common/CURRENT_FEATURE ]]; then
+  root=$(cd -- "$root/common" && pwd -P) || fail 'invalid shared root'
+fi
+here=$(CDPATH='' cd -- "${BASH_SOURCE[0]%/*}" && pwd -P) || fail 'cannot resolve installation'
+config=$here/../clients/$client/client.conf
+[[ -f $config && ! -L $config ]] || fail 'unknown client'
+
+config_values=$(
+  python3 - "$config" "$client" <<'PY'
+import pathlib,re,sys
+p=pathlib.Path(sys.argv[1]); expected=sys.argv[2]
+try: raw=p.read_bytes()
+except OSError: raise SystemExit(2)
+if b"\0" in raw or not raw.endswith(b"\n"): raise SystemExit(2)
+try: lines=raw.decode("ascii").splitlines()
+except UnicodeDecodeError: raise SystemExit(2)
+data={}
+for line in lines:
+    if not line or line.startswith("#"): continue
+    if "=" not in line: raise SystemExit(2)
+    key,value=line.split("=",1)
+    if key in data or key not in {"name","command","context","hook_adapter"}: raise SystemExit(2)
+    if not re.fullmatch(r"[A-Za-z0-9._/-]+",value) or ".." in value.split("/"): raise SystemExit(2)
+    data[key]=value
+if set(data)!={"name","command","context","hook_adapter"} or data["name"]!=expected: raise SystemExit(2)
+for key in sorted(data): print(f"{key}={data[key]}")
+PY
+) || fail 'invalid client config'
+
+legacy=$(HARNESS_ROOT="$root" "$here/resolve-feature.sh" --client "$client" --contract) || exit $?
+{
+  printf '%s\n' 'contract_version=v2'
+  printf '%s\n' "$config_values"
+  printf '%s\n' "$legacy" | grep -Ev '^(client)='
+} | LC_ALL=C sort
