@@ -2,8 +2,8 @@
 
 Canonical entry: `common/.harness/bin/verify-sidebar.sh [--demo] [--since EPOCH] [--allow-skip]`.
 `--help` is accepted only alone. The parser first rejects repeated flags, missing/extra/invalid
-`--since` values, help combinations, unknown options and positional arguments; then real
-`--allow-skip`; then an absent or nonmatching `ANDROID_SERIAL`. The serial grammar is
+`--since` values, help combinations, unknown options and positional arguments; real mode rejects
+`--allow-skip`; demo mode accepts it; then an absent or nonmatching `ANDROID_SERIAL`. The serial grammar is
 `^[A-Za-z0-9][A-Za-z0-9._:-]*$`. All preflight failures are rc 2 with zero queries.
 
 ## Query transport

@@ -1,6 +1,6 @@
 # ledger — spec: 2026-09-04-05-verifier-contract
 # plan: .spec/2026-08-31-aosp-harness-refactor/PLAN.md v6.1
-# worktree: 待门④后由 create-worktree.sh 创建
+# worktree: .spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract/worktree
 
 > 会话压缩之后，「我刚做完什么」的记忆不可靠。这份文件和 git log 才是。
 > `任务 N: 完成` 是唯一的恢复锚点。
@@ -18,3 +18,52 @@
 - 2026-09-05 design round2 fresh-scope review PASS B0/I0/M0；原reviewer round3增量复核为FAIL B0/I1/M0，仅指出单独help未挂runner spy证明零query。base已在help case注入self runner并核log为空，行数仍371/400，test hash更新后交原reviewer复核。
 - 2026-09-05T00:56+08:00 自动通过: 门③ — 依据：autopilot：PLAN v6.1与requirements范围扩展fresh reviewer PASS；design fresh scope+原reviewer增量最终PASS B0/I0/M0；runnable fixed-format exact3 prototype 371/400，base/shfmt/ShellCheck/bash-n与机械检查全PASS
 - 2026-09-05T01:03+08:00 自动通过: 门④ — 依据：autopilot：tasks round1 B2/I1已拆为六任务闭合，原reviewer round2 PASS B0/I0/M0；check-tasks/diff-check与R1-R10并集全绿
+- isolation: trunk=main base=65d67b52e5b34d0d9d2add587083ebf2fadcd3ea worktree=/tmp/aosp-harness-publish-04-main.AGaEae/.spec/2026-08-31-aosp-harness-refactor/work/2026-09-04-05-verifier-contract/worktree branch=spec/2026-09-04-05-verifier-contract
+- 2026-09-05T01:05+08:00 execute isolation=worktree branch=spec/2026-09-04-05-verifier-contract base=65d67b52e5b34d0d9d2add587083ebf2fadcd3ea
+- 2026-09-05T01:05:48+08:00 `check-isolation.py` rc0。
+- 裁定: `plan-wave.py`因产出说明的括号文本未把任务2消费匹配到任务1而把两者同列wave1，但任务2步骤明确要求任务1 HEAD且二者共用单一实施worktree；按tasks的更具体依赖串行执行1→2，其余3→6继续串行。依据：任务2步骤2与共享worktree隔离事实；如果错了代价是什么：只损失可忽略的并行时间，不会改变源码边界或验收结果。
+- 2026-09-05T01:06+08:00 briefs=6 generated context=sliced max-bytes=19748/65536；dispatch task=1 model=gpt-5.6-luna/high base=65d67b52e5b34d0d9d2add587083ebf2fadcd3ea brief=`work/2026-09-04-05-verifier-contract/task-1-brief.md`；controller独占ledger与review-manifest。
+- 2026-09-05T01:12+08:00 report task=1 status=DONE commit=354d8101648060107b3e0bc87708a10a724db201 exact1=test numstat=102/0 red=rc127/no-PASS provider-absent=rc1/`FAIL provider` fixed-shfmt=PASS fixed-ShellCheck=PASS bash-n=PASS clean=PASS；实现者首次误取PATH旧工具而报concern，同一实现者用`/tmp/aosp-harness-tools-04`固定工具补跑并更正报告，源码commit未变。
+- 2026-09-05T01:13+08:00 review-dispatch task=1 round=1 reviewer=review_05_task1 model=gpt-5.6-terra/high artifact=`review-65d67b52-354d8101.md` tasks=1。
+- 2026-09-05T01:17+08:00 review task=1 round=1 result=PASS reviewer=review_05_task1 blocking=0 important=0 minor=0；R7/R10、exact1、有效argv/cleanup断言与错误路径均通过，结构化diff review policy rc0。证据：`work/2026-09-04-05-verifier-contract/task-1-review-r1.md`。
+- 任务 1: 完成 — commit=354d8101648060107b3e0bc87708a10a724db201 review=PASS manifest-seq=1 artifact=`review-65d67b52-354d8101.md`。
+- 2026-09-05T01:18+08:00 dispatch task=2 model=gpt-5.6-luna/high base=354d8101648060107b3e0bc87708a10a724db201 brief=`work/2026-09-04-05-verifier-contract/task-2-brief.md`；controller独占ledger与review-manifest。
+- 2026-09-05T01:23+08:00 report task=2 status=DONE commit=75221708be3f365663d7d8c00e73c57a761f41c2 exact1=provider numstat=202/0 red=cmp-target-absent green=base-contract-byte-exact-PASS fixed-static=PASS clean=PASS；首次报告漏机械字段，原实现者只补`红阶段证据:`后check-task-report rc0，源码commit未变。
+- 2026-09-05T01:24+08:00 review-dispatch task=2 round=1 reviewer=review_05_task2 model=gpt-5.6-terra/high artifact=`review-354d8101-75221708.md` tasks=2。
+- 2026-09-05T01:28+08:00 review task=2 round=1 result=PASS reviewer=review_05_task2 blocking=0 important=0 minor=0；R1-R6的CLI、runner、byte grammar、rc/双流、查询集合和报告证据均闭合，质量无越界，结构化diff review policy rc0。证据：`work/2026-09-04-05-verifier-contract/task-2-review-r1.md`。
+- 任务 2: 完成 — commit=75221708be3f365663d7d8c00e73c57a761f41c2 review=PASS manifest-seq=2 artifact=`review-354d8101-75221708.md`。
+- 2026-09-05T01:29+08:00 dispatch task=3 model=gpt-5.6-luna/high base=75221708be3f365663d7d8c00e73c57a761f41c2 brief=`work/2026-09-04-05-verifier-contract/task-3-brief.md`；controller独占ledger与review-manifest。
+- 2026-09-05T01:33+08:00 report task=3 status=DONE commit=e444bdff608af6b42f111aff850b7f2fb59a5c24 exact1=doc numstat=67/0 red=cmp-target-absent prototype-cmp=PASS exact3=371/400 base=PASS check-task-report=PASS clean=PASS。
+- 2026-09-05T01:34+08:00 review-dispatch task=3 round=1 reviewer=review_05_task3 model=gpt-5.6-terra/high artifact=`review-75221708-e444bdff.md` tasks=3。
+- 2026-09-05T01:39+08:00 review task=3 round=1 result=FAIL reviewer=review_05_task3 blocking=0 important=1 minor=0；I1为contract首段未明确写real mode拒绝`--allow-skip`，R1实现虽正确但R8单一文档CLI优先级有歧义。
+- 裁定: 采纳I1，由原实现者在final doc和approved prototype同一行补明确reject谓词，保持67行/exact3=371并更新design中的prototype hash；任务3单提交amend后由原reviewer只审修复增量。依据：这是既有R1/R8的文档澄清、无接口或范围扩大；如果错了代价是什么：prototype hash和任务3提交会变化，但仅需回退一行文档与一处证据hash，provider行为不受影响。
+- 2026-09-05T01:45+08:00 fix task=3 round=1 new-commit=9e5edb45a3048e4c208e2d7fe135639768cc87db doc-sha=a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2 lines=67 exact3=371 prototype-cmp/base/check-task-report/clean=PASS；review round=2 result=PASS reviewer=review_05_task3 B0/I0/M0，结构化diff review policy rc0。
+- 任务 3: 完成 — commit=9e5edb45a3048e4c208e2d7fe135639768cc87db review=PASS manifest-seq=3 artifact=`review-75221708-9e5edb45.md`。
+- 2026-09-05T01:46+08:00 dispatch task=4 model=gpt-5.6-terra/high base=head=9e5edb45a3048e4c208e2d7fe135639768cc87db brief=`work/2026-09-04-05-verifier-contract/task-4-brief.md`；零源码delta，controller独占ledger与review-manifest。
+- 裁定: 上轮会话中断后任务4原执行者不可恢复，仅留下合法red证据、无报告且worktree HEAD/clean未变；改派全新执行者复核red并继续candidate审计，不重派任务1–3。依据：ledger无`任务 4: 完成`锚点且git无新delta；如果错了代价是什么：任务4只读门可能被重复执行一次，但不会产生或遗漏源码变更。
+- 2026-09-05T01:58+08:00 report task=4 status=DONE head=9e5edb45a3048e4c208e2d7fe135639768cc87db source-delta=0 candidate-contract=PASS offline=PASS fixed-static=PASS exact3=371 diff-check=PASS clean=PASS check-task-report=PASS；会话中断遗留repo外临时目录已由接续执行者核前缀后清理。
+- 2026-09-05T01:59+08:00 review-dispatch task=4 round=1 reviewer=review_05_task4 model=gpt-5.6-terra/high artifact=`review-9e5edb45-9e5edb45.md` tasks=4。
+- 2026-09-05T02:03+08:00 review task=4 round=1 result=PASS reviewer=review_05_task4 blocking=0 important=0 minor=0；candidate证据、零源码delta与R9/R10边界通过，full/depth-1和rollback保持后续任务所有权；结构化diff review policy rc0。
+- 任务 4: 完成 — accepted-head=9e5edb45a3048e4c208e2d7fe135639768cc87db source-delta=0 review=PASS manifest-seq=4 artifact=`review-9e5edb45-9e5edb45.md`。
+- 2026-09-05T02:04+08:00 dispatch task=5 model=gpt-5.6-terra/high base=head=9e5edb45a3048e4c208e2d7fe135639768cc87db accepted-head=same brief=`work/2026-09-04-05-verifier-contract/task-5-brief.md`；零源码delta，controller独占ledger与review-manifest。
+- 2026-09-05T02:09+08:00 report task=5 status=DONE source-delta=0 accepted-head=9e5edb45a3048e4c208e2d7fe135639768cc87db full=PASS depth1=PASS count=1 shallow-marker=present contract/offline/exact3/clean=PASS cleanup=PASS check-task-report=PASS。
+- 2026-09-05T02:10+08:00 review-dispatch task=5 round=1 reviewer=review_05_task5 model=gpt-5.6-terra/high artifact=`review-9e5edb45-9e5edb45.md` tasks=5。
+- 2026-09-05T02:13+08:00 review task=5 round=1 result=PASS reviewer=review_05_task5 blocking=0 important=0 minor=0；真实file:// full/depth-1、accepted HEAD、单commit/shallow marker、两门输出、exact3/clean和repo外清理证据通过，结构化diff review policy rc0。
+- 任务 5: 完成 — head=9e5edb45a3048e4c208e2d7fe135639768cc87db source-delta=0 review=PASS manifest-seq=5 artifact=`review-9e5edb45-9e5edb45.md`。
+- 2026-09-05T02:14+08:00 dispatch task=6 model=gpt-5.6-terra/high base=head=9e5edb45a3048e4c208e2d7fe135639768cc87db accepted-head=same brief=`work/2026-09-04-05-verifier-contract/task-6-brief.md`；零源码delta、rollback/NEXT/terminal，controller独占ledger与manifest最终行。
+- 2026-09-05T02:22+08:00 report task=6 status=DONE source-delta=0 rollback-zero-diff=PASS regressions=7/7-PASS NEXT-absence=PASS requirements-mechanics=5/5-PASS converge=PASS final-contract=PASS cleanup=PASS check-task-report=PASS；acceptance草稿已生成。
+- 2026-09-05T02:23+08:00 review-dispatch task=6 round=1 reviewer=review_05_task6 model=gpt-5.6-astra/high artifact=`review-9e5edb45-9e5edb45.md` tasks=6。
+- 2026-09-05T02:33+08:00 review-evidence-followup task=6；reviewer指出报告仅有摘要、无法审计rollback/NEXT/converge命令，原执行者重跑并保留`evidence/task-6-green.txt` 9121 bytes SHA256=d45cf2343db20fa803b47c4cd1baa1e663a58dc36f37a057b44f1c5d8048ca16，源码HEAD未变。
+- 2026-09-05T02:36+08:00 review task=6 round=1 result=PASS reviewer=review_05_task6 blocking=0 important=0 minor=0；原始日志绑定rollback零diff、7回归、controller NEXT、5机械门、隔离converge、双temp清理与final contract，结构化diff review policy rc0。
+- 任务 6: 完成 — head=9e5edb45a3048e4c208e2d7fe135639768cc87db source-delta=0 review=PASS manifest-seq=6 artifact=`review-9e5edb45-9e5edb45.md`。
+- 裁定: accept阶段直接从implementation worktree或controller根运行`check-converge.py`均因tasks中的字面`$WORK`验收资产路径正确fail closed；沿用任务6已独立review通过的隔离fixture，只在repo外clone中把`$WORK`展开为同一repo-relative work路径并复制恰20个声明资产，checker rc0后物理删除fixture。依据：tasks reviewer接受`$WORK`简写但checker不展开变量，生产tasks和源码不应在验收期改写；如果错了代价是什么：可能掩盖真实验收资产断链，因此fixture先核20个精确普通文件且不复制未声明green/review资产，最终由manifest/ledger另行独立核验。
+- 裁定: full与depth-1首次并行offline时full以`FAIL path TMP missing base: fixture changed`失败而depth-1通过，证明套件共享fixture不支持并行；废弃该轮结果并分别串行重跑full和depth-1，两者均contract/offline/exact3/clean PASS。依据：串行是tasks明示顺序且两次repo外clone独立、失败轮全部临时树已清理；如果错了代价是什么：只增加约两分钟验收时间，不放宽任何判据或接受失败结果。
+- 2026-09-05T13:08+08:00 controller-accept-rerun result=PASS accepted-head=9e5edb45a3048e4c208e2d7fe135639768cc87db；closeout-evidence七节、candidate contract/offline、fixed shfmt/ShellCheck/bash-n、prototype cmp、exact3=371、protected paths、六行manifest、六机械门、isolated converge、full/depth-1、rollback七回归、NEXT六片缺席、diff-check与clean均在本轮实跑退出0；SKIPPED=无，挂账findings=无。
+- 裁定: task6独立review要求补出的`evidence/task-6-green.txt`已被report引用但原tasks资产清单只声明red；在accept阶段把green加入任务6验收资产并重生成同任务brief，交原reviewer范围受限复核，source exact3与accepted HEAD不变。依据：closeout只允许引用tasks精确声明的work/evidence路径；如果错了代价是什么：增加一个9121-byte审计资产与一次brief/review更新，但不会改变产品代码、判据或回滚边界。
+- 2026-09-05T13:16+08:00 accept-evidence-declaration result=PASS；task6 reviewer round2与fresh tasks reviewer均B0/I0/M0，current tasks agent+human/autopilot review policy rc0；最终隔离`check-converge.py`按current声明复制21个验收资产（含green）rc0并物理清理，替代上轮20资产结果。
+- 2026-09-05T13:24+08:00 acceptance-review result=PASS reviewer=review_05_acceptance blocking=0 important=0 minor=0；21资产converge与strict INCOMPLETE rc2补证闭合，七节、六块、七条裁定、R1-R10/四不变量、六行manifest、exact3=371和四路验收一致。
+- 2026-09-05T13:24+08:00 自动通过: 门⑤ — 依据：autopilot：controller本轮重跑candidate/full/depth-1/rollback/NEXT/current-21-assets-converge与固定机械门全PASS；R1-R10和四不变量逐条闭合，独立acceptance review B0/I0/M0，无SKIPPED或挂账finding
+- 裁定: 当前统一ordinary producer只从source worktree读取ledger并同时要求source status clean，但执行期ledger按controller独占保存在主工作树；发布前独立核source ledger逐字等于HEAD且该路径无既有`assume-unchanged`，再仅临时镜像规范worktree header与唯一execute行并对这一已知路径设flag，退出/中断trap必须反向apply_patch恢复HEAD字节、清flag并复核全source clean。producer的clean只能覆盖ledger以外路径，ledger由上述独立检查补偿；producer可能已在返回前快进main，若后置恢复失败不得自动回滚main，必须保留feature worktree/branch并报告partial publish状态。依据：不改写accepted commit、不扩大exact3，同时仍用原producer核main锁、分支绑定和BASE；如果错了代价是什么：main可能已快进而source留下ledger/index临时态，需要人工按已记录HEAD字节恢复后才能清理，不能把保留feature误报为未发布。
+- 2026-09-05T13:37+08:00 acceptance-publish-decision-review result=PASS reviewer=review_05_acceptance round=3 blocking=0 important=0 minor=0；第8条已逐字复核，r2关于clean例外与partial publish风险披露的I1闭合。
+- 2026-09-05T13:38+08:00 publish result=PASS mode=ordinary main-before=65d67b52e5b34d0d9d2add587083ebf2fadcd3ea main-after=9e5edb45a3048e4c208e2d7fe135639768cc87db；统一producer `git merge --ff-only`成功，临时source ledger字节恢复HEAD、assume标志清除、source clean，feature worktree与branch非强制清理完成，未push。
+- 2026-09-05T13:39+08:00 post-merge result=PASS；main专项`tests/test-verifier-contract.sh`与`scripts/check.sh --offline`均exit 0，末行分别为固定contract PASS与`RESULT PASS  aosp-harness offline quality gate`；执行证据已提交`4b8452ed6614d4cc9ece7ea0ede1898d519438da`。

@@ -151,7 +151,7 @@ sequenceDiagram
 | 端到端 | candidate/full/depth-1的contract+offline；exact rollback的01/02/04/04a与三旧入口回归 | Bash、`git clone --depth 1 file://`、controller脚本 |
 | 性能 | 不适用：本片无性能SLO；只禁止真实设备与网络，运行时长记原始证据但不作验收阈值 | `/usr/bin/time`可选记录，不进入成败判据 |
 
-门③ runnable core prototype 位于 `prototypes/`：fixed shfmt v3.14.0（`-i 2 -ci -bn`）、ShellCheck 0.11.0 warning、`bash -n`均通过；base test唯一输出固定PASS。三文件为provider 202行、doc 67行、test 102行，总churn 371/400；SHA-256依次为provider `56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d`、doc `d22c977c4d361a7ad7a949db33e6d93e73a7564752d9374cd9fa7be4bb3c2634`、test `2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160`。完整assurance由PLAN v6.1的05a门③另以runnable exact1≤400证明。
+门③ runnable core prototype 位于 `prototypes/`：fixed shfmt v3.14.0（`-i 2 -ci -bn`）、ShellCheck 0.11.0 warning、`bash -n`均通过；base test唯一输出固定PASS。三文件为provider 202行、doc 67行、test 102行，总churn 371/400；SHA-256依次为provider `56f696401ccf53db4c81aa47bcce1d61081639eace5cdba983aecf8af396500d`、doc `a383c4025971590a2b9afeff24a0310b1f1ffa89086218a691fc61d95fe2a0a2`、test `2c5b3b096cae5c2494b533afe108b3eb6386368d844345c5f03a362df7742160`。完整assurance由PLAN v6.1的05a门③另以runnable exact1≤400证明。
 
 ## 文件清单
 

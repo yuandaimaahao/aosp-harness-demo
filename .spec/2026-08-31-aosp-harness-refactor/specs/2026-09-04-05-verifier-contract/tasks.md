@@ -12,6 +12,7 @@
 产出: `verifier-base-test-v1`（`bash tests/test-verifier-contract.sh`成功唯一stdout为`RESULT PASS  verifier contract\n`）
 需求: R7, R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`bash tests/test-verifier-contract.sh`，确认红阶段因入口缺席返回127且无PASS，把命令、rc和双流sha256写入red证据。
 - [ ] 步骤 2: 核HEAD=`BASE_SHA`且clean；机械复制`$SPEC/prototypes/tests/test-verifier-contract.sh`到目标并保持100755，不手改runner、argv oracle或cleanup门。
@@ -26,6 +27,7 @@
 产出: `verifier-provider-v1`
 需求: R1, R2, R3, R4, R5, R6
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`cmp -s common/.harness/bin/verify-sidebar.sh "$SPEC/prototypes/common/.harness/bin/verify-sidebar.sh"`，确认红阶段因目标缺席失败并写red证据。
 - [ ] 步骤 2: 核HEAD为任务1 HEAD且clean；机械复制provider prototype到目标并保持100755，不改embedded Python或seam preflight。
@@ -40,6 +42,7 @@
 产出: `verifier-contract-v1`
 需求: R8
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 生成brief；运行`cmp -s docs/verifier-contract.md "$SPEC/prototypes/docs/verifier-contract.md"`，确认红阶段因目标缺席失败并写red证据。
 - [ ] 步骤 2: 核HEAD为任务2 HEAD且clean；机械复制doc prototype到目标，运行doc `cmp -s`与`wc -l`=67。
@@ -54,6 +57,7 @@
 产出: `verifier-accepted-head-v1`
 需求: R9, R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-4-report.md"`，确认报告缺席而失败并写red证据；核HEAD为任务3 HEAD且clean。
 - [ ] 步骤 2: 在candidate运行fixed tools、base test、offline gate、`git diff --check`、exact3/371与clean，核两个固定摘要并写报告。
@@ -67,6 +71,7 @@
 产出: `verifier-checkout-v1`
 需求: R9, R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-5-report.md"`，确认报告缺席而失败并写red证据；核HEAD=`ACCEPTED_HEAD`且clean。
 - [ ] 步骤 2: 在repo外临时目录做完整历史clone和真实`git clone --depth 1 file://...`，核HEAD一致、depth-1 count=1/shallow marker；两者运行base/offline并核exact3/clean，显式清理clone。
@@ -75,11 +80,12 @@
 ### 任务 6: 验证 rollback、NEXT 与终收敛
 
 文件: 无
-验收资产（不纳入源码文件清单）: 创建 `$WORK/task-6-brief.md` / 创建 `$WORK/evidence/task-6-red.txt` / 创建 `$WORK/task-6-report.md` / 修改 `$WORK/review-manifest.tsv` / 创建 `$WORK/acceptance/acceptance-report.md`
+验收资产（不纳入源码文件清单）: 创建 `$WORK/task-6-brief.md` / 创建 `$WORK/evidence/task-6-red.txt` / 创建 `$WORK/evidence/task-6-green.txt` / 创建 `$WORK/task-6-report.md` / 修改 `$WORK/review-manifest.tsv` / 创建 `$WORK/acceptance/acceptance-report.md`
 消费: `verifier-checkout-v1`
 产出: `bash ./tests/test-verifier-contract.sh`
 需求: R9, R10
 必需: 是
+状态: 完成
 
 - [ ] 步骤 1: 运行`test -s "$WORK/task-6-report.md"`，确认报告缺席而失败并写red证据；核HEAD=`ACCEPTED_HEAD`且clean。
 - [ ] 步骤 2: 隔离rollback clone删除exact3并提交，核相对BASE零diff；运行01/02/04/04a与三个旧verifier demo并核全PASS后显式清理。

@@ -1,12 +1,13 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: spec
+phase: retro
 phase_status: in_progress
-basis: 门④ autopilot：六任务边界、red/green、独立review、exact3/371、四路验收与NEXT门经reuse reviewer最终PASS，机械检查全绿
-updated: '2026-09-05T01:03:43+08:00'
-current_spec: 2026-09-04-05-verifier-contract
-spec_stage: execute
+basis: 05验收通过：accepted HEAD 9e5edb45 exact3=371，六任务manifest与四路验收全PASS，已FF合入main且post-merge
+  offline通过
+updated: '2026-09-05T13:34:56+08:00'
+current_spec: null
+spec_stage: null
 mode: standard
 workflow: requirements-first
 ---
@@ -155,6 +156,8 @@ workflow: requirements-first
 | 2026-09-04T23:59:34+08:00 | spec/requirements | spec/design | 门② autopilot：requirements round3与PLAN v6.0增量review PASS，B/I/M=0/0/0；check-plan/check-req/check-criteria/check-analyze/diff-check及review policy全通过 |
 | 2026-09-05T00:56:25+08:00 | spec/design | spec/tasks | 门③ autopilot：PLAN v6.1/requirements scope review PASS，design fresh+reuse reviewer最终PASS B0/I0/M0，exact3 runnable prototype 371/400及全部机械门全绿 |
 | 2026-09-05T01:03:43+08:00 | spec/tasks | spec/execute | 门④ autopilot：六任务边界、red/green、独立review、exact3/371、四路验收与NEXT门经reuse reviewer最终PASS，机械检查全绿 |
+| 2026-09-05T12:54:10+08:00 | spec/execute | spec/accept | 六任务全部有红阶段证据、实现报告和独立diff review最终PASS；六行manifest连续，accepted HEAD 9e5edb45，candidate/full/depth-1/rollback/NEXT/converge全绿 |
+| 2026-09-05T13:34:56+08:00 | spec/accept | retro | 05验收通过：accepted HEAD 9e5edb45 exact3=371，六任务manifest与四路验收全PASS，已FF合入main且post-merge offline通过 |
 
 ## SKIPPED 记录
 
