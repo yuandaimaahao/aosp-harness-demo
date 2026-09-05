@@ -40,3 +40,4 @@
 - 2026-09-05T17:32+08:00 post-merge result=PASS main=ada8db0c76659ab72b336f0276e9d334d0095ecf；assurance rc0/stdout41/stderr0，05 base rc0/stderr0，offline rc0/stderr0/固定末行，主干除本spec work归档前路径外clean。
 - 2026-09-05T17:32+08:00 cleanup result=PASS；开发分支祖先核验后ordinary worktree无force移除、feature branch以`git branch -d`删除，两个目标均物理/引用缺席。
 - 2026-09-05T17:34+08:00 archive result=PASS commit=edf1fc2a8fcce99436df779b812a135d70827fcc；提交路径逐字仅本spec `work/2026-09-05-05a-verifier-contract-assurance/` 21个证据文件。
+- 2026-09-05T17:36+08:00 retro result=no-change；五问均否：05a未推翻06/07/08/09/10前提，未暴露计划外工作，后续P1-P5规模判断未因本片证据改变，依赖顺序仍为06→07→08→09→10且07可先于06但按既定序串行，亦无当前上下文无法回答的新问题。review的M2已在post-review证据补齐，不要求PLAN变更。

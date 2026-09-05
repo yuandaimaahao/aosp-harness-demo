@@ -1,10 +1,10 @@
 ---
 project: 2026-08-31-aosp-harness-refactor
 kind: large
-phase: retro
+phase: select
 phase_status: in_progress
-basis: 05a验收、本地主干发布、post-merge回归、work归档与清理全部完成
-updated: '2026-09-05T17:31:46+08:00'
+basis: 05a复盘五问均否：无计划变更，选择下一个spec
+updated: '2026-09-05T17:32:08+08:00'
 current_spec: null
 spec_stage: null
 mode: standard
@@ -164,6 +164,7 @@ workflow: requirements-first
 | 2026-09-05T16:08:13+08:00 | spec/tasks | spec/execute | 门④：tasks机械门PASS；quick独立审查PASS B0/I0/M0；用户已授权全部spec autopilot连续执行 |
 | 2026-09-05T17:10:39+08:00 | spec/execute | spec/accept | 三个串行任务完成；独立diff review均PASS；三行manifest、active/full/depth-1/rollback/offline/converge/NEXT复核全绿 |
 | 2026-09-05T17:31:46+08:00 | spec/accept | retro | 05a验收、本地主干发布、post-merge回归、work归档与清理全部完成 |
+| 2026-09-05T17:32:08+08:00 | retro | select | 05a复盘五问均否：无计划变更，选择下一个spec |
 
 ## SKIPPED 记录
 
