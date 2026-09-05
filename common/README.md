@@ -1,5 +1,7 @@
 # Claude Code + Codex 共用 Harness Demo
 
+> 新的稳定入口：`.harness/bin/harness-resolve-contract` 解析客户端/feature registry，`.harness/bin/harness-client-launch` 组合 session state 与 workspace lease，`.harness/bin/harness-verify` 组合 canonical verifier 与带超时/重试的 query runner。旧 adapter 路径继续作为兼容入口。
+
 这个目录模拟一个真实 AOSP 树根：公共层放在 .harness/，Claude Code 和
 Codex 各自只保留适配层。它解决的是“一个项目中如何同步两个 Harness 工程”，
 而不是把两个客户端配置文件强行做成同一份。
